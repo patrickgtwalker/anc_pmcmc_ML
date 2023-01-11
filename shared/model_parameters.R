@@ -1,7 +1,5 @@
 #Edits- from original model:
 # Removed intervention components (formerly num_int, indexed as 'k')
-# Added parameters needed to calculate MiP exposure history
-#     REQUIRES 'MZ_multi_rates.rds' - Pregnancy history rates
 
 #------------------------------------------------
 #' Model Parameter List Creation
@@ -282,16 +280,16 @@ model_param_list_create <- function(
   mp_list$lambda <- -0.5 * mp_list$b_lambda +
     sqrt(0.25 * mp_list$b_lambda^2 + gammaL * betaL * muLL * dEL/(2 * muEL * mu0 * dLL * (1 + dPL * muPL)))
 
-  # Fertility parameters
-  #Gravidity inputs
-  MZ_multi_rates <- readRDS('MiP-given/MZ_multi_rates.rds')
-  MZ_multi_rates <- MZ_multi_rates[,-ncol(MZ_multi_rates)]
-  mp_list$time_brackets<-c(seq(6,420,by=6))
-  mp_list$time_diffs<-(mp_list$time_brackets[2:length(mp_list$time_brackets)]-mp_list$time_brackets[1:(length(mp_list$time_brackets)-1)])/12*365
-  mp_list$wane_rates <- 0.001
-  mp_list$nrates <- length(mp_list$time_diffs)
-  mp_list$sample_transition_rates <- 1/mp_list$time_diffs
-  mp_list$sample_rates <- colSums(MZ_multi_rates)
+  # # Fertility parameters
+  # #Gravidity inputs
+  # MZ_multi_rates <- readRDS('MiP-given/MZ_multi_rates.rds')
+  # MZ_multi_rates <- MZ_multi_rates[,-ncol(MZ_multi_rates)]
+  # mp_list$time_brackets<-c(seq(6,420,by=6))
+  # mp_list$time_diffs<-(mp_list$time_brackets[2:length(mp_list$time_brackets)]-mp_list$time_brackets[1:(length(mp_list$time_brackets)-1)])/12*365
+  # mp_list$wane_rates <- 0.001
+  # mp_list$nrates <- length(mp_list$time_diffs)
+  # mp_list$sample_transition_rates <- 1/mp_list$time_diffs
+  # mp_list$sample_rates <- colSums(MZ_multi_rates)
 
   # ITN/IRS parameters
   # mp_list$itn_cov <- itn_cov
