@@ -1,0 +1,10 @@
+addCIs_inc<-function(df,Ys,Ns){
+  df$mean<-NA
+  df$upper<-NA
+  df$lower<-NA
+  CIs<-pois.exact(Ys,Ns)
+  df$mean[Ns>0]<-CIs$rate[Ns>0]*10000
+  df$upper[Ns>0]<-CIs$upper[Ns>0]*10000
+  df$lower[Ns>0]<-CIs$lower[Ns>0]*10000
+  return(df)
+}
