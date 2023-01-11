@@ -11,26 +11,20 @@ library(ggplot2)
 library(bayesplot)
 
 ##Generate simulated data##
-source('data_gen.R')
-source('model_parameters.R')
-source('equilibrium-init-create-stripped.R')
+source('sim/data_gen.R')
+source('shared/model_parameters.R')
+source('shared/equilibrium-init-create-stripped.R')
 
+windows(10,8)
 data_sim_comptest <- data_gen(EIR_volatility = 0.8, init_EIR = 20)
-keep <- data_sim_comptest
-keep2 <- data_sim_comptest
-keep3 <- data_sim_comptest
-plot(keep$EIR_true)
-plot(keep2$EIR_true)
-plot(keep3$EIR_true)
+plot(data_sim_comptest$EIR_true)
 
-saveRDS(keep,'sim_datasets/data_sim1.RDS')
-saveRDS(keep2,'sim_datasets/data_sim2.RDS')
-saveRDS(keep3,'sim_datasets/data_sim3.RDS')
-
-data_sim_comptest3 <- readRDS('sim_datasets/data_sim3.RDS')
+##Three previously run simulated data sets are saved in the folder
+## 'anc_pmcmc/sim/sim_datasets
+data_sim_comptest3 <- readRDS('sim/sim_datasets/data_sim3.RDS')
 
 ##Test run_pmcmc function##
-source('run_pmcmc.R')
+source('sim/run_pmcmc.R')
 test_run <- run_pmcmc(data = data_sim_comptest3,
                       n_particles = 10,
                       proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),

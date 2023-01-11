@@ -1,7 +1,7 @@
 data_gen <- function(EIR_volatility,
                      init_EIR=100,
                      max_EIR=1000,
-                     model_file="odin_model_stripped_matched.R"){
+                     model_file="shared/odin_model_stripped_matched.R"){
 cat('EIR_vol = ',EIR_volatility,' init_EIR = ',init_EIR,'\n')
 init_age <- c(0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 3.5, 5, 7.5, 10, 15, 20, 30, 40, 50, 60, 70, 80)
 
