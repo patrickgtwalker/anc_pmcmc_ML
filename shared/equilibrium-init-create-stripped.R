@@ -26,7 +26,7 @@
 
 equilibrium_init_create_stripped <- function(age_vector, het_brackets,
                                              country = NULL, admin_unit = NULL, ft,
-                                             EIR, model_param_list)
+                                             EIR, model_param_list, state_check = FALSE)
 {
   
   # mpl is shorter :)
@@ -284,6 +284,45 @@ equilibrium_init_create_stripped <- function(age_vector, het_brackets,
               age_mid_point = age_mid_point, het_bounds = het_bounds,
               age20l = age20l, age20u = age20u, age_20_factor = age_20_factor)
   
+  ##Check that equilibrium solution produces an equilibrium for 
+  ##the desired model
+  if(state_check==TRUE){
+    H <- sum(S_eq) + sum(T_eq) + sum(D_eq) + sum(A_eq) + sum(U_eq) + sum(P_eq)
+
+    deriv_S1 <- -FOI_eq[1,]*S_eq[1,] + mpl$rP*P_eq[1,] + mpl$rU*U_eq[1,] +
+      mpl$eta*H*het_wt - (mpl$eta+age_rate[1])*S_eq[1,]
+    deriv_S2 <- -FOI_eq[2,]*S_eq[2,] + mpl$rP*P_eq[2,] + mpl$rU*U_eq[2,] - (mpl$eta+age_rate[2])*S_eq[2,] + age_rate[1]*S_eq[1,]
+    # deriv(S[2:na, 1:nh]) <- -FOI[i,j]*S[i,j] + rP*P[i,j] + rU*U[i,j] -
+    #   (eta+age_rate[i])*S[i,j] + age_rate[i-1]*S[i-1,j]
+    phi <- mpl$phi0*((1-mpl$phi1)/(1+((ICM_eq+ICA_eq)/mpl$IC0)^mpl$kC) + mpl$phi1)
+    phi = array(phi, c(na, nh))
+    
+    clin_inc <- phi*FOI_eq*Y_eq
+    clin_inc = array(clin_inc, c(na, nh))
+    
+    deriv_D1 <- (1-ft)*clin_inc[1,] - mpl$rD*D_eq[1,] -
+      (mpl$eta+age_rate[1])*D_eq[1,]
+    # deriv(D[1, 1:nh]) <- (1-ft)*clin_inc[i,j] - rD*D[i,j] -
+    #   (eta+age_rate[i])*D[i,j]
+    deriv_A1 <- (1-phi[1,])*FOI_eq[1,]*Y_eq[1,] - FOI_eq[1,]*A_eq[1,] +
+      mpl$rD*D_eq[1,] - mpl$rA*A_eq[1,] - (mpl$eta+age_rate[1])*A_eq[1,]
+    # deriv(A[2:na, 1:nh]) <- (1-phi[i,j])*FOI[i,j]*Y[i,j] - FOI[i,j]*A[i,j] +
+    #   rD*D[i,j] - rA*A[i,j] - (eta+age_rate[i])*A[i,j] + age_rate[i-1]*A[i-1,j]
+    deriv_ICA2 <- FOI_eq[2,]/(FOI_eq[2,] * mpl$uCA + 1) - 1/mpl$dCA*ICA_eq[2,] - (ICA_eq[2,]-ICA_eq[1,])/x_I[2]
+    # deriv(ICA[2:na, 1:nh]) <- FOI[i,j]/(FOI[i,j] * uCA + 1) - 1/dCA*ICA[i,j] - (ICA[i,j]-ICA[i-1,j])/x_I[i]
+    deriv_IB3 <- EIR_eq[3,]/(EIR_eq[3,]* mpl$uB + 1) - IB_eq[3,]/mpl$dB - (IB_eq[3,]-IB_eq[2,])/x_I[3]
+    # deriv(IB[2:na, 1:nh]) <- EIR[i,j]/(EIR[i,j]* uB + 1) - IB[i,j]/dB - (IB[i,j]-IB[i-1,j])/x_I[i]
+    deriv_ID4 <- FOI_eq[4,]/(FOI_eq[4,]*mpl$uD + 1) - ID_eq[4,]/mpl$dID - (ID_eq[4,]-ID_eq[3,])/x_I[4]
+    # deriv(ID[2:na, 1:nh]) <- FOI[i,j]/(FOI[i,j]*uD + 1) - ID[i,j]/dID - (ID[i,j]-ID[i-1,j])/x_I[i]
+
+    cat('S[1,] derivative = ',deriv_S1,'\n')
+    cat('S[2,] derivative = ',deriv_S2,'\n')
+    cat('D[1,] derivative = ',deriv_D1,'\n')
+    cat('A[1,] derivative = ',deriv_A1,'\n')
+    cat('ICA[2,] derivative = ',deriv_ICA2,'\n')
+    cat('IB[3,] derivative = ',deriv_IB3,'\n')
+    cat('ID[4,] derivative = ',deriv_ID4,'\n')
+  }
   res <- append(res,mpl)
   
   return(res)
