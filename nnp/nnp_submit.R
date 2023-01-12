@@ -19,24 +19,6 @@ source('shared/model_parameters.R')
 source('shared/equilibrium-init-create-stripped.R')
 
 ##Import NNP data (incomplete data sets)
-##All
-data_raw_ng_asa <- readRDS('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Analysis/nnp_explor/data_raw_NG_asa.RDS')
-data_raw_ng_ifenorth <- readRDS('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Analysis/nnp_explor/data_raw_NG_ifenorth.RDS')
-data_raw_ng_ejigbo <- readRDS('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Analysis/nnp_explor/data_raw_NG_ejigbo.RDS')
-data_raw_ng_moro <- readRDS('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Analysis/nnp_explor/data_raw_NG_moro.RDS')
-
-data_raw_bf_banfora <- readRDS('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Analysis/nnp_explor/data_raw_BF_banfora.RDS')
-data_raw_bf_orodara <- readRDS('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Analysis/nnp_explor/data_raw_BF_orodara.RDS')
-data_raw_bf_gaoua <- readRDS('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Analysis/nnp_explor/data_raw_BF_gaoua.RDS')
-
-data_raw_mz_guro <- readRDS('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Analysis/nnp_explor/data_raw_MZ_guro.RDS')
-data_raw_mz_chemba <- readRDS('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Analysis/nnp_explor/data_raw_MZ_chemba.RDS')
-data_raw_mz_changara <- readRDS('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Analysis/nnp_explor/data_raw_MZ_changara.RDS')
-
-nnp_list <- list(data_raw_bf_banfora,data_raw_bf_gaoua,data_raw_bf_orodara,
-                 data_raw_mz_changara,data_raw_mz_chemba,data_raw_mz_guro,
-                 data_raw_ng_asa,data_raw_ng_ejigbo,data_raw_ng_ifenorth,data_raw_ng_moro)
-
 ##Primigrav
 data_raw_ng_pg_asa <- readRDS('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Analysis/nnp_explor/data_raw_ng_pg_asa.RDS')
 data_raw_ng_pg_ifenorth <- readRDS('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Analysis/nnp_explor/data_raw_ng_pg_ifenorth.RDS')
@@ -81,24 +63,6 @@ ctx <- context::context_save("T:/jth/contexts", sources = sources,
 config_16 <- didehpc::didehpc_config(cores = 16, parallel = TRUE)
 obj_16 <- didehpc::queue_didehpc(ctx,config = config_16)
 obj_16$login()
-
-##Fitting all gravidity NNP as <5 yo prevalence
-nnp_all_bulk <- obj_16$enqueue_bulk(1:10, function(i,data_site){
-  run_pmcmc(data = data_site[[i]],
-            n_particles = 200,
-            proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
-            max_EIR=1000,
-            max_steps = 1e7,
-            atol = 1e-5,
-            rtol = 1e-6,
-            n_steps = 1000,
-            n_threads = 16)
-  },data_site=nnp_list)
-
-nnp_all_result_list <- lapply(1:10, function(id){
-  nnp_all_bulk$tasks[[id]]$result()
-})
-
 
 ##Fit to primigrav data to <5 yo
 nnp_pg_bulk <- obj_16$enqueue_bulk(1:10, function(i,data_site){

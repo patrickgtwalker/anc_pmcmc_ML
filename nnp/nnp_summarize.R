@@ -143,54 +143,15 @@ create_prev_plots <- function(results,data_list=nnp_list,country=c('BF','MZ','NG
 }
 
 ##Prev plots
-BF_prev <- create_prev_plots(results = nnp_result_list,country='BF')
-MZ_prev <- create_prev_plots(results = nnp_result_list,country='MZ')
-NG_prev <- create_prev_plots(results = nnp_result_list,country='NG')
-BF_prev_aa <- create_prev_plots(results = nnp_result_list_aa,country='BF')
-MZ_prev_aa <- create_prev_plots(results = nnp_result_list_aa,country='MZ')
-NG_prev_aa <- create_prev_plots(results = nnp_result_list_aa,country='NG')
-
 BF_prev_pg <- create_prev_plots(results = nnp_pg_result_list,data_list=nnp_pg_list,country='BF')
 MZ_prev_pg <- create_prev_plots(results = nnp_pg_result_list,data_list=nnp_pg_list,country='MZ')
 NG_prev_pg <- create_prev_plots(results = nnp_pg_result_list,data_list=nnp_pg_list,country='NG')
 
-BF_prev_pgcorr <- create_prev_plots(results = nnp_pgcorr_result_list,data_list=nnp_pg_list,country='BF')
-MZ_prev_pgcorr <- create_prev_plots(results = nnp_pgcorr_result_list,data_list=nnp_pg_list,country='MZ')
-NG_prev_pgcorr <- create_prev_plots(results = nnp_pgcorr_result_list,data_list=nnp_pg_list,country='NG')
-
-BF_prev_pgvol <- create_prev_plots(results = nnp_pgvol_result_list,data_list=nnp_pg_list,country='BF')
-MZ_prev_pgvol <- create_prev_plots(results = nnp_pgvol_result_list,data_list=nnp_pg_list,country='MZ')
-NG_prev_pgvol <- create_prev_plots(results = nnp_pgvol_result_list,data_list=nnp_pg_list,country='NG')
-
-BF_prev_pgvol
-NG_prev_pgvol
-BF_prev_pgseas <- create_prev_plots(results = nnp_pgseas_result_list,data_list=nnp_pg_list,country='BF')
-MZ_prev_pgseas <- create_prev_plots(results = nnp_pgseas_result_list,data_list=nnp_pg_list,country='MZ')
-NG_prev_pgseas <- create_prev_plots(results = nnp_pgseas_result_list,data_list=nnp_pg_list,country='NG')
-
-windows(7,5)
 windows(10,7)
-BF_prev
-MZ_prev
-NG_prev
 BF_prev_pg
 MZ_prev_pg
 NG_prev_pg
-BF_prev_pgcorr
-MZ_prev_pgcorr
-NG_prev_pgcorr
 
-windows(10,5)
-BF_prev_aa + BF_prev
-MZ_prev_aa + MZ_prev
-NG_prev_aa + NG_prev
-BF_prev_pg+BF_prev_pgcorr
-MZ_prev_pg+MZ_prev_pgcorr
-NG_prev_pg+NG_prev_pgcorr
-
-BF_prev+BF_prev_pgvol
-MZ_prev+MZ_prev_pgvol
-NG_prev+NG_prev_pgvol
 
 ##Inc and EIR plots
 create_inc_plots <- function(results,country=c('BF','MZ','NG')){
@@ -291,39 +252,14 @@ create_inc_plots <- function(results,country=c('BF','MZ','NG')){
   inc_plot
 }
 
-BF_inc_aa <- create_inc_plots(results = nnp_result_list_aa,country='BF')
-MZ_inc_aa <- create_inc_plots(results = nnp_result_list_aa,country='MZ')
-NG_inc_aa <- create_inc_plots(results = nnp_result_list_aa,country='NG')
-BF_inc <- create_inc_plots(results = nnp_result_list,country='BF')
-MZ_inc <- create_inc_plots(results = nnp_result_list,country='MZ')
-NG_inc <- create_inc_plots(results = nnp_result_list,country='NG')
-
 BF_inc_pg <- create_inc_plots(results = nnp_pg_result_list,country='BF')
 MZ_inc_pg <- create_inc_plots(results = nnp_pg_result_list,country='MZ')
 NG_inc_pg <- create_inc_plots(results = nnp_pg_result_list,country='NG')
-BF_inc_pgcorr <- create_inc_plots(results = nnp_pgcorr_result_list,country='BF')
-MZ_inc_pgcorr <- create_inc_plots(results = nnp_pgcorr_result_list,country='MZ')
-NG_inc_pgcorr <- create_inc_plots(results = nnp_pgcorr_result_list,country='NG')
-BF_inc_pgvol <- create_inc_plots(results = nnp_pgvol_result_list,country='BF')
-MZ_inc_pgvol <- create_inc_plots(results = nnp_pgvol_result_list,country='MZ')
-NG_inc_pgvol <- create_inc_plots(results = nnp_pgvol_result_list,country='NG')
 
 windows(7,5)
-BF_inc
-MZ_inc
-NG_inc
-BF_inc_aa + BF_inc
-MZ_inc_aa + MZ_inc
-NG_inc_aa + NG_inc
-BF_inc_pg + BF_inc_pgcorr
-MZ_inc_pg + MZ_inc_pgcorr
-NG_inc_pg + NG_inc_pgcorr
-
-BF_inc + BF_inc_pgvol
-MZ_inc + MZ_inc_pgvol
-NG_inc + NG_inc_pgvol
-
-country <- 'MZ'
+BF_inc_pg
+MZ_inc_pg
+NG_inc_pg
 
 create_relinc_plots <- function(results,country=c('BF','MZ','NG')){
   district_list <- list(BF = c('Banfora','Gaoua','Orodara'),
@@ -372,29 +308,6 @@ create_relinc_plots <- function(results,country=c('BF','MZ','NG')){
     
   }
   
-  
-  # df_eir <- data.frame(time = integer(),
-  #                      median = numeric(),
-  #                      mean = numeric(),
-  #                      upper = numeric(),
-  #                      lower = numeric(),
-  #                      distrit = character())
-  # 
-  # for(i in start:(start+number-1)){
-  #   eir_history <- data.frame(t(results[[i]]$history['EIR', 51:1000, -1]))
-  #   long_eir_sum <- eir_history%>% mutate(t=c(1:nrow(eir_history)))%>%
-  #     melt(id='t')%>%
-  #     rename(time=t)%>%
-  #     group_by(time)%>%
-  #     summarise(median=median(value),
-  #               mean=mean(value),
-  #               upper=quantile(value,probs=0.975),
-  #               lower=quantile(value,probs=0.025))%>%
-  #     mutate(district = districts[[i-start+1]],
-  #            month = dates_list[[country]])
-  #   df_eir <- rbind(df_eir,long_eir_sum)
-  # }
-  # ratio <- 1.5 * max(df$upper)/max(df_eir$median)
   annotations <- list(
     BF = ggplot(df)+
       annotate("rect", xmin = as.Date('2020-9-1'), xmax = as.Date('2020-10-311'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")+
@@ -428,7 +341,6 @@ create_relinc_plots <- function(results,country=c('BF','MZ','NG')){
 create_relinc_plots(nnp_result_list,country='BF')
 create_relinc_plots(nnp_result_list,country='MZ')
 create_relinc_plots(nnp_result_list,country='NG')
-
 
 ##EIR plots
 create_eir_plots <- function(results,country=c('BF','MZ','NG')){
@@ -510,136 +422,119 @@ BF_eir_pg <- create_eir_plots(results = nnp_pg_result_list,country='BF')
 MZ_eir_pg <- create_eir_plots(results = nnp_pg_result_list,country='MZ')
 NG_eir_pg <- create_eir_plots(results = nnp_pg_result_list,country='NG')
 
-BF_eir_pgcorr <- create_eir_plots(results = nnp_pgcorr_result_list,country='BF')
-MZ_eir_pgcorr <- create_eir_plots(results = nnp_pgcorr_result_list,country='MZ')
-NG_eir_pgcorr <- create_eir_plots(results = nnp_pgcorr_result_list,country='NG')
-
-BF_eir_pgvol <- create_eir_plots(results = nnp_pgvol_result_list,country='BF')
-NG_eir_pgvol <- create_eir_plots(results = nnp_pgvol_result_list,country='NG')
-
-windows(15,5)
-BF_eir_pg + BF_eir_pgcorr
-MZ_eir_pg + MZ_eir_pgcorr
-NG_eir_pg + NG_eir_pgcorr
-
-BF_eir_pg + BF_eir_pgvol
-
-##Compare posterior distributions
-# Each country separately
-# Grab posterior distributions for each run type
-# Melt dataframe
-# Add variable, country name, and run type as new variable
-# rbind 4 different run types
-# Plot as violin plot (maybe ridge plot), variables as facets, run types as colors
-
-#Burkina Faso
-nnp_result_list_aa[1]
-names(nnp_result_list_aa)
-
-create_comp_plots <- function(aa,u5,pg,pgcorr,country=c('BF','MZ','NG')){
-  district_list <- list(BF = c('Banfora','Gaoua','Orodara'),
-                        MZ = c('Changara','Chemba','Guro'),
-                        NG = c('Asa','Ejigbo','Ife North','Moro'))
-  dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-5-1'),by='months'),
-                     MZ = seq(as.Date('2020-12-1'),as.Date('2021-9-1'),by='months'),
-                     NG = seq(as.Date('2020-11-1'),as.Date('2021-12-1'),by='months'))
-  colors <- c(`All ages` = "#1B9E77", `Under 5 years old` = "#999999", `Primigrav` = "#D95F02", `Primigrav Correlation` = "#377EB8")
-  
-  start_list <- c(BF = 1, MZ = 4, NG = 7)
-  number_list <- c(BF = 3, MZ = 3, NG = 4)
-  
-  districts <- district_list[[country]]
-  start <- start_list[[country]]
-  number <- number_list[[country]]
-
-  df <- data.frame(value = numeric(),
-                   variable = character(),
-                   run = character(),
-                   distrit = character())
-  aa[[1]]$mcmc
-##All ages results  
-  for(i in start:(start+number-1)){
-    mcmc <- data.frame(aa[[i]]$mcmc[51:1000,])
-    long_mcmc <- mcmc%>% mutate(step=c(1:nrow(mcmc)))%>%
-      melt(id='step')%>%
-      mutate(district = districts[[i-start+1]],
-             run = 'All ages')
-    df <- rbind(df,long_mcmc)
-    
-  }
-  ##Under 5 results  
-  for(i in start:(start+number-1)){
-    mcmc <- data.frame(u5[[i]]$mcmc[51:1000,])
-    long_mcmc <- mcmc%>% mutate(step=c(1:nrow(mcmc)))%>%
-      melt(id='step')%>%
-      mutate(district = districts[[i-start+1]],
-             run = 'Under 5 years old')
-    df <- rbind(df,long_mcmc)
-  }
-  ##Primigravs 
-  for(i in start:(start+number-1)){
-    mcmc <- data.frame(pg[[i]]$mcmc[51:1000,])
-    long_mcmc <- mcmc%>% mutate(step=c(1:nrow(mcmc)))%>%
-      melt(id='step')%>%
-      mutate(district = districts[[i-start+1]],
-             run = 'Primigrav')
-    df <- rbind(df,long_mcmc)
-  }
-  ##Primigravs 
-  for(i in start:(start+number-1)){
-    mcmc <- data.frame(pgcorr[[i]]$mcmc[51:1000,])
-    long_mcmc <- mcmc%>% mutate(step=c(1:nrow(mcmc)))%>%
-      melt(id='step')%>%
-      mutate(district = districts[[i-start+1]],
-             run = 'Primigrav Correlation')
-    df <- rbind(df,long_mcmc)
-  }
-  
-  df_out <- df%>%
-    mutate(run=factor(run,levels=c('All ages','Under 5 years old','Primigrav','Primigrav Correlation')),
-           value = ifelse(variable=='log_init_EIR',exp(value),value))
-  levels(df_out$variable)[levels(df_out$variable)=='log_init_EIR'] <- 'init_EIR'
-
-  comp_prior_plot <- ggplot(data=df_out[df_out$variable=='log_prior',])+
-    geom_violin(aes(x=district,y=value,fill=run))+
-    scale_fill_manual(values=colors)+
-    labs(y='Log Prior')+
-    facet_wrap(~district,scales='free_x')+
-    theme(axis.title.x = element_blank())
-  comp_likelihood_plot <- ggplot(data=df_out[df_out$variable=='log_likelihood',])+
-    geom_violin(aes(x=district,y=value,fill=run))+
-    scale_fill_manual(values=colors)+
-    labs(y='Log Likelihood')+
-    facet_wrap(~district,scales='free_x')+
-    theme(axis.title.x = element_blank())
-  comp_posterior_plot <- ggplot(data=df_out[df_out$variable=='log_posterior',])+
-    geom_violin(aes(x=district,y=value,fill=run))+
-    scale_fill_manual(values=colors)+
-    labs(y='Log Posterior')+
-    facet_wrap(~district,scales='free_x')+
-    theme(axis.title.x = element_blank())
-  
-  probs_plot <- comp_prior_plot/comp_likelihood_plot/comp_posterior_plot +  plot_layout(guides = "collect")
-  
-  comp_eirsd_plot <- ggplot(data=df_out[df_out$variable=='EIR_SD',])+
-    geom_violin(aes(x=district,y=value,fill=run))+
-    scale_fill_manual(values=colors)+
-    labs(y='EIR Volatility')+
-    facet_wrap(~district,scales='free_x')+
-    theme(axis.title.x = element_blank())
-  comp_eir_plot <- ggplot(data=df_out[df_out$variable=='init_EIR',])+
-    geom_violin(aes(x=district,y=value,fill=run))+
-    scale_fill_manual(values=colors)+
-    labs(y='Initial EIR')+
-    facet_wrap(~district,scales='free_x')+
-    scale_y_log10()+
-    theme(axis.title.x = element_blank())
-  params_plot <- comp_eirsd_plot/comp_eir_plot +  plot_layout(guides = "collect")
-}
-windows(10,15)
-bf_comp_plot <- create_comp_plots(aa=nnp_result_list_aa,u5=nnp_result_list,
-                                  pg=nnp_pg_result_list,pgcorr=nnp_pgcorr_result_list,
-                                  country = 'BF')
+# ##Compare posterior distributions
+# # Each country separately
+# # Grab posterior distributions for each run type
+# # Melt dataframe
+# # Add variable, country name, and run type as new variable
+# # rbind 4 different run types
+# # Plot as violin plot (maybe ridge plot), variables as facets, run types as colors
+# 
+# create_comp_plots <- function(aa,u5,pg,pgcorr,country=c('BF','MZ','NG')){
+#   district_list <- list(BF = c('Banfora','Gaoua','Orodara'),
+#                         MZ = c('Changara','Chemba','Guro'),
+#                         NG = c('Asa','Ejigbo','Ife North','Moro'))
+#   dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-5-1'),by='months'),
+#                      MZ = seq(as.Date('2020-12-1'),as.Date('2021-9-1'),by='months'),
+#                      NG = seq(as.Date('2020-11-1'),as.Date('2021-12-1'),by='months'))
+#   colors <- c(`All ages` = "#1B9E77", `Under 5 years old` = "#999999", `Primigrav` = "#D95F02", `Primigrav Correlation` = "#377EB8")
+#   
+#   start_list <- c(BF = 1, MZ = 4, NG = 7)
+#   number_list <- c(BF = 3, MZ = 3, NG = 4)
+#   
+#   districts <- district_list[[country]]
+#   start <- start_list[[country]]
+#   number <- number_list[[country]]
+# 
+#   df <- data.frame(value = numeric(),
+#                    variable = character(),
+#                    run = character(),
+#                    distrit = character())
+#   aa[[1]]$mcmc
+# ##All ages results  
+#   for(i in start:(start+number-1)){
+#     mcmc <- data.frame(aa[[i]]$mcmc[51:1000,])
+#     long_mcmc <- mcmc%>% mutate(step=c(1:nrow(mcmc)))%>%
+#       melt(id='step')%>%
+#       mutate(district = districts[[i-start+1]],
+#              run = 'All ages')
+#     df <- rbind(df,long_mcmc)
+#     
+#   }
+#   ##Under 5 results  
+#   for(i in start:(start+number-1)){
+#     mcmc <- data.frame(u5[[i]]$mcmc[51:1000,])
+#     long_mcmc <- mcmc%>% mutate(step=c(1:nrow(mcmc)))%>%
+#       melt(id='step')%>%
+#       mutate(district = districts[[i-start+1]],
+#              run = 'Under 5 years old')
+#     df <- rbind(df,long_mcmc)
+#   }
+#   ##Primigravs 
+#   for(i in start:(start+number-1)){
+#     mcmc <- data.frame(pg[[i]]$mcmc[51:1000,])
+#     long_mcmc <- mcmc%>% mutate(step=c(1:nrow(mcmc)))%>%
+#       melt(id='step')%>%
+#       mutate(district = districts[[i-start+1]],
+#              run = 'Primigrav')
+#     df <- rbind(df,long_mcmc)
+#   }
+#   ##Primigravs 
+#   for(i in start:(start+number-1)){
+#     mcmc <- data.frame(pgcorr[[i]]$mcmc[51:1000,])
+#     long_mcmc <- mcmc%>% mutate(step=c(1:nrow(mcmc)))%>%
+#       melt(id='step')%>%
+#       mutate(district = districts[[i-start+1]],
+#              run = 'Primigrav Correlation')
+#     df <- rbind(df,long_mcmc)
+#   }
+#   
+#   df_out <- df%>%
+#     mutate(run=factor(run,levels=c('All ages','Under 5 years old','Primigrav','Primigrav Correlation')),
+#            value = ifelse(variable=='log_init_EIR',exp(value),value))
+#   levels(df_out$variable)[levels(df_out$variable)=='log_init_EIR'] <- 'init_EIR'
+# 
+#   comp_prior_plot <- ggplot(data=df_out[df_out$variable=='log_prior',])+
+#     geom_violin(aes(x=district,y=value,fill=run))+
+#     scale_fill_manual(values=colors)+
+#     labs(y='Log Prior')+
+#     facet_wrap(~district,scales='free_x')+
+#     theme(axis.title.x = element_blank())
+#   comp_likelihood_plot <- ggplot(data=df_out[df_out$variable=='log_likelihood',])+
+#     geom_violin(aes(x=district,y=value,fill=run))+
+#     scale_fill_manual(values=colors)+
+#     labs(y='Log Likelihood')+
+#     facet_wrap(~district,scales='free_x')+
+#     theme(axis.title.x = element_blank())
+#   comp_posterior_plot <- ggplot(data=df_out[df_out$variable=='log_posterior',])+
+#     geom_violin(aes(x=district,y=value,fill=run))+
+#     scale_fill_manual(values=colors)+
+#     labs(y='Log Posterior')+
+#     facet_wrap(~district,scales='free_x')+
+#     theme(axis.title.x = element_blank())
+#   
+#   probs_plot <- comp_prior_plot/comp_likelihood_plot/comp_posterior_plot +  plot_layout(guides = "collect")
+#   
+#   comp_eirsd_plot <- ggplot(data=df_out[df_out$variable=='EIR_SD',])+
+#     geom_violin(aes(x=district,y=value,fill=run))+
+#     scale_fill_manual(values=colors)+
+#     labs(y='EIR Volatility')+
+#     facet_wrap(~district,scales='free_x')+
+#     theme(axis.title.x = element_blank())
+#   comp_eir_plot <- ggplot(data=df_out[df_out$variable=='init_EIR',])+
+#     geom_violin(aes(x=district,y=value,fill=run))+
+#     scale_fill_manual(values=colors)+
+#     labs(y='Initial EIR')+
+#     facet_wrap(~district,scales='free_x')+
+#     scale_y_log10()+
+#     theme(axis.title.x = element_blank())
+#   params_plot <- comp_eirsd_plot/comp_eir_plot +  plot_layout(guides = "collect")
+# }
+# #Burkina Faso
+# windows(10,15)
+# bf_comp_plot <- create_comp_plots(aa=nnp_result_list_aa,u5=nnp_result_list,
+#                                   pg=nnp_pg_result_list,pgcorr=nnp_pgcorr_result_list,
+#                                   country = 'BF')
 ##For presentation
 create_obsprev_plots <- function(results,data_list=nnp_list,country=c('BF','MZ','NG')){
   district_list <- list(BF = c('Banfora','Gaoua','Orodara'),
@@ -727,10 +622,10 @@ create_obsprev_plots <- function(results,data_list=nnp_list,country=c('BF','MZ',
     )
   prev_plot
 }
-BF_obsprev_pgvol <- create_obsprev_plots(results = nnp_pgvol_result_list,data_list=nnp_pg_list,country='BF')
-NG_obsprev_pgvol <- create_obsprev_plots(results = nnp_pgvol_result_list,data_list=nnp_pg_list,country='NG')
-BF_obsprev_pgvol / plot_spacer()
-NG_obsprev_pgvol / plot_spacer()
+BF_obsprev_pg <- create_obsprev_plots(results = nnp_pg_result_list,data_list=nnp_pg_list,country='BF')
+NG_obsprev_pg <- create_obsprev_plots(results = nnp_pg_result_list,data_list=nnp_pg_list,country='NG')
+BF_obsprev_pg / plot_spacer()
+NG_obsprev_pg / plot_spacer()
 
 create_estprev_plots <- function(results,data_list=nnp_list,country=c('BF','MZ','NG')){
   district_list <- list(BF = c('Banfora','Gaoua','Orodara'),
@@ -839,14 +734,15 @@ create_estprev_plots <- function(results,data_list=nnp_list,country=c('BF','MZ',
 }
 windows(10,10)
 
-BF_estprev_pgvol <- create_estprev_plots(results = nnp_pgvol_result_list,data_list=nnp_pg_list,country='BF')
-NG_estprev_pgvol <- create_estprev_plots(results = nnp_pgvol_result_list,data_list=nnp_pg_list,country='NG')
-BF_estprev_pgvol / plot_spacer()
-NG_estprev_pgvol / plot_spacer()
+BF_estprev_pg <- create_estprev_plots(results = nnp_pg_result_list,data_list=nnp_pg_list,country='BF')
+NG_estprev_pg <- create_estprev_plots(results = nnp_pg_result_list,data_list=nnp_pg_list,country='NG')
+BF_estprev_pg / plot_spacer()
+NG_estprev_pg / plot_spacer()
 windows(6,7)
-BF_estprev_pgvol/BF_inc_pgvol
-NG_estprev_pgvol/NG_inc_pgvol
+BF_estprev_pg/BF_inc_pg
+NG_estprev_pg/NG_inc_pg
 
+##Create plots for BF and NG HMIS data
 bf_hmis <- readxl::read_excel('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl160822/Burkina Faso/Routine HMIS/BF_Routine_Mar2022.xlsx')
 ng_hmis <- readxl::read_excel('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl160822/Nigeria/NNP Nigeria HMIS Data 2019-2022 - LGA.xlsx')
 bf_hmis$inc <- bf_hmis$Confirmed/bf_hmis$Population*10000
@@ -921,8 +817,6 @@ create_inc_plots_threads <- function(results,country=c('BF','MZ','NG')){
              district = districts[[i-start+1]],
              month = rep(dates_list[[country]],100))
     df_sample <- rbind(df_sample,inc_sample)
-    
-    
   }
   # ratio <- 1.5 * max(df$upper)/max(df_eir$median)
   annotations <- list(
@@ -964,10 +858,9 @@ create_inc_plots_threads <- function(results,country=c('BF','MZ','NG')){
 }
 windows(7,5)
 
-BF_inc_pgvol_threads <- create_inc_plots_threads(results = nnp_pgvol_result_list,country='BF')
-MZ_inc_pgvol_threads <- create_inc_plots_threads(results = nnp_pgvol_result_list,country='MZ')
-NG_inc_pgvol_threads <- create_inc_plots_threads(results = nnp_pgvol_result_list,country='NG')
-
+BF_inc_pg_threads <- create_inc_plots_threads(results = nnp_pg_result_list,country='BF')
+MZ_inc_pg_threads <- create_inc_plots_threads(results = nnp_pg_result_list,country='MZ')
+NG_inc_pg_threads <- create_inc_plots_threads(results = nnp_pg_result_list,country='NG')
 
 
 create_obsinc_plots <- function(results,country=c('BF','MZ','NG')){
@@ -1045,5 +938,5 @@ NG_obsinc_plot <- create_obsinc_plots(ng_hmis_forplot,'NG')
 
 pois.daly(bf_hmis_forplot$Confirmed[1],bf_hmis_forplot$Population[1])
 windows(10,10)
-BF_inc_pgvol_threads/BF_obsinc_plot + plot_layout(guides = "collect")
-NG_inc_pgvol_threads / NG_obsinc_plot + plot_layout(guides = "collect")
+BF_inc_pg_threads/BF_obsinc_plot + plot_layout(guides = "collect")
+NG_inc_pg_threads / NG_obsinc_plot + plot_layout(guides = "collect")
