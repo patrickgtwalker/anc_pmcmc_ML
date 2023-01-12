@@ -55,7 +55,7 @@ run_pmcmc <- function(data_raw,
   }
   
   #### NB the volatility and initial EIR is hard-coded in the odinmodelmatchedstoch bw lines 230 and 234###
-  model <- odin.dust::odin_dust("odinmodelmatchedstoch.R")
+  model <- odin.dust::odin_dust("shared/odinmodelmatchedstoch.R")
   
   set.seed(1)
   
