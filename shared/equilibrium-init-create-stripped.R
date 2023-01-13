@@ -226,26 +226,26 @@ equilibrium_init_create_stripped <- function(age_vector, het_brackets,
       U_eq[i, j] <- (mpl$rA * A_eq[i, j] + delta[i] * ifelse(i == 1,
                                                              0, U_eq[i - 1, j]))/betaU[i, j]
       S_eq[i, j] <- Y_eq[i, j] - A_eq[i, j] - U_eq[i, j]
-      #FOIvij_eq[i, j] <- foi_age[i] * mpl$av0 * (mpl$cT * T_eq[i, j] + mpl$cD *
-      #                                            D_eq[i, j] + cA_eq[i, j] * A_eq[i, j] + mpl$cU * U_eq[i, j]) * rel_foi[j]/omega
+      FOIvij_eq[i, j] <- foi_age[i] * mpl$av0 * (mpl$cT * T_eq[i, j] + mpl$cD *
+                                                 D_eq[i, j] + cA_eq[i, j] * A_eq[i, j] + mpl$cU * U_eq[i, j]) * rel_foi[j]/omega
     }
   }
   
   # mosquito states
-  #FOIv_eq <- sum(FOIvij_eq)
-  #Iv_eq <- FOIv_eq * mpl$Surv0/(FOIv_eq + mpl$mu0)
-  #Sv_eq <- mpl$mu0 * Iv_eq/(FOIv_eq * mpl$Surv0)
-  #Ev_eq <- 1 - Sv_eq - Iv_eq
+  FOIv_eq <- sum(FOIvij_eq)
+  Iv_eq <- FOIv_eq * mpl$Surv0/(FOIv_eq + mpl$mu0)
+  Sv_eq <- mpl$mu0 * Iv_eq/(FOIv_eq * mpl$Surv0)
+  Ev_eq <- 1 - Sv_eq - Iv_eq
   
   # mosquito density needed to give this EIR
-  #mv0 <- omega * EIRd_eq/(Iv_eq * mpl$av0)
+  mv0 <- omega * EIRd_eq/(Iv_eq * mpl$av0)
   
   # larval states
-  #K0 <- 2 * mv0 * mpl$dLL * mpl$mu0 * (1 + mpl$dPL * mpl$muPL) * mpl$gammaL * (mpl$lambda + 1)/(mpl$lambda/(mpl$muLL *
-  # mpl$dEL) - 1/(mpl$muLL * mpl$dLL) - 1)
-  #PL_eq <- 2 * mpl$dPL * mpl$mu0 * mv0
-  #LL_eq <- mpl$dLL * (mpl$muPL + 1/mpl$dPL) * PL_eq
-  #EL_eq <- (LL_eq/mpl$dLL + mpl$muLL* LL_eq * (1 + mpl$gammaL * LL_eq/K0))/(1/mpl$dEL - mpl$muLL * mpl$gammaL * LL_eq/K0)
+  K0 <- 2 * mv0 * mpl$dLL * mpl$mu0 * (1 + mpl$dPL * mpl$muPL) * mpl$gammaL * (mpl$lambda + 1)/(mpl$lambda/(mpl$muLL *
+  mpl$dEL) - 1/(mpl$muLL * mpl$dLL) - 1)
+  PL_eq <- 2 * mpl$dPL * mpl$mu0 * mv0
+  LL_eq <- mpl$dLL * (mpl$muPL + 1/mpl$dPL) * PL_eq
+  EL_eq <- (LL_eq/mpl$dLL + mpl$muLL* LL_eq * (1 + mpl$gammaL * LL_eq/K0))/(1/mpl$dEL - mpl$muLL * mpl$gammaL * LL_eq/K0)
   
   IB_eq = array(IB_eq, c(na, nh))
   ID_eq = array(ID_eq, c(na, nh))
@@ -271,14 +271,16 @@ equilibrium_init_create_stripped <- function(age_vector, het_brackets,
   res <- list(init_S = S_eq, init_T = T_eq, init_D = D_eq, init_A = A_eq, init_U = U_eq,
               init_P = P_eq, init_Y = Y_eq, init_IB = IB_eq, init_ID = ID_eq, init_ICA = ICA_eq,
               init_ICM = ICM_eq, ICM_age = as.vector(ICM_age),IC_20=IC_20,
-              #init_Iv = Iv_eq, init_Sv = Sv_eq,init_Ev = Ev_eq, init_PL = PL_eq, init_LL = LL_eq, init_EL = EL_eq,
+              init_Iv = Iv_eq, init_Sv = Sv_eq,init_Ev = Ev_eq, init_PL = PL_eq, init_LL = LL_eq, init_EL = EL_eq,
               age_width = age_width, age_rate = age_rate, het_wt = het_wt, het_x = het_x,
               foi_age = foi_age, rel_foi = rel_foi,
               na = na, nh = nh, x_I = x_I,
-              #omega = omega, K0 = K0, mv0 = mv0,theta_c = theta_c, FOIv_eq = FOIv_eq,
+              omega = omega, K0 = K0, mv0 = mv0, 
+              FOIv_eq = FOIv_eq,
               FOI_eq = FOI_eq, EIR_eq = EIR_eq, init_EIR = EIR, cA_eq = cA_eq,
               den = den, age59 = age59, age05 = age05,
-              # ssa0 = ssa0, ssa1 = ssa1,ssa2 = ssa2, ssa3 = ssa3, ssb1 = ssb1, ssb2 = ssb2, ssb3 = ssb3,pi = pi,
+              # ssa0 = mpl$ssa0, ssa1 = mpl$ssa1,ssa2 = mpl$ssa2, ssa3 = mpl$ssa3, ssb1 = mpl$ssb1, ssb2 = mpl$ssb2, ssb3 = mpl$ssb3,theta_c = mpl$theta_c,
+              pi = pi,
               age = age_vector*mpl$DY, ft = ft,
               betaS = betaS, betaA = betaA, betaU = betaU, FOIvij_eq=FOIvij_eq,
               age_mid_point = age_mid_point, het_bounds = het_bounds,

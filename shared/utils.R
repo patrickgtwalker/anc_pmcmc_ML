@@ -98,7 +98,7 @@ load_file <- function(name) {
   }
   
   # get full file path
-  name_full <- system.file("extdata/", name, package="ICDMM", mustWork = TRUE)
+  name_full <- paste0(getwd(),"/shared/", name)
   
   # read in file
   if (ext == "rds") {
@@ -201,4 +201,77 @@ admin_match <- function(admin_unit = NULL, country = NULL,
   }
   
   return(admin_matches)
+}
+
+#------------------------------------------------
+#' transform final state of a seasonal model into the initial state of a stochastic model
+#'
+#' \code{transform_init} Transform final state of a seasonal model into the initial state of a stochastic model
+#'
+#' @param final_state Final time point of a seasonal model
+#'   Default = NULL
+#'
+#' @export
+
+transform_init <- function(final_state = NULL){
+  f <- final_state
+  list(FOI_eq = f$FOI_init[2,,],
+       init_S = f$S_init[2,,],
+       init_T = f$T_init[2,,],
+       init_D = f$D_init[2,,],
+       init_A = f$A_init[2,,],
+       init_U = f$U_init[2,,],
+       init_P = f$P_init[2,,],
+       init_IB = f$IB_init[2,,],
+       init_ID = f$ID_init[2,,],
+       init_ICA = f$ICA_init[2,,],
+       ICM_age = f$ICM_age_init[2,],
+       age_rate = f$age_rate_init[2,],
+       het_wt = f$het_wt_init[2,],
+       foi_age = f$foi_age_init[2,],
+       rel_foi = f$rel_foi_init[2,],
+       na = f$na_init[2],
+       nh = f$nh_init[2],
+       x_I = f$x_I_init[2,],
+       omega = f$omega_init[2],
+       den = f$den_init[2,],
+       age59 = f$age59_init[2],
+       age05 = f$age05_init[2],
+       age = f$age_init[2,],
+       ft = f$ft_init[2],
+       age20l = f$age20l_init[2],
+       age20u = f$age20u_init[2],
+       age_20_factor = f$age_20_factor_init[2]
+       # eta = f$eta_init[2],
+       # rA = f$rA_init[2],
+       # rT = f$rT_init[2],
+       # rD = f$rD_init[2],
+       # rU = f$rU_init[2],
+       # rP = f$rP_init[2],
+       # uCA = f$uCA_init[2],
+       # dCA = f$dCA_init[2],
+       # dB = f$dB_init[2],
+       # uB = f$uB_init[2],
+       # dID = f$dID_init[2],
+       # uD = f$uD_init[2],
+       # PM = f$PM_init[2],
+       # phi0 = f$phi0_init[2],
+       # phi1 = f$phi1_init[2],
+       # IC0 = f$IC0_init[2],
+       # kC = f$kC_init[2],
+       # b0 = f$b0_init[2],
+       # b1 = f$b1_init[2],
+       # kB = f$kB_init[2],
+       # IB0 = f$IB0_init[2],
+       # aD = f$aD_init[2],
+       # fD0 = f$fD0_init[2],
+       # gammaD = f$gammaD_init[2],
+       # d1 = f$d1_init[2],
+       # ID0 = f$ID0_init[2],
+       # kD = f$kD_init[2],
+       # dE = f$dE_init[2],
+       # DY = f$DY_init[2],
+       # EIR_SD = f$EIR_SD_init[2],
+       # init_EIR = f$EIR_init[2]
+  )
 }

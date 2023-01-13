@@ -11,10 +11,20 @@ run_pmcmc <- function(data_raw,
                       n_steps = 500,
                       n_threads = 4,
                       lag_rates = 10,
-                      state_check = 0){
+                      state_check = 0,
+                      country = NULL,
+                      admin_unit = NULL,
+                      preyears = 2,
+                      seasonality_on = 1){
   ######## run pMCMC with same model with same log(EIR) random walk but within odin.dust
+  start_obs <- min(as.Date(data_raw$month))
+  time_origin <- as.Date(paste0(year(start_obs),'-01-01'))
+  start_stoch <- as.Date(as.yearmon(start_obs))
+  data_raw_time <- data_raw %>%
+    mutate(date = as.Date(as.yearmon(month), frac = 0.5))%>%
+    mutate(t = as.integer(difftime(date,time_origin,units="days")))
   
-  data <- mcstate::particle_filter_data(data_raw, time = "t", rate = NULL, initial_time = 0)
+  data <- mcstate::particle_filter_data(data_raw_time, time = "t", rate = NULL, initial_time = 0)
   
   compare <- function(state, observed, pars = NULL) {
     dbinom(x = observed$positive,
@@ -36,7 +46,8 @@ run_pmcmc <- function(data_raw,
                    Pout = info$index$Pout))
   }
   
-  stochastic_schedule <- seq(from = 30, by = 30, to = 1830)
+  stochastic_schedule <- as.integer(difftime(seq.Date(start_stoch,max(as.Date(data_raw_time$date+30)),by='month'),time_origin,units="days"))[-1]
+  print(stochastic_schedule)
   
   init_age <- c(0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 3.5, 5, 7.5, 10, 15, 20, 30, 40, 50, 60, 70, 80)
   prop_treated <- 0.4
@@ -47,22 +58,55 @@ run_pmcmc <- function(data_raw,
                                     het_brackets = het_brackets,
                                     max_EIR = max_EIR,
                                     state_check = state_check,
-                                    lag_rates = lag_rates)
+                                    lag_rates = lag_rates,
+                                    country = country,
+                                    admin_unit = admin_unit,
+                                    start_stoch = start_stoch,
+                                    time_origin = time_origin)
   # print(mpl_pf$state_check)
-  
-  transform <- function(mpl){
+  # print(mpl_pf$ssa0)
+  if(seasonality_on == 1){
+    season_model <- odin("shared/odin_model_stripped_seasonal.R")
+  }
+
+  transform <- function(mpl,season_model){
     function(theta) {
-      
       init_EIR <- exp(theta[["log_init_EIR"]])
       EIR_vol <- theta[["EIR_SD"]]
-      mpl <- append(mpl,list(EIR_SD = theta[["EIR_SD"]]))
+      mpl <- append(mpl,list(EIR_SD = theta[["EIR_SD"]],init_EIR = init_EIR))
       
-      equilibrium_init_create_stripped(age_vector = mpl$init_age,
+      state <- equilibrium_init_create_stripped(age_vector = mpl$init_age,
                                        EIR = init_EIR,
                                        ft = prop_treated,
                                        model_param_list = mpl,
                                        het_brackets = het_brackets,
                                        state_check = mpl$state_check)
+      ##run seasonality model first if seasonality_on == 1
+      if(seasonality_on==1){
+        state_use <- state[names(state) %in% coef(season_model)$name]
+        # print(state_use)
+        # create model with initial values
+        mod <- season_model$new(user = state_use, use_dde = TRUE)
+        print('generated seasonal model')
+        tt <- c(0, preyears*365+as.integer(difftime(mpl$start_stoch,mpl$time_origin,units="days")))
+  
+        # run model
+        mod_run <- mod$run(tt)
+        print('ran seasonal model')
+        # View(mod_run)
+        # shape output
+        out <- mod$transform_variables(mod_run)
+        # View(out)
+        print(out$S_init[2,,])
+        init4pmcmc <- transform_init(out)
+        # print(init4pmcmc)
+        # print(out)
+        print('leaving transformation function')
+        return(append(init4pmcmc,mpl))
+      }
+      else{
+        return(state)
+      }
     }
   }
   
@@ -102,7 +146,7 @@ run_pmcmc <- function(data_raw,
   
   mcmc_pars <- mcstate::pmcmc_parameters$new(pars,
                                              proposal_matrix,
-                                             transform = transform(mpl_pf))
+                                             transform = transform(mpl_pf,season_model))
   
   ### Run pMCMC
   start.time <- Sys.time()
