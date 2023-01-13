@@ -26,7 +26,7 @@
 
 equilibrium_init_create_stripped <- function(age_vector, het_brackets,
                                              country = NULL, admin_unit = NULL, ft,
-                                             EIR, model_param_list, state_check = FALSE)
+                                             EIR, model_param_list, state_check = 0)
 {
   
   # mpl is shorter :)
@@ -276,7 +276,7 @@ equilibrium_init_create_stripped <- function(age_vector, het_brackets,
               foi_age = foi_age, rel_foi = rel_foi,
               na = na, nh = nh, x_I = x_I,
               #omega = omega, K0 = K0, mv0 = mv0,theta_c = theta_c, FOIv_eq = FOIv_eq,
-              FOI = FOI_eq, EIR_eq = EIR_eq, init_EIR = EIR, cA_eq = cA_eq,
+              FOI_eq = FOI_eq, EIR_eq = EIR_eq, init_EIR = EIR, cA_eq = cA_eq,
               den = den, age59 = age59, age05 = age05,
               # ssa0 = ssa0, ssa1 = ssa1,ssa2 = ssa2, ssa3 = ssa3, ssb1 = ssb1, ssb2 = ssb2, ssb3 = ssb3,pi = pi,
               age = age_vector*mpl$DY, ft = ft,
@@ -286,7 +286,7 @@ equilibrium_init_create_stripped <- function(age_vector, het_brackets,
   
   ##Check that equilibrium solution produces an equilibrium for 
   ##the desired model
-  if(state_check==TRUE){
+  if(state_check==1){
     H <- sum(S_eq) + sum(T_eq) + sum(D_eq) + sum(A_eq) + sum(U_eq) + sum(P_eq)
 
     deriv_S1 <- -FOI_eq[1,]*S_eq[1,] + mpl$rP*P_eq[1,] + mpl$rU*U_eq[1,] +
@@ -295,10 +295,10 @@ equilibrium_init_create_stripped <- function(age_vector, het_brackets,
     # deriv(S[2:na, 1:nh]) <- -FOI[i,j]*S[i,j] + rP*P[i,j] + rU*U[i,j] -
     #   (eta+age_rate[i])*S[i,j] + age_rate[i-1]*S[i-1,j]
     phi <- mpl$phi0*((1-mpl$phi1)/(1+((ICM_eq+ICA_eq)/mpl$IC0)^mpl$kC) + mpl$phi1)
-    phi = array(phi, c(na, nh))
+    phi <- array(phi, c(na, nh))
     
     clin_inc <- phi*FOI_eq*Y_eq
-    clin_inc = array(clin_inc, c(na, nh))
+    clin_inc <- array(clin_inc, c(na, nh))
     
     deriv_D1 <- (1-ft)*clin_inc[1,] - mpl$rD*D_eq[1,] -
       (mpl$eta+age_rate[1])*D_eq[1,]
@@ -314,7 +314,22 @@ equilibrium_init_create_stripped <- function(age_vector, het_brackets,
     # deriv(IB[2:na, 1:nh]) <- EIR[i,j]/(EIR[i,j]* uB + 1) - IB[i,j]/dB - (IB[i,j]-IB[i-1,j])/x_I[i]
     deriv_ID4 <- FOI_eq[4,]/(FOI_eq[4,]*mpl$uD + 1) - ID_eq[4,]/mpl$dID - (ID_eq[4,]-ID_eq[3,])/x_I[4]
     # deriv(ID[2:na, 1:nh]) <- FOI[i,j]/(FOI[i,j]*uD + 1) - ID[i,j]/dID - (ID[i,j]-ID[i-1,j])/x_I[i]
+    
+    ##FOI delay derivs
+    # deriv(FOI[,,1]) <- (lag_rates/dE)*FOI_lag[i,j] - (lag_rates/dE)*FOI[i,j,1]
+    # deriv(FOI[,,2:lag_rates]) <- (lag_rates/dE)*FOI[i,j,k-1] - (lag_rates/dE)*FOI[i,j,k]
+    b <- mpl$b0 * ((1-mpl$b1)/(1+(IB_eq/mpl$IB0)^mpl$kB)+mpl$b1)
 
+    FOI_lag<- matrix(ncol = nh, nrow = na)
+    for(i in 1:na){
+      for(j in 1:nh){
+        FOI_lag[i,j] <- EIR_eq[i,j] * (if(IB_eq[i,j]==0) mpl$b0 else b[i,j])
+      }
+    }
+    init_FOI_delay <- FOI_eq
+    deriv_FOI1 <- (mpl$lag_rates/mpl$dE)*FOI_lag - (mpl$lag_rates/mpl$dE)*init_FOI_delay
+    # deriv(FOI[,,2:lag_rates]) <- (lag_rates/dE)*FOI[i,j,k-1] - (lag_rates/dE)*FOI[i,j,k]
+    
     cat('S[1,] derivative = ',deriv_S1,'\n')
     cat('S[2,] derivative = ',deriv_S2,'\n')
     cat('D[1,] derivative = ',deriv_D1,'\n')
@@ -322,6 +337,7 @@ equilibrium_init_create_stripped <- function(age_vector, het_brackets,
     cat('ICA[2,] derivative = ',deriv_ICA2,'\n')
     cat('IB[3,] derivative = ',deriv_IB3,'\n')
     cat('ID[4,] derivative = ',deriv_ID4,'\n')
+    cat('FOI[,,1] derivative = ',deriv_FOI1,'\n')
   }
   res <- append(res,mpl)
   

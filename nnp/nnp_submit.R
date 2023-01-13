@@ -11,8 +11,8 @@ library(ggplot2)
 library(bayesplot)
 
 #Required functions
-source('nnp/run_pmcmc.R')
-source('nnp/run_pmcmc_pg.R')
+source('shared/run_pmcmc.R')
+source('nnp/in_development/run_pmcmc_pg.R')
 source('shared/plot_particle_filter.R')
 source('shared/addCIs.R')
 source('shared/model_parameters.R')
@@ -38,7 +38,7 @@ nnp_pg_list <- list(data_raw_bf_pg_banfora,data_raw_bf_pg_gaoua,data_raw_bf_pg_o
                     data_raw_ng_pg_asa,data_raw_ng_pg_ejigbo,data_raw_ng_pg_ifenorth,data_raw_ng_pg_moro)
 
 ##Test run_pmcmc function##
-test_run <- run_pmcmc(data = data_raw_bf_banfora,
+test_run <- run_pmcmc(data = data_raw_bf_pg_banfora,
                       n_particles = 10,
                       proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
                       max_EIR=1000,
@@ -47,12 +47,12 @@ test_run <- run_pmcmc(data = data_raw_bf_banfora,
                       rtol = 1e-6,
                       n_steps = 10,
                       n_threads = 2)
-plot_particle_filter(test_run$history,true_history=data_raw_bf_banfora,times=data_raw_bf_banfora$t)
+plot_particle_filter(test_run$history,true_history=data_raw_bf_pg_banfora,times=data_raw_bf_pg_banfora$t)
 
 
 ##Set up cluster##
 root <- "T:/jth/contexts"
-sources <- c("nnp/run_pmcmc.R",
+sources <- c("shared/run_pmcmc.R",
              "shared/model_parameters.R",
              "shared/equilibrium-init-create-stripped.R")
 

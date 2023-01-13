@@ -24,7 +24,7 @@ theme_set(theme_minimal()+
 
 #Required functions
 source('sim/data_gen.R')
-source('sim/run_pmcmc.R')
+source('shared/run_pmcmc.R')
 source('shared/plot_particle_filter.R')
 source('shared/addCIs.R')
 source('shared/model_parameters.R')
@@ -48,7 +48,8 @@ test_run <- run_pmcmc(data = data_sim_comptest3,
                       atol = 1e-5,
                       rtol = 1e-6,
                       n_steps = 10,
-                      n_threads = 2)
+                      n_threads = 2,
+                      lag_rates = 10)
 plot_particle_filter(test_run$history,true_history=data_sim_comptest3,times=data_sim_comptest3$t)
 
 ##Set up cluster##
