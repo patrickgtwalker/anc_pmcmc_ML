@@ -62,7 +62,8 @@ run_pmcmc <- function(data_raw,
                                     country = country,
                                     admin_unit = admin_unit,
                                     start_stoch = start_stoch,
-                                    time_origin = time_origin)
+                                    time_origin = time_origin,
+                                    seasonality_on = seasonality_on)
   # print(mpl_pf$state_check)
   # print(mpl_pf$ssa0)
   if(seasonality_on == 1){
@@ -87,21 +88,27 @@ run_pmcmc <- function(data_raw,
         # print(state_use)
         # create model with initial values
         mod <- season_model$new(user = state_use, use_dde = TRUE)
-        print('generated seasonal model')
-        tt <- c(0, preyears*365+as.integer(difftime(mpl$start_stoch,mpl$time_origin,units="days")))
-  
+        # print('generated seasonal model')
+        print(mpl$start_stoch)
+        print(preyears*365+as.integer(difftime(mpl$start_stoch,mpl$time_origin,units="days")))
+        # tt <- c(0, preyears*365+as.integer(difftime(mpl$start_stoch,mpl$time_origin,units="days")))
+        tt <- seq(0, preyears*365+as.integer(difftime(mpl$start_stoch,mpl$time_origin,units="days")),length.out=500)
+        
         # run model
         mod_run <- mod$run(tt)
-        print('ran seasonal model')
+        # print('ran seasonal model')
         # View(mod_run)
         # shape output
         out <- mod$transform_variables(mod_run)
+        # windows(10,8)
+        # plot(out$t,out$prev_all)
         # View(out)
-        print(out$S_init[2,,])
+        print(out$mv_init[1])
+        print(out$mv0_init[1])
         init4pmcmc <- transform_init(out)
         # print(init4pmcmc)
         # print(out)
-        print('leaving transformation function')
+        # print('leaving transformation function')
         return(append(init4pmcmc,mpl))
       }
       else{

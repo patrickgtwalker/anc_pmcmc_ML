@@ -26,7 +26,6 @@ rT <- user() # rate of treatment working: T -> P
 rD <- user() #  rate from D -> A
 rU <- user() # rate of clearance of subpatent infection U -> S
 rP <- user() # rate at which prophylaxis wears off P -> S
-DY <- user()
 
 # S - SUSCEPTIBLE
 init_S[,] <- user()
@@ -100,10 +99,10 @@ Y[1:na, 1:nh] <- S[i,j]+A[i,j]+U[i,j]
 # The number of new cases at this timestep
 dim(clin_inc) <- c(na,nh)
 clin_inc[1:na, 1:nh] <- phi[i,j]*FOI[i,j]*Y[i,j]
-# output(clin_inc)<-clin_inc
-# output(phi)<-phi
-# output(FOI)<-FOI
-# output(Y)<-Y
+output(clin_inc)<-clin_inc
+output(phi)<-phi
+output(FOI)<-FOI
+output(Y)<-Y
 # Sum compartments over all age, heterogeneity and intervention categories
 Sh <- sum(S[,])
 Th <- sum(T[,])
@@ -215,30 +214,38 @@ dim(p_det) <- c(na,nh)
 p_det[,] <- d1 + (1-d1)/(1 + fd[i]*(ID[i,j]/ID0)^kD)
 
 # Force of infection, depends on level of infection blocking immunity
-dim(FOI_lag) <- c(na,nh)
-FOI_lag[1:na, 1:nh] <- EIR[i,j] * (if(IB[i,j]==0) b0 else b[i,j])
+#dim(FOI_lag) <- c(na,nh)
+#FOI_lag[1:na, 1:nh] <- EIR[i,j] * (if(IB[i,j]==0) b0 else b[i,j])
 
 # Current FOI depends on humans that have been through the latent period
-dE <- user() # latent period of human infection.
+#dE <- user() # latent period of human infection.
 dim(FOI) <- c(na,nh)
-# FOI[,] <- EIR[i,j] * (if(IB[i,j]==0) b0 else b[i,j])
+FOI[,] <- EIR[i,j] * (if(IB[i,j]==0) b0 else b[i,j])
 
-FOI[,] <- delay(FOI_lag[i,j],dE)
-
+#FOI[,] <- delay(FOI_lag[i,j],dE)
 
 # EIR -rate at which each age/het/int group is bitten
 # rate for age group * rate for biting category * FOI for age group * prop of
 # infectious mosquitoes
+DY<-user()
+
+
+EIR_td<-interpolate(EIR_times, EIR_valsd, "constant")
+EIR_times[]<-user()
+EIR_vals[]<-user()
+EIR_valsd[]<-EIR_vals[i]/DY
+dim(EIR_times)<-user()
+dim(EIR_vals)<-user()
+dim(EIR_valsd)<-length(EIR_vals)
 dim(foi_age) <- na
 foi_age[] <- user()
 dim(rel_foi) <- nh
 rel_foi[] <- user()
 dim(EIR) <- c(na,nh)
-omega <- user()
-EIR[,] <- rel_foi[j] * foi_age[i] * Iv/omega
-# output(Ivout) <- Iv
+EIR[,] <- EIR_td*rel_foi[j] * foi_age[i]
+#output(Ivout) <- Iv
 
-# output(omega) <- omega
+#output(omega) <- omega
 ##------------------------------------------------------------------------------
 ##########################
 ## SEASONALITY FUNCTION ##
@@ -246,21 +253,20 @@ EIR[,] <- rel_foi[j] * foi_age[i] * Iv/omega
 ##------------------------------------------------------------------------------
 
 # Seasonality is added into the model using a Fourier series that was fit to rainfall at every admin 1 level
-pi <- user() # weird quirk, need to pass pi
+#pi <- user() # weird quirk, need to pass pi
 
 # The parameters for the fourier series
-ssa0 <- user()
-ssa1 <- user()
-ssa2 <- user()
-ssa3 <- user()
-ssb1 <- user()
-ssb2 <- user()
-ssb3 <- user()
-theta_c <- user()
+#ssa0 <- user()
+#ssa1 <- user()
+#ssa2 <- user()
+#ssa3 <- user()
+#ssb1 <- user()
+#ssb2 <- user()
+#ssb3 <- user()
+#theta_c <- user()
 # Recreation of the rainfall function
-state_check <- user()
-theta2 <- if(state_check == 1 || (ssa0 == 0 && ssa1  == 0 && ssa2  == 0 && ssb1  == 0 && ssb2  == 0 && ssb3  == 0 && theta_c  == 0))
-1 else max((ssa0+ssa1*cos(2*pi*t/365)+ssa2*cos(2*2*pi*t/365)+ssa3*cos(3*2*pi*t/365)+ssb1*sin(2*pi*t/365)+ssb2*sin(2*2*pi*t/365)+ ssb3*sin(3*2*pi*t/365) ) /theta_c,0.001)
+#theta2 <- if(ssa0 == 0 && ssa1  == 0 && ssa2  == 0 && ssb1  == 0 && ssb2  == 0 && ssb3  == 0 && theta_c  == 0)
+# 1 else max((ssa0+ssa1*cos(2*pi*t/365)+ssa2*cos(2*2*pi*t/365)+ssa3*cos(3*2*pi*t/365)+ssb1*sin(2*pi*t/365)+ssb2*sin(2*2*pi*t/365)+ ssb3*sin(3*2*pi*t/365) ) /theta_c,0.001)
 #theta2 <-1
 ##------------------------------------------------------------------------------
 #####################
@@ -275,52 +281,52 @@ theta2 <- if(state_check == 1 || (ssa0 == 0 && ssa1  == 0 && ssa2  == 0 && ssb1 
 # Iv - Infectious mosquitoes
 
 # initial state values:
-init_Sv <- user()
-init_Ev <- user()
-init_Iv <- user()
-initial(Sv) <- init_Sv * mv0
-initial(Ev) <- init_Ev * mv0
-# initial(Ev[1:10]) <- init_Ev/10 * mv0 # Options if not using a delayed delay
-# dim(Ev) <- 10
-initial(Iv) <- init_Iv * mv0
+#init_Sv <- user()
+#init_Ev <- user()
+#init_Iv <- user()
+#initial(Sv) <- init_Sv * mv0
+#initial(Ev) <- init_Ev * mv0
+#initial(Ev[1:10]) <- init_Ev/10 * mv0 # Options if not using a delayed delay
+#dim(Ev) <- 10
+#initial(Iv) <- init_Iv * mv0
 
 # cA is the infectiousness to mosquitoes of humans in the asmyptomatic compartment broken down
 # by age/het/int category, infectiousness depends on p_det which depends on detection immunity
-cU <- user() # infectiousness U -> mosq
-cD <- user() # infectiousness D -> mosq
-cT <- user() # T -> mosq
-gamma1 <- user() # fitted value of gamma1 characterises cA function
-dim(cA) <- c(na,nh)
-cA[,] <- cU + (cD-cU)*p_det[i,j]^gamma1
+#cU <- user() # infectiousness U -> mosq
+#cD <- user() # infectiousness D -> mosq
+#cT <- user() # T -> mosq
+#gamma1 <- user() # fitted value of gamma1 characterises cA function
+#dim(cA) <- c(na,nh)
+#cA[,] <- cU + (cD-cU)*p_det[i,j]^gamma1
 
 # Force of infection from humans to mosquitoes
-dim(FOIvij) <- c(na,nh)
+#dim(FOIvij) <- c(na,nh)
 # <- user() #normalising constant for biting rates
-FOIvij[1:na, 1:nh] <- (cT*T[i,j] + cD*D[i,j] + cA[i,j]*A[i,j] + cU*U[i,j]) *av* rel_foi[j] *foi_age[i]/omega
-lag_FOIv=sum(FOIvij)
+#FOIvij[1:na, 1:nh] <- (cT*T[i,j] + cD*D[i,j] + cA[i,j]*A[i,j] + cU*U[i,j]) *av* rel_foi[j] *foi_age[i]/omega
+#lag_FOIv=sum(FOIvij)
 
 # Current hum->mos FOI depends on the number of individuals now producing gametocytes (12 day lag)
-delayGam <- user() # Lag from parasites to infectious gametocytes
-delayMos <- user() # Extrinsic incubation period.
-FOIv <- delay(lag_FOIv, delayGam)
+#delayGam <- user() # Lag from parasites to infectious gametocytes
+#delayMos <- user() # Extrinsic incubation period.
+#FOIv <- delay(lag_FOIv, delayGam)
 
 # Number of mosquitoes that become infected at each time point
-surv <- exp(-mu*delayMos)
-ince <- FOIv * Sv
-lag_incv <- ince * surv
-incv <- delay(lag_incv, delayMos)
-# incv <- lag_incv
+#surv <- exp(-mu*delayMos)
+#ince <- FOIv * Sv
+#lag_incv <- ince * surv
+#incv <- delay(lag_incv, delayMos)
+#incv <- lag_incv
 
 # Number of mosquitoes born (depends on PL, number of larvae), or is constant outside of seasonality
-betaa <- 0.5*PL/dPL
+#betaa <- 0.5*PL/dPL
 #betaa <- mv0 * mu0 * theta2
 
-deriv(Sv) <- -ince - mu*Sv + betaa
-deriv(Ev) <- ince - incv - mu*Ev
-deriv(Iv) <- incv - mu*Iv
+#deriv(Sv) <- -ince - mu*Sv + betaa
+#deriv(Ev) <- ince - incv - mu*Ev
+#deriv(Iv) <- incv - mu*Iv
 
 # Total mosquito population
-mv = Sv+Ev+Iv
+#mv = Sv+Ev+Iv
 
 # model options if don't want to use a delayed delay
 #deriv(Ev[1]) <- ince - Ev[1] - mu*Ev[1]
@@ -342,52 +348,52 @@ mv = Sv+Ev+Iv
 # PL - pupal stage
 
 # mean carrying capacity from initial mosquito density:
-dLL <- user() # development time of larvae
-dPL <- user() #development time of pupae
-dEL <- user() #development time of early stage
-muLL <- user() #daily density dep. mortality rate of larvae
-muPL <- user() #daily den. dep. mortality rate of pupae
-muEL <- user() #daily den. dep. mortality rate of early stage
-gammaL <- user() # eff. of den. dep. on late stage relative to early stage
+#dLL <- user() # development time of larvae
+#dPL <- user() #development time of pupae
+#dEL <- user() #development time of early stage
+#muLL <- user() #daily density dep. mortality rate of larvae
+#muPL <- user() #daily den. dep. mortality rate of pupae
+#muEL <- user() #daily den. dep. mortality rate of early stage
+#gammaL <- user() # eff. of den. dep. on late stage relative to early stage
 
 # fitted entomological parameters:
-mv0 <- user() # initial mosquito density
-mu0 <- user() # baseline mosquito death rate
-tau1 <- user() # duration of host-seeking behaviour
-tau2 <- user() # duration of resting behaviour
-p10 <- user() # prob of surviving 1 feeding cycle
-p2 <- user() #prob of surviving one resting cycle
-betaL <- user() # maximum number of eggs per oviposition per mosq
-Q0 <- user() # proportion of anthropophagy
+#mv0 <- user() # initial mosquito density
+#mu0 <- user() # baseline mosquito death rate
+#tau1 <- user() # duration of host-seeking behaviour
+#tau2 <- user() # duration of resting behaviour
+#p10 <- user() # prob of surviving 1 feeding cycle
+#p2 <- user() #prob of surviving one resting cycle
+#betaL <- user() # maximum number of eggs per oviposition per mosq
+#Q0 <- user() # proportion of anthropophagy
 
 
 # Entomological variables:
-eov <- betaL/mu*(exp(mu/fv)-1)
-beta_larval <- eov*mu*exp(-mu/fv)/(1-exp(-mu/fv)) # Number of eggs laid per day
-b_lambda <- (gammaL*muLL/muEL-dEL/dLL+(gammaL-1)*muLL*dEL)
-lambda <- -0.5*b_lambda + sqrt(0.25*b_lambda^2 + gammaL*beta_larval*muLL*dEL/(2*muEL*mu0*dLL*(1+dPL*muPL)))
-K0 <- 2*mv0*dLL*mu0*(1+dPL*muPL)*gammaL*(lambda+1)/(lambda/(muLL*dEL)-1/(muLL*dLL)-1)
+#eov <- betaL/mu*(exp(mu/fv)-1)
+#beta_larval <- eov*mu*exp(-mu/fv)/(1-exp(-mu/fv)) # Number of eggs laid per day
+#b_lambda <- (gammaL*muLL/muEL-dEL/dLL+(gammaL-1)*muLL*dEL)
+#lambda <- -0.5*b_lambda + sqrt(0.25*b_lambda^2 + gammaL*beta_larval*muLL*dEL/(2*muEL*mu0*dLL*(1+dPL*muPL)))
+#K0 <- 2*mv0*dLL*mu0*(1+dPL*muPL)*gammaL*(lambda+1)/(lambda/(muLL*dEL)-1/(muLL*dLL)-1)
 
 # Seasonal carrying capacity KL = base carrying capacity K0 * effect for time of year theta:
-p1<-p10
-KL <- K0*theta2
-fv <- 1/( tau1 + tau2 ) # mosquito feeding rate (zbar from intervention param.)
-mu <- -fv*log(p1*p2) # mosquito death rate
-av <- fv*Q0
+#p1<-p10
+#KL <- K0*theta2
+#fv <- 1/( tau1 + tau2 ) # mosquito feeding rate (zbar from intervention param.)
+#mu <- -fv*log(p1*p2) # mosquito death rate
+#av <- fv*Q0
 # finding equilibrium and initial values for EL, LL & PL
-init_PL <- user()
-initial(PL) <- init_PL
-init_LL <- user()
-initial(LL) <- init_LL
-init_EL <- user()
-initial(EL) <- init_EL
+#init_PL <- user()
+#initial(PL) <- init_PL
+#init_LL <- user()
+#initial(LL) <- init_LL
+#init_EL <- user()
+#initial(EL) <- init_EL
 
 # (beta_larval (egg rate) * total mosquito) - den. dep. egg mortality - egg hatching
-deriv(EL) <- beta_larval*mv-muEL*(1+(EL+LL)/KL)*EL - EL/dEL
+#deriv(EL) <- beta_larval*mv-muEL*(1+(EL+LL)/KL)*EL - EL/dEL
 # egg hatching - den. dep. mortality - maturing larvae
-deriv(LL) <- EL/dEL - muLL*(1+gammaL*(EL + LL)/KL)*LL - LL/dLL
+#deriv(LL) <- EL/dEL - muLL*(1+gammaL*(EL + LL)/KL)*LL - LL/dLL
 # pupae - mortality - fully developed pupae
-deriv(PL) <- LL/dLL - muPL*PL - PL/dPL
+#deriv(PL) <- LL/dLL - muPL*PL - PL/dPL
 
 ##------------------------------------------------------------------------------
 ###################
@@ -396,12 +402,12 @@ deriv(PL) <- LL/dLL - muPL*PL - PL/dPL
 ##------------------------------------------------------------------------------
 
 # Outputs for each compartment across the sum across all ages, biting heterogeneities and intervention categories
-# output(Sout) <- sum(S[,])
-# output(Tout) <- sum(T[,])
-# output(Dout) <- sum(D[,])
-# output(Aout) <- sum(A[,])
-# output(Uout) <- sum(U[,])
-# output(Pout) <- sum(P[,])
+output(Sout) <- sum(S[,])
+output(Tout) <- sum(T[,])
+output(Dout) <- sum(D[,])
+output(Aout) <- sum(A[,])
+output(Uout) <- sum(U[,])
+output(Pout) <- sum(P[,])
 
 # Outputs for clinical incidence and prevalence on a given day
 # population densities for each age category
@@ -413,8 +419,8 @@ age05 <- user(integer=TRUE)
 # slide positivity in 0 -5 year age bracket
 dim(prev0to59) <- c(age59,nh)
 prev0to59[1:age59,] <- T[i,j] + D[i,j]  + A[i,j]*p_det[i,j]
-# output(prev) <- sum(prev0to59[,])/sum(den[1:age59])
-# output(age59)<-age59
+output(prev) <- sum(prev0to59[,])/sum(den[1:age59])
+output(age59)<-age59
 
 dim(prevall) <- c(na,nh)
 prevall[,] <- T[i,j] + D[i,j]  + A[i,j]*p_det[i,j]
@@ -423,13 +429,13 @@ output(prev_all) <- sum(prevall[,])/sum(den[])
 # clinical incidence
 dim(clin_inc0tounder5) <- c(age59,nh)
 clin_inc0tounder5[1:age59,] <- clin_inc[i,j]
-# output(incunder5) <- sum(clin_inc0tounder5)/sum(den[1:age59])
+output(incunder5) <- sum(clin_inc0tounder5)/sum(den[1:age59])
 
 dim(clin_inc0to5) <- c(age05,nh)
 clin_inc0to5[1:age05,] <- clin_inc[i,j]
-# output(inc05) <- sum(clin_inc0to5)/sum(den[1:age05])
+output(inc05) <- sum(clin_inc0to5)/sum(den[1:age05])
 
-# output(inc) <- sum(clin_inc[,])
+output(inc) <- sum(clin_inc[,])
 
 
 # Param checking outputs
@@ -438,86 +444,3 @@ clin_inc0to5[1:age05,] <- clin_inc[i,j]
 #output(KL) <- KL
 #output(mv) <- mv
 #output(K0) <- K0
-
-##Output for initial state of stochastic model
-output(FOI_init[,]) <- FOI[i,j]
-dim(FOI_init) <- c(na,nh)
-output(FOIv_init) <- FOIv
-output(S_init[,]) <- S[i,j]
-dim(S_init) <- c(na,nh)
-output(T_init[,]) <- T[i,j]
-dim(T_init) <- c(na,nh)
-output(D_init[,]) <- D[i,j]
-dim(D_init) <- c(na,nh)
-output(A_init[,]) <- A[i,j]
-dim(A_init) <- c(na,nh)
-output(U_init[,]) <- U[i,j]
-dim(U_init) <- c(na,nh)
-output(P_init[,]) <- P[i,j]
-dim(P_init) <- c(na,nh)
-output(IB_init[,]) <- IB[i,j]
-dim(IB_init) <- c(na,nh)
-output(ID_init[,]) <- ID[i,j]
-dim(ID_init) <- c(na,nh)
-output(ICA_init[,]) <- ICA[i,j]
-dim(ICA_init) <- c(na,nh)
-output(ICM_age_init[]) <- ICM_age[i]
-dim(ICM_age_init) <- c(na)
-output(age_rate_init[]) <- age_rate[i]
-dim(age_rate_init) <- c(na)
-output(het_wt_init[]) <- het_wt[i]
-dim(het_wt_init) <- c(nh)
-output(foi_age_init[]) <- foi_age[i]
-dim(foi_age_init) <- c(na)
-output(rel_foi_init[]) <- rel_foi[i]
-dim(rel_foi_init) <- c(nh)
-output(na_init) <- na
-output(nh_init) <- nh
-output(x_I_init[]) <- x_I[i]
-dim(x_I_init) <- c(na)
-output(omega_init) <- omega
-output(den_init[]) <- den[i]
-dim(den_init) <- c(na)
-output(age59_init) <- age59
-output(age05_init) <- age05
-output(age_init[]) <- age[i]
-dim(age_init) <- c(na)
-output(ft_init) <- ft
-output(age20l_init) <- age20l
-output(age20u_init) <- age20u
-output(age_20_factor_init) <- age_20_factor
-output(mv_init) <- mv
-output(mv0_init) <- mv0
-# output(eta_init) <- eta
-# output(rA_init) <- rA
-# output(rT_init) <- rT
-# output(rD_init) <- rD
-# output(rU_init) <- rU
-# output(rP_init) <- rP
-# output(uCA_init) <- uCA
-# output(dCA_init) <- dCA
-# output(dB_init) <- dB
-# output(uB_init) <- uB
-# output(dID_init) <- dID
-# output(uD_init) <- uD
-# output(PM_init) <- PM
-# output(phi0_init) <- phi0
-# output(phi1_init) <- phi1
-# output(IC0_init) <- IC0
-# output(kC_init) <- kC
-# output(b0_init) <- b0
-# output(b1_init) <- b1
-# output(kB_init) <- kB
-# output(IB0_init) <- IB0
-# output(aD_init) <- aD
-# output(fD0_init) <- fD0
-# output(gammaD_init) <- gammaD
-# output(d1_init) <- d1
-# output(ID0_init) <- ID0
-# output(kD_init) <- kD
-# output(dE_init) <- dE
-# output(DY_init) <- DY
-# EIR_SD <- user()
-# output(EIR_SD_init) <- EIR_SD
-# init_EIR <- user()
-# output(EIR_init) <- init_EIR
