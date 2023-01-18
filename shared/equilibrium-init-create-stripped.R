@@ -92,6 +92,7 @@ equilibrium_init_create_stripped <- function(age_vector, het_brackets,
   het_wt <- h$weights
   den_het <- outer(den, het_wt)
   rel_foi <- exp(-mpl$sigma2/2 + sqrt(mpl$sigma2) * het_x)/sum(het_wt * exp(-mpl$sigma2/2 + sqrt(mpl$sigma2) * het_x))
+  # rel_foi <- exp(-mpl$sigma2/2 + sqrt(mpl$sigma2) * het_x)
   
   ## EIR
   EIRY_eq <- EIR  # initial annual EIR
@@ -105,6 +106,12 @@ equilibrium_init_create_stripped <- function(age_vector, het_brackets,
     x_I[i] <- den[i]/(den[i - 1] * age_rate[i - 1])  #temporary variables
   }
   fd <- 1 - (1 - mpl$fD0)/(1 + (age/mpl$aD)^mpl$gammaD)
+  # fd <- c()
+  # for (i in 1:(na-1))
+  # {
+  #   fd[i] <- 1 - (1 - mpl$fD0)/(1 + ((age[i]+age[i+1])/2/mpl$aD)^mpl$gammaD)
+  # }
+  # fd[na]<-1 - (1 - mpl$fD0)/(1 + (age[na]/mpl$aD)^mpl$gammaD)
   
   # maternal immunity begins at a level proportional to the clinical
   # immunity of a 20 year old, this code finds that level
@@ -367,6 +374,8 @@ equilibrium_init_create_stripped <- function(age_vector, het_brackets,
         mpl$rD*D_eq[1,] - mpl$rA*A_eq[1,] - (mpl$eta+age_rate[1])*A_eq[1,]
       # deriv(A[2:na, 1:nh]) <- (1-phi[i,j])*FOI[i,j]*Y[i,j] - FOI[i,j]*A[i,j] +
       #   rD*D[i,j] - rA*A[i,j] - (eta+age_rate[i])*A[i,j] + age_rate[i-1]*A[i-1,j]
+      # deriv(IB[1, 1:nh]) <- EIR[i,j]/(EIR[i,j]* uB + 1) - IB[i,j]/dB - IB[i,j]/x_I[i]
+      deriv_IB1 <- EIR_eq[1,]/(EIR_eq[1,]* mpl$uB + 1) - IB_eq[1,]/mpl$dB - IB_eq[1,]/x_I[1]
       deriv_ICA2 <- FOI_eq[2,]/(FOI_eq[2,] * mpl$uCA + 1) - 1/mpl$dCA*ICA_eq[2,] - (ICA_eq[2,]-ICA_eq[1,])/x_I[2]
       # deriv(ICA[2:na, 1:nh]) <- FOI[i,j]/(FOI[i,j] * uCA + 1) - 1/dCA*ICA[i,j] - (ICA[i,j]-ICA[i-1,j])/x_I[i]
       deriv_IB3 <- EIR_eq[3,]/(EIR_eq[3,]* mpl$uB + 1) - IB_eq[3,]/mpl$dB - (IB_eq[3,]-IB_eq[2,])/x_I[3]
@@ -377,29 +386,42 @@ equilibrium_init_create_stripped <- function(age_vector, het_brackets,
       ##FOI delay derivs
       # deriv(FOI[,,1]) <- (lag_rates/dE)*FOI_lag[i,j] - (lag_rates/dE)*FOI[i,j,1]
       # deriv(FOI[,,2:lag_rates]) <- (lag_rates/dE)*FOI[i,j,k-1] - (lag_rates/dE)*FOI[i,j,k]
+      # FOI[,] <- EIR[i,j] * (if(IB[i,j]==0) b0 else b[i,j])
       b <- mpl$b0 * ((1-mpl$b1)/(1+(IB_eq/mpl$IB0)^mpl$kB)+mpl$b1)
-
-      ince <- FOIv_eq*Sv_eq
+      FOI_eq1 <- EIR_eq[1,] * (if(IB_eq[1,]==0) b0 else b[1,])
+      FOI_eq23 <- EIR_eq[2,3] * (if(IB_eq[2,3]==0) b0 else b[2,3])
+      
+      ince <- FOIv_eq*Sv_eq*mv0
       betaa <- 0.5*PL_eq/mpl$dPL
-      deriv_Sv <- -ince - mpl$mu0*Sv_eq + betaa
+      # betaa <- mpl$mu0 * mv0
+      deriv_Sv <- -ince - mpl$mu0*Sv_eq*mv0 + betaa
       # deriv(Sv) <- -ince - mu*Sv + betaa
       surv <- exp(-mpl$mu0*mpl$delayMos)
       incv <- ince * surv
 
-      deriv_Ev <- ince - incv - mpl$mu0*Ev_eq
-      deriv_Iv <- incv - mpl$mu0*Iv_eq
+      deriv_Ev <- ince - incv - mpl$mu0*Ev_eq*mv0
+      deriv_Iv <- incv - mpl$mu0*Iv_eq*mv0
       # deriv(Ev) <- ince - incv - mu*Ev
       # deriv(Iv) <- incv - mu*Iv
       
+      K0_eq <- 2*mv0*mpl$dLL*mpl$mu0*(1+mpl$dPL*mpl$muPL)*mpl$gammaL*(mpl$lambda+1)/(mpl$lambda/(mpl$muLL*mpl$dEL)-1/(mpl$muLL*mpl$dLL)-1)
+      
       deriv_PL <- LL_eq/mpl$dLL - mpl$muPL*PL_eq - PL_eq/mpl$dPL
       # deriv(PL) <- LL/dLL - muPL*PL - PL/dPL
-      
+      deriv_LL <- EL_eq/mpl$dEL - mpl$muLL*(1+mpl$gammaL*(EL_eq + LL_eq)/K0_eq)*LL_eq - LL_eq/mpl$dLL
+      # deriv(LL) <- EL/dEL - muLL*(1+gammaL*(EL + LL)/KL)*LL - LL/dLL
+      fv <- 1/( mpl$tau1 + mpl$tau2 ) # mosquito feeding rate (zbar from intervention param.)
+      eov <- mpl$betaL/mpl$mu0*(exp(mpl$mu0/fv)-1)
+      beta_larval <- eov*mpl$mu0*exp(-mpl$mu0/fv)/(1-exp(-mpl$mu0/fv)) # Number of eggs laid per day
+      deriv_EL <- beta_larval*mv0-mpl$muEL*(1+(EL_eq+LL_eq)/K0_eq)*EL_eq - EL_eq/mpl$dEL
+      # deriv(EL) <- beta_larval*mv-muEL*(1+(EL+LL)/KL)*EL - EL/dEL
       
       cat('S[1,] derivative = ',deriv_S1,'\n')
       cat('S[2,] derivative = ',deriv_S2,'\n')
       cat('D[1,] derivative = ',deriv_D1,'\n')
       cat('A[1,] derivative = ',deriv_A1,'\n')
       cat('ICA[2,] derivative = ',deriv_ICA2,'\n')
+      cat('IB[1,] derivative = ',deriv_IB1,'\n')
       cat('IB[3,] derivative = ',deriv_IB3,'\n')
       cat('ID[4,] derivative = ',deriv_ID4,'\n')
       cat('Sv derivative = ',deriv_Sv,'\n')
@@ -408,12 +430,18 @@ equilibrium_init_create_stripped <- function(age_vector, het_brackets,
       cat('Sv initial = ',Sv_eq,'\n')
       cat('Ev initial = ',Ev_eq,'\n')
       cat('Iv initial = ',Iv_eq,'\n')
+      cat('EL derivative = ',deriv_EL,'\n')
+      cat('LL derivative = ',deriv_LL,'\n')
       cat('PL derivative = ',deriv_PL,'\n')
+      cat('FOI[1,] = ',FOI_eq1,'\n')
+      cat('FOI[2,3] = ',FOI_eq23,'\n')
       cat('betaa = ',betaa,'\n')
       cat('betaa_eq = ',betaa_eq,'\n')
       cat('ince = ',ince,'\n')
       cat('FOIv = ',FOIv_eq,'\n')
       cat('mv = ',mv0,'\n')
+      cat('K0 = ',K0,'\n')
+      cat('K0_eq = ',K0_eq,'\n')
       
     }
   }

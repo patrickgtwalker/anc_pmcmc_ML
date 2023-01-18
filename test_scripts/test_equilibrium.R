@@ -88,8 +88,62 @@ plot(out$t,out$prev_all,type = 'l')
 out_seas <- mod_seas$transform_variables(mod_seas_run)
 # windows(10,8)
 plot(out_seas$t,out_seas$prev_all,type = 'l')
-
+plot(out_seas$t,out_seas$Sv,type = 'l')
+plot(out_seas$t,out_seas$Iv,type = 'l')
+plot(out_seas$t,out_seas$Ev,type = 'l')
+out_seas$S[1,,]-state$init_S[,]
+out_seas$D[1,,]-state$init_D[,]
+out_seas$T[1,,]-state$init_T[,]
+out_seas$A[1,,]-state$init_A[,]
+out_seas$U[1,,]-state$init_U[,]
+out_seas$P[1,,]-state$init_P[,]
+out_seas$Sv[1]-(state$init_Sv*state$mv0)
+out_seas$Iv[1]-(state$init_Iv*state$mv0)
+out_seas$Ev[1]-(state$init_Ev*state$mv0)
+out_seas$IB_init[1,,]-state$init_IB
+out_seas$ID_init[1,,]-state$init_ID
+out_seas$ICA_init[1,,]-state$init_ICA
+out_seas$FOI[1,,]-state$FOI_eq
+out_seas$EIR_init[1,,]-state$EIR_eq
+out_seas$PL[1]-state$init_PL
+out_seas$LL[1]-state$init_LL
+out_seas$EL[1]-state$init_EL
+out_seas$mv[1]-state$mv0
+out_seas$rel_foi_init[1,]-state$rel_foi
+out_seas$foi_age_init[1,]-state$foi_age
 # View(out)
 print(out$mv_init[1])
 print(out$mv0_init[1])
 init4pmcmc <- transform_init(out)
+
+##Test original equilibrium function
+source('test_scripts/equilibrium-init-create.R')
+mpl_pf <- model_param_list_create(init_age = init_age,
+                                  pro_treated = prop_treated,
+                                  het_brackets = het_brackets,
+                                  max_EIR = max_EIR,
+                                  state_check = state_check,
+                                  lag_rates = lag_rates,
+                                  country = country,
+                                  admin_unit = admin_unit,
+                                  seasonality_on = seasonality_on,
+                                  num_int = 1)
+state <- equilibrium_init_create(age_vector = mpl_pf$init_age,
+                                          EIR = init_EIR,
+                                          ft = prop_treated,
+                                          model_param_list = mpl_pf,
+                                          het_brackets = het_brackets)
+
+
+##Original version
+source('test_scripts/1_original_version_fns.R')
+original_matched <- run_model_matched()
+plot(original_matched$t,original_matched$prev,type = 'l')
+matched_equilibrium <- run_model_matched()
+original_matched$S[2,,,]-matched_equilibrium$init_S[,,1]
+original_matched$D[2,,,]-matched_equilibrium$init_D[,,1]
+original_matched$T[2,,,]-matched_equilibrium$init_T[,,1]
+original_matched$A[2,,,]-matched_equilibrium$init_A[,,1]
+original_matched$U[2,,,]-matched_equilibrium$init_U[,,1]
+original_matched$P[2,,,]-matched_equilibrium$init_P[,,1]
+original_matched$FOI[2,,,]-matched_equilibrium$init_P[,,1]

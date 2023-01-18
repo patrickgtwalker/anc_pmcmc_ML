@@ -158,9 +158,9 @@ model_param_list_create <- function(
   betaL = 21.2,
 
   # intervention parameters - commented out to remove intervention components
-  # num_int = 1,
-  # itn_cov = 0,
-  # irs_cov = 0,
+  num_int = 1,
+  itn_cov = 0,
+  irs_cov = 0,
   # ITN_IRS_on = -1,
    DY = 365,
   # d_ITN0 = 0.41,
@@ -318,28 +318,28 @@ model_param_list_create <- function(
   # mp_list$sample_rates <- colSums(MZ_multi_rates)
 
   # ITN/IRS parameters
-  # mp_list$itn_cov <- itn_cov
-  # mp_list$irs_cov <- irs_cov
+  mp_list$itn_cov <- itn_cov
+  mp_list$irs_cov <- irs_cov
 
-  # mp_list$num_int <- num_int
+  mp_list$num_int <- num_int
   # Catch all: Not defined the correct number of interventions
-  # if (itn_cov > 0 & num_int == 1){
-  #   stop(message("Incorrect number of interventions for definied ITN coverage. Please ensure you have correctly
-  #                specified the number of interventions."))
-  # }
-  # if (irs_cov > 0 & num_int < 3){
-  #   stop(message("Incorrect number of interventions for definied IRS coverage. Please ensure you have correctly
-  #                specified the number of interventions."))
-  # }
+  if (itn_cov > 0 & num_int == 1){
+    stop(message("Incorrect number of interventions for definied ITN coverage. Please ensure you have correctly
+                 specified the number of interventions."))
+  }
+  if (irs_cov > 0 & num_int < 3){
+    stop(message("Incorrect number of interventions for definied IRS coverage. Please ensure you have correctly
+                 specified the number of interventions."))
+  }
 
   # Sets start time of coverage
   # mp_list$ITN_IRS_on <- ITN_IRS_on
 
   # Sets population split as coverage
   # {No intervention} {ITN only} {IRS only} {Both ITN and IRS}
-  # cov <- c((1 - itn_cov) * (1 - irs_cov), itn_cov * (1 - irs_cov), (1 - itn_cov) * irs_cov, itn_cov * irs_cov)
-  # cov <- cov[1:mp_list$num_int]
-  # mp_list$cov <- cov
+  cov <- c((1 - itn_cov) * (1 - irs_cov), itn_cov * (1 - irs_cov), (1 - itn_cov) * irs_cov, itn_cov * irs_cov)
+  cov <- cov[1:mp_list$num_int]
+  mp_list$cov <- cov
   #
   # mp_list$d_ITN0 <- d_ITN0
   # mp_list$r_ITN0 <- r_ITN0
