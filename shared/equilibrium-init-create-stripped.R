@@ -14,7 +14,7 @@
 #' if there is ambiguity in the admin unit an error will be thrown. If both country
 #' and admin_unit are NULL then no seasonality is assumed. Default = NULL.
 #' @param ft Numeric for the frequency of people seeking treatment.
-#' @param EIR Numeric for desired annual EIR.
+#' @param init_EIR Numeric for desired annual EIR.
 #' @param model_param_list List of epidemiological parameters created by
 #'
 #' @importFrom stringi stri_trans_general
@@ -26,7 +26,7 @@
 
 equilibrium_init_create_stripped <- function(age_vector, het_brackets,
                                              country = NULL, admin_unit = NULL, ft,
-                                             EIR, model_param_list, state_check = 0)
+                                             init_EIR, model_param_list, state_check = 0)
 {
   
   # mpl is shorter :)
@@ -38,7 +38,7 @@ equilibrium_init_create_stripped <- function(age_vector, het_brackets,
   if(!(is.null(country) | is.character(country))) stop("country specified is not character string")
   if(!(is.null(admin_unit) | is.character(admin_unit))) stop("admin_unit specified is not character string")
   if(!is.numeric(ft)) stop("ft provided is not numeric")
-  if(!is.numeric(EIR)) stop("EIR provided is not numeric")
+  if(!is.numeric(init_EIR)) stop("EIR provided is not numeric")
   
   ## Handle parameters
   # database for admin units is all in Latin-ASCII for CRAN reasons so must
@@ -95,7 +95,7 @@ equilibrium_init_create_stripped <- function(age_vector, het_brackets,
   # rel_foi <- exp(-mpl$sigma2/2 + sqrt(mpl$sigma2) * het_x)
   
   ## EIR
-  EIRY_eq <- EIR  # initial annual EIR
+  EIRY_eq <- init_EIR  # initial annual EIR
   EIRd_eq <- EIRY_eq/mpl$DY
   EIR_eq <- outer(foi_age, rel_foi) * EIRd_eq
   
@@ -287,7 +287,7 @@ equilibrium_init_create_stripped <- function(age_vector, het_brackets,
               na = na, nh = nh, x_I = x_I,
               omega = omega, K0 = K0, mv0 = mv0, 
               FOIv_eq = FOIv_eq,
-              FOI_eq = FOI_eq, EIR_eq = EIR_eq, init_EIR = EIR, cA_eq = cA_eq,
+              FOI_eq = FOI_eq, EIR_eq = EIR_eq, init_EIR = init_EIR, cA_eq = cA_eq,
               den = den, age59 = age59, age05 = age05,
               # ssa0 = mpl$ssa0, ssa1 = mpl$ssa1,ssa2 = mpl$ssa2, ssa3 = mpl$ssa3, ssb1 = mpl$ssb1, ssb2 = mpl$ssb2, ssb3 = mpl$ssb3,theta_c = mpl$theta_c,
               pi = pi,

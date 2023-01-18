@@ -59,7 +59,7 @@ mpl <- append(mpl_pf,list(EIR_SD = EIR_vol,
                           EIR_vals = c(10,10)))
 
 state <- equilibrium_init_create_stripped(age_vector = mpl$init_age,
-                                          EIR = init_EIR,
+                                          init_EIR = init_EIR,
                                           ft = prop_treated,
                                           model_param_list = mpl,
                                           het_brackets = het_brackets,

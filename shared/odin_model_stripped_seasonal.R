@@ -100,10 +100,10 @@ Y[1:na, 1:nh] <- S[i,j]+A[i,j]+U[i,j]
 # The number of new cases at this timestep
 dim(clin_inc) <- c(na,nh)
 clin_inc[1:na, 1:nh] <- phi[i,j]*FOI[i,j]*Y[i,j]
-output(clin_inc)<-clin_inc
-output(phi)<-phi
-output(FOI)<-FOI
-output(Y)<-Y
+#output(clin_inc)<-clin_inc
+#output(phi)<-phi
+#output(FOI)<-FOI
+#output(Y)<-Y
 # Sum compartments over all age, heterogeneity and intervention categories
 Sh <- sum(S[,])
 Th <- sum(T[,])
@@ -236,9 +236,9 @@ rel_foi[] <- user()
 dim(EIR) <- c(na,nh)
 omega <- user()
 EIR[,] <- av * rel_foi[j] * foi_age[i] * Iv/omega
-# output(Ivout) <- Iv
+# #output(Ivout) <- Iv
 
-# output(omega) <- omega
+# #output(omega) <- omega
 ##------------------------------------------------------------------------------
 ##########################
 ## SEASONALITY FUNCTION ##
@@ -396,12 +396,12 @@ deriv(PL) <- LL/dLL - muPL*PL - PL/dPL
 ##------------------------------------------------------------------------------
 
 # Outputs for each compartment across the sum across all ages, biting heterogeneities and intervention categories
-output(Sout) <- sum(S[,])
-output(Tout) <- sum(T[,])
-output(Dout) <- sum(D[,])
-output(Aout) <- sum(A[,])
-output(Uout) <- sum(U[,])
-output(Pout) <- sum(P[,])
+#output(Sout) <- sum(S[,])
+#output(Tout) <- sum(T[,])
+#output(Dout) <- sum(D[,])
+#output(Aout) <- sum(A[,])
+#output(Uout) <- sum(U[,])
+#output(Pout) <- sum(P[,])
 
 # Outputs for clinical incidence and prevalence on a given day
 # population densities for each age category
@@ -413,37 +413,35 @@ age05 <- user(integer=TRUE)
 # slide positivity in 0 -5 year age bracket
 dim(prev0to59) <- c(age59,nh)
 prev0to59[1:age59,] <- T[i,j] + D[i,j]  + A[i,j]*p_det[i,j]
-output(prev) <- sum(prev0to59[,])/sum(den[1:age59])
-output(age59)<-age59
+#output(prev) <- sum(prev0to59[,])/sum(den[1:age59])
+#output(age59)<-age59
 
 dim(prevall) <- c(na,nh)
 prevall[,] <- T[i,j] + D[i,j]  + A[i,j]*p_det[i,j]
-output(prev_all) <- sum(prevall[,])/sum(den[])
+#output(prev_all) <- sum(prevall[,])/sum(den[])
 
 # clinical incidence
 dim(clin_inc0tounder5) <- c(age59,nh)
 clin_inc0tounder5[1:age59,] <- clin_inc[i,j]
-output(incunder5) <- sum(clin_inc0tounder5)/sum(den[1:age59])
+#output(incunder5) <- sum(clin_inc0tounder5)/sum(den[1:age59])
 
 dim(clin_inc0to5) <- c(age05,nh)
 clin_inc0to5[1:age05,] <- clin_inc[i,j]
-output(inc05) <- sum(clin_inc0to5)/sum(den[1:age05])
+#output(inc05) <- sum(clin_inc0to5)/sum(den[1:age05])
 
-output(inc) <- sum(clin_inc[,])
+#output(inc) <- sum(clin_inc[,])
 
 
 # Param checking outputs
-output(mu) <- mu
-output(beta_larval) <- beta_larval
-output(KL) <- KL
-output(mv) <- mv
-output(K0) <- K0
+#output(mu) <- mu
+#output(beta_larval) <- beta_larval
+#output(KL) <- KL
+#output(mv) <- mv
+#output(K0) <- K0
 
 ##Output for initial state of stochastic model
 output(FOI_init[,]) <- FOI[i,j]
 dim(FOI_init) <- c(na,nh)
-output(EIR_init[,]) <- EIR[i,j]
-dim(EIR_init) <- c(na,nh)
 output(FOIv_init) <- FOIv
 output(S_init[,]) <- S[i,j]
 dim(S_init) <- c(na,nh)
@@ -488,37 +486,37 @@ output(ft_init) <- ft
 output(age20l_init) <- age20l
 output(age20u_init) <- age20u
 output(age_20_factor_init) <- age_20_factor
-output(mv_init) <- mv
-output(mv0_init) <- mv0
-output(eta_init) <- eta
-output(rA_init) <- rA
-output(rT_init) <- rT
-output(rD_init) <- rD
-output(rU_init) <- rU
-output(rP_init) <- rP
-output(uCA_init) <- uCA
-output(dCA_init) <- dCA
-output(dB_init) <- dB
-output(uB_init) <- uB
-output(dID_init) <- dID
-output(uD_init) <- uD
-output(PM_init) <- PM
-output(phi0_init) <- phi0
-output(phi1_init) <- phi1
-output(IC0_init) <- IC0
-output(kC_init) <- kC
-output(b0_init) <- b0
-output(b1_init) <- b1
-output(kB_init) <- kB
-output(IB0_init) <- IB0
-output(aD_init) <- aD
-output(fD0_init) <- fD0
-output(gammaD_init) <- gammaD
-output(d1_init) <- d1
-output(ID0_init) <- ID0
-output(kD_init) <- kD
-output(dE_init) <- dE
-output(DY_init) <- DY
+# output(mv_init) <- mv
+# output(mv0_init) <- mv0
+# output(eta_init) <- eta
+# output(rA_init) <- rA
+# output(rT_init) <- rT
+# output(rD_init) <- rD
+# output(rU_init) <- rU
+# output(rP_init) <- rP
+# output(uCA_init) <- uCA
+# output(dCA_init) <- dCA
+# output(dB_init) <- dB
+# output(uB_init) <- uB
+# output(dID_init) <- dID
+# output(uD_init) <- uD
+# output(PM_init) <- PM
+# output(phi0_init) <- phi0
+# output(phi1_init) <- phi1
+# output(IC0_init) <- IC0
+# output(kC_init) <- kC
+# output(b0_init) <- b0
+# output(b1_init) <- b1
+# output(kB_init) <- kB
+# output(IB0_init) <- IB0
+# output(aD_init) <- aD
+# output(fD0_init) <- fD0
+# output(gammaD_init) <- gammaD
+# output(d1_init) <- d1
+# output(ID0_init) <- ID0
+# output(kD_init) <- kD
+# output(dE_init) <- dE
+# output(DY_init) <- DY
 # EIR_SD <- user()
 # output(EIR_SD_init) <- EIR_SD
 # init_EIR <- user()

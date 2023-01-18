@@ -77,7 +77,7 @@ run_pmcmc <- function(data_raw,
       mpl <- append(mpl,list(EIR_SD = theta[["EIR_SD"]],init_EIR = init_EIR))
       
       state <- equilibrium_init_create_stripped(age_vector = mpl$init_age,
-                                       EIR = init_EIR,
+                                       init_EIR = init_EIR,
                                        ft = prop_treated,
                                        model_param_list = mpl,
                                        het_brackets = het_brackets,
@@ -93,7 +93,7 @@ run_pmcmc <- function(data_raw,
         print(preyears*365+as.integer(difftime(mpl$start_stoch,mpl$time_origin,units="days")))
         # tt <- c(0, preyears*365+as.integer(difftime(mpl$start_stoch,mpl$time_origin,units="days")))
         tt <- seq(0, preyears*365+as.integer(difftime(mpl$start_stoch,mpl$time_origin,units="days")),length.out=500)
-        
+        print(tt)
         # run model
         mod_run <- mod$run(tt)
         # print('ran seasonal model')
@@ -103,8 +103,6 @@ run_pmcmc <- function(data_raw,
         # windows(10,8)
         # plot(out$t,out$prev_all)
         # View(out)
-        print(out$mv_init[1])
-        print(out$mv0_init[1])
         init4pmcmc <- transform_init(out)
         # print(init4pmcmc)
         # print(out)
