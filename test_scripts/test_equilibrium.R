@@ -46,7 +46,7 @@ mpl_pf <- model_param_list_create(init_age = init_age,
 # print(mpl_pf$state_check)
 # print(mpl_pf$ssa0)
 ##Model with no seasonality
-model <- odin("shared/odin_model_stripped_matched.R")
+# model <- odin("shared/odin_model_stripped_matched.R")
 ##Model with seasonality component, but set to 1
 model_seas <- odin("shared/odin_model_stripped_seasonal.R")
 
@@ -64,26 +64,28 @@ state <- equilibrium_init_create_stripped(age_vector = mpl$init_age,
                                           model_param_list = mpl,
                                           het_brackets = het_brackets,
                                           state_check = mpl$state_check)
+
 ##run seasonality model first if seasonality_on == 1
-state_use <- state[names(state) %in% coef(model)$name]
+# state_use <- state[names(state) %in% coef(model)$name]
 state_use_seas <- state[names(state) %in% coef(model_seas)$name]
 # print(state_use)
+
 # create model with initial values
-mod <- model$new(user = state_use, use_dde = TRUE)
+# mod <- model$new(user = state_use, use_dde = TRUE)
 mod_seas <- model_seas$new(user = state_use_seas, use_dde = TRUE)
 # print('generated seasonal model')
 # tt <- c(0, preyears*365+as.integer(difftime(mpl$start_stoch,mpl$time_origin,units="days")))
 tt <- seq(0, 0.5*365,length.out=500)
 
 # run model
-mod_run <- mod$run(tt)
+# mod_run <- mod$run(tt)
 mod_seas_run <- mod_seas$run(tt)
 # print('ran seasonal model')
 # View(mod_run)
 # shape output
-out <- mod$transform_variables(mod_run)
+# out <- mod$transform_variables(mod_run)
 # windows(10,8)
-plot(out$t,out$prev_all,type = 'l')
+# plot(out$t,out$prev_all,type = 'l')
 
 out_seas <- mod_seas$transform_variables(mod_seas_run)
 # windows(10,8)
@@ -103,7 +105,7 @@ out_seas$Ev[1]-(state$init_Ev*state$mv0)
 out_seas$IB_init[1,,]-state$init_IB
 out_seas$ID_init[1,,]-state$init_ID
 out_seas$ICA_init[1,,]-state$init_ICA
-out_seas$FOI[1,,]-state$FOI_eq
+out_seas$FOI_init[1,,]-state$FOI_eq
 out_seas$EIR_init[1,,]-state$EIR_eq
 out_seas$PL[1]-state$init_PL
 out_seas$LL[1]-state$init_LL

@@ -261,7 +261,7 @@ theta_c <- user()
 state_check <- user()
 theta2 <- if(state_check == 1 || (ssa0 == 0 && ssa1  == 0 && ssa2  == 0 && ssb1  == 0 && ssb2  == 0 && ssb3  == 0 && theta_c  == 0))
 1 else max((ssa0+ssa1*cos(2*pi*t/365)+ssa2*cos(2*2*pi*t/365)+ssa3*cos(3*2*pi*t/365)+ssb1*sin(2*pi*t/365)+ssb2*sin(2*2*pi*t/365)+ ssb3*sin(3*2*pi*t/365) ) /theta_c,0.001)
-#theta2 <-1
+# theta2 <-1.0
 ##------------------------------------------------------------------------------
 #####################
 ## MOSQUITO STATES ##
@@ -418,7 +418,7 @@ prev0to59[1:age59,] <- T[i,j] + D[i,j]  + A[i,j]*p_det[i,j]
 
 dim(prevall) <- c(na,nh)
 prevall[,] <- T[i,j] + D[i,j]  + A[i,j]*p_det[i,j]
-#output(prev_all) <- sum(prevall[,])/sum(den[])
+output(prev_all) <- sum(prevall[,])/sum(den[])
 
 # clinical incidence
 dim(clin_inc0tounder5) <- c(age59,nh)
@@ -442,6 +442,8 @@ clin_inc0to5[1:age05,] <- clin_inc[i,j]
 ##Output for initial state of stochastic model
 output(FOI_init[,]) <- FOI[i,j]
 dim(FOI_init) <- c(na,nh)
+output(EIR_init[,]) <- EIR[i,j]
+dim(EIR_init) <- c(na,nh)
 output(FOIv_init) <- FOIv
 output(S_init[,]) <- S[i,j]
 dim(S_init) <- c(na,nh)

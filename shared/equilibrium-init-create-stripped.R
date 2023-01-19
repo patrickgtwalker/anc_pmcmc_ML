@@ -245,10 +245,10 @@ equilibrium_init_create_stripped <- function(age_vector, het_brackets,
   Iv_eq <- FOIv_eq * mpl$Surv0/(FOIv_eq + mpl$mu0)
   Sv_eq <- mpl$mu0 * Iv_eq/(FOIv_eq * mpl$Surv0)
   Ev_eq <- 1 - Sv_eq - Iv_eq
-  betaa_eq <- (FOIv_eq + mpl$mu0)*Sv_eq
   
   # mosquito density needed to give this EIR
   mv0 <- omega * EIRd_eq/(Iv_eq * mpl$av0)
+  betaa_eq <- (FOIv_eq + mpl$mu0)*Sv_eq*mv0
   
   # larval states
   K0 <- 2 * mv0 * mpl$dLL * mpl$mu0 * (1 + mpl$dPL * mpl$muPL) * mpl$gammaL * (mpl$lambda + 1)/(mpl$lambda/(mpl$muLL *
@@ -416,6 +416,12 @@ equilibrium_init_create_stripped <- function(age_vector, het_brackets,
       deriv_EL <- beta_larval*mv0-mpl$muEL*(1+(EL_eq+LL_eq)/K0_eq)*EL_eq - EL_eq/mpl$dEL
       # deriv(EL) <- beta_larval*mv-muEL*(1+(EL+LL)/KL)*EL - EL/dEL
       
+      fv <- 1/( mpl$tau1 + mpl$tau2 )
+      av <- mpl$Q0*fv
+      EIR <- rel_foi[1] * foi_age[1] * av * Iv_eq*mv0/omega
+      t <- c(0:10)
+      theta2 <- (mpl$ssa0+mpl$ssa1*cos(2*pi*t/365)+mpl$ssa2*cos(2*2*pi*t/365)+mpl$ssa3*cos(3*2*pi*t/365)+mpl$ssb1*sin(2*pi*t/365)+mpl$ssb2*sin(2*2*pi*t/365)+ mpl$ssb3*sin(3*2*pi*t/365) ) /mpl$theta_c
+      
       cat('S[1,] derivative = ',deriv_S1,'\n')
       cat('S[2,] derivative = ',deriv_S2,'\n')
       cat('D[1,] derivative = ',deriv_D1,'\n')
@@ -442,6 +448,11 @@ equilibrium_init_create_stripped <- function(age_vector, het_brackets,
       cat('mv = ',mv0,'\n')
       cat('K0 = ',K0,'\n')
       cat('K0_eq = ',K0_eq,'\n')
+      cat('av = ',av,'\n')
+      cat('av0 = ',mpl$av0,'\n')
+      cat('EIR[1,1] = ',EIR,'\n')
+      cat('EIR_eq[1,1] = ',EIR_eq[1,1],'\n')
+      cat('theta2 = ',theta2,'\n')
       
     }
   }
