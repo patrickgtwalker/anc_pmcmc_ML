@@ -72,9 +72,10 @@ run_pmcmc <- function(data_raw,
 
   transform <- function(mpl,season_model){
     function(theta) {
-      init_EIR <- exp(theta[["log_init_EIR"]])
-      EIR_vol <- theta[["EIR_SD"]]
-      mpl <- append(mpl,list(EIR_SD = theta[["EIR_SD"]],init_EIR = init_EIR))
+      init_EIR <- 10#exp(theta[["log_init_EIR"]])
+      EIR_vol <- 0.2#theta[["EIR_SD"]]
+      mpl <- append(mpl_pf,list(EIR_SD = EIR_vol,init_EIR = init_EIR))
+      # mpl <- append(mpl,list(EIR_SD = theta[["EIR_SD"]],init_EIR = init_EIR))
       
       state <- equilibrium_init_create_stripped(age_vector = mpl$init_age,
                                        init_EIR = init_EIR,
@@ -89,11 +90,11 @@ run_pmcmc <- function(data_raw,
         # create model with initial values
         mod <- season_model$new(user = state_use, use_dde = TRUE)
         # print('generated seasonal model')
-        print(mpl$start_stoch)
-        print(preyears*365+as.integer(difftime(mpl$start_stoch,mpl$time_origin,units="days")))
+        # print(mpl$start_stoch)
+        # print(preyears*365+as.integer(difftime(mpl$start_stoch,mpl$time_origin,units="days")))
         # tt <- c(0, preyears*365+as.integer(difftime(mpl$start_stoch,mpl$time_origin,units="days")))
         tt <- seq(0, preyears*365+as.integer(difftime(mpl$start_stoch,mpl$time_origin,units="days")),length.out=500)
-        print(tt)
+        # print(tt)
         # run model
         mod_run <- mod$run(tt)
         # print('ran seasonal model')
