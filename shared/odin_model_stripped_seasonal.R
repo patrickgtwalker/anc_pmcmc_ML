@@ -440,6 +440,10 @@ clin_inc0to5[1:age05,] <- clin_inc[i,j]
 #output(K0) <- K0
 
 ##Output for initial state of stochastic model
+output(FOIvij_init[,]) <- FOIvij[i,j]
+dim(FOIvij_init) <- c(na,nh)
+output(cA_init[,]) <- cA[i,j]
+dim(cA_init) <- c(na,nh)
 output(FOI_init[,]) <- FOI[i,j]
 dim(FOI_init) <- c(na,nh)
 output(EIR_init[,]) <- EIR[i,j]

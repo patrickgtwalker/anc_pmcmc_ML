@@ -91,8 +91,8 @@ equilibrium_init_create_stripped <- function(age_vector, het_brackets,
   het_x <- h$nodes
   het_wt <- h$weights
   den_het <- outer(den, het_wt)
-  rel_foi <- exp(-mpl$sigma2/2 + sqrt(mpl$sigma2) * het_x)/sum(het_wt * exp(-mpl$sigma2/2 + sqrt(mpl$sigma2) * het_x))
-  # rel_foi <- exp(-mpl$sigma2/2 + sqrt(mpl$sigma2) * het_x)
+  # rel_foi <- exp(-mpl$sigma2/2 + sqrt(mpl$sigma2) * het_x)/sum(het_wt * exp(-mpl$sigma2/2 + sqrt(mpl$sigma2) * het_x))
+  rel_foi <- exp(-mpl$sigma2/2 + sqrt(mpl$sigma2) * het_x)
   
   ## EIR
   EIRY_eq <- init_EIR  # initial annual EIR
@@ -105,13 +105,13 @@ equilibrium_init_create_stripped <- function(age_vector, het_brackets,
   {
     x_I[i] <- den[i]/(den[i - 1] * age_rate[i - 1])  #temporary variables
   }
-  fd <- 1 - (1 - mpl$fD0)/(1 + (age/mpl$aD)^mpl$gammaD)
-  # fd <- c()
-  # for (i in 1:(na-1))
-  # {
-  #   fd[i] <- 1 - (1 - mpl$fD0)/(1 + ((age[i]+age[i+1])/2/mpl$aD)^mpl$gammaD)
-  # }
-  # fd[na]<-1 - (1 - mpl$fD0)/(1 + (age[na]/mpl$aD)^mpl$gammaD)
+  # fd <- 1 - (1 - mpl$fD0)/(1 + (age/mpl$aD)^mpl$gammaD)
+  fd <- c()
+  for (i in 1:(na-1))
+  {
+    fd[i] <- 1 - (1 - mpl$fD0)/(1 + ((age[i]+age[i+1])/2/mpl$aD)^mpl$gammaD)
+  }
+  fd[na]<-1 - (1 - mpl$fD0)/(1 + (age[na]/mpl$aD)^mpl$gammaD)
   
   # maternal immunity begins at a level proportional to the clinical
   # immunity of a 20 year old, this code finds that level

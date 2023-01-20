@@ -113,6 +113,9 @@ out_seas$EL[1]-state$init_EL
 out_seas$mv[1]-state$mv0
 out_seas$rel_foi_init[1,]-state$rel_foi
 out_seas$foi_age_init[1,]-state$foi_age
+out_seas$FOIv_init[1]-state$FOIv_eq
+out_seas$FOIvij_init[1,,]-state$FOIvij_eq
+out_seas$cA_init[1,,]-state$cA
 # View(out)
 print(out$mv_init[1])
 print(out$mv0_init[1])
