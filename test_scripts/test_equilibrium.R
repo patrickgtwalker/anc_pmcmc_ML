@@ -79,7 +79,7 @@ tt <- seq(0, 0.5*365,length.out=500)
 
 # run model
 # mod_run <- mod$run(tt)
-mod_seas_run <- mod_seas$run(tt)
+mod_seas_run <- mod_seas$run(tt, verbose=FALSE,step_size_max=9)
 # print('ran seasonal model')
 # View(mod_run)
 # shape output

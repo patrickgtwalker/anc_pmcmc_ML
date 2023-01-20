@@ -96,7 +96,7 @@ run_pmcmc <- function(data_raw,
         tt <- seq(0, preyears*365+as.integer(difftime(mpl$start_stoch,mpl$time_origin,units="days")),length.out=500)
         # print(tt)
         # run model
-        mod_run <- mod$run(tt)
+        mod_run <- mod$run(tt, verbose=FALSE,step_size_max=9)
         # print('ran seasonal model')
         # View(mod_run)
         # shape output
