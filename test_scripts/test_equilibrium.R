@@ -28,11 +28,15 @@ prop_treated <- 0.4
 het_brackets <- 5
 
 max_EIR <- 1000
-state_check <- 1
 lag_rates <- 10
 country <- 'Burkina Faso'
 admin_unit <- 'Cascades'
-seasonality_on <- 1
+seasonality_on <- 1 ## Run a deterministic seasonal model before running the stochastic model to get more realistic immunity levels
+                    ## If seasonality_on = 0, runs the stochastic model based on the standard equilibrium solution
+state_check <- 1 ## Run equilibrium checks
+                  # If state_check = 1, returns expected deriv values which should equal 0
+                  # If state_check = 1 and seasonality_on = 1, then the deterministic seasonal model is still run, but theta2 is forced to 1, forcing a constant seasonality profile
+                  # If state_check = 0, no values are printed
 
 mpl_pf <- model_param_list_create(init_age = init_age,
                                   pro_treated = prop_treated,
@@ -43,8 +47,7 @@ mpl_pf <- model_param_list_create(init_age = init_age,
                                   country = country,
                                   admin_unit = admin_unit,
                                   seasonality_on = seasonality_on)
-# print(mpl_pf$state_check)
-# print(mpl_pf$ssa0)
+
 ##Model with no seasonality
 # model <- odin("shared/odin_model_stripped_matched.R")
 ##Model with seasonality component, but set to 1
@@ -65,34 +68,26 @@ state <- equilibrium_init_create_stripped(age_vector = mpl$init_age,
                                           het_brackets = het_brackets,
                                           state_check = mpl$state_check)
 
-##run seasonality model first if seasonality_on == 1
-# state_use <- state[names(state) %in% coef(model)$name]
-state_use_seas <- state[names(state) %in% coef(model_seas)$name]
-# print(state_use)
+state_use_seas <- state[names(state) %in% coef(model_seas)$name] #Only selects parameters needed by the odin model
 
 # create model with initial values
-# mod <- model$new(user = state_use, use_dde = TRUE)
 mod_seas <- model_seas$new(user = state_use_seas, use_dde = TRUE)
-# print('generated seasonal model')
-# tt <- c(0, preyears*365+as.integer(difftime(mpl$start_stoch,mpl$time_origin,units="days")))
+
+# tt <- c(0, preyears*365+as.integer(difftime(mpl$start_stoch,mpl$time_origin,units="days"))) #matched run_pmcmc.R
 tt <- seq(0, 0.5*365,length.out=500)
 
 # run model
-# mod_run <- mod$run(tt)
 mod_seas_run <- mod_seas$run(tt, verbose=FALSE,step_size_max=9)
-# print('ran seasonal model')
-# View(mod_run)
-# shape output
-# out <- mod$transform_variables(mod_run)
-# windows(10,8)
-# plot(out$t,out$prev_all,type = 'l')
 
 out_seas <- mod_seas$transform_variables(mod_seas_run)
 # windows(10,8)
 plot(out_seas$t,out_seas$prev_all,type = 'l')
+plot(out_seas$t,out_seas$inc,type = 'l')
 plot(out_seas$t,out_seas$Sv,type = 'l')
 plot(out_seas$t,out_seas$Iv,type = 'l')
 plot(out_seas$t,out_seas$Ev,type = 'l')
+
+##Equilibrium checks: All below should = 0
 out_seas$S[1,,]-state$init_S[,]
 out_seas$D[1,,]-state$init_D[,]
 out_seas$T[1,,]-state$init_T[,]

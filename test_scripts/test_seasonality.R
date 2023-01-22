@@ -72,8 +72,8 @@ test_run <- run_pmcmc(data = data_raw_bf_pg_banfora,
                       lag_rates = 10,
                       country = 'Burkina Faso',
                       admin_unit = 'Cascades',
-                      seasonality_on = 1,
-                      state_check = 0)
+                      seasonality_on = 0,
+                      state_check = 1)
 windows(10,8)
 plot_particle_filter(test_run$history,true_history=data_raw_bf_pg_banfora,times=data_raw_bf_pg_banfora$t)
 1 - coda::rejectionRate(as.mcmc(test_run$mcmc)) ##Acceptance rate

@@ -11,28 +11,38 @@ run_pmcmc <- function(data_raw,
                       n_steps = 500,
                       n_threads = 4,
                       lag_rates = 10,
-                      state_check = 0,
+                      state_check = 0,## Run equilibrium checks
+                      # If state_check = 1, returns expected deriv values which should equal 0 and sets stochastic model to have EIR constant at init_EIR
+                      # If state_check = 1 and seasonality_on = 1, then the deterministic seasonal model is still run, but theta2 is forced to 1, forcing a constant seasonality profile
+                      # If state_check = 0, no values are printed
                       country = NULL,
                       admin_unit = NULL,
-                      preyears = 2,
-                      seasonality_on = 1){
-  ######## run pMCMC with same model with same log(EIR) random walk but within odin.dust
-  start_obs <- min(as.Date(data_raw$month))
-  time_origin <- as.Date(paste0(year(start_obs),'-01-01'))
-  start_stoch <- as.Date(as.yearmon(start_obs))
+                      preyears = 2, #Length of time in years the deterministic seasonal model should run before Jan 1 of the year observations began
+                      seasonality_on = 1  ## state_check = 1 runs a deterministic seasonal model before running the stochastic model to get more realistic immunity levels
+                      ## If seasonality_on = 0, runs the stochastic model based on the standard equilibrium solution
+                      
+                      ){
+  ## Modify dates from data
+  start_obs <- min(as.Date(data_raw$month)) #Month of first observation (in Date format)
+  time_origin <- as.Date(paste0(year(start_obs),'-01-01')) #January 1 of the first year of observation (in Date format)
+  start_stoch <- as.Date(as.yearmon(start_obs)) #Start of stochastic schedule (First day of the month of first observation)
   data_raw_time <- data_raw %>%
-    mutate(date = as.Date(as.yearmon(month), frac = 0.5))%>%
-    mutate(t = as.integer(difftime(date,time_origin,units="days")))
+    mutate(date = as.Date(as.yearmon(month), frac = 0.5))%>% #Convert dates to middle of month
+    mutate(t = as.integer(difftime(date,time_origin,units="days"))) #Calculate date as number of days since January 1 of first year of observation
   
-  data <- mcstate::particle_filter_data(data_raw_time, time = "t", rate = NULL, initial_time = 0)
+  data <- mcstate::particle_filter_data(data_raw_time, time = "t", rate = NULL, initial_time = 0) #Declares data to be used for particle filter fitting
   
+  # Compare function to calculate likelihood
   compare <- function(state, observed, pars = NULL) {
     dbinom(x = observed$positive,
            size = observed$tested,
            prob = state[1,],
            log = TRUE)
   }
-  ##in state have a prevalence by age 
+  
+  ##Output from particle filter
+  ##    run: output used for likelihood calculation
+  ##    state: output used for visualization
   index <- function(info) {
     list(run = c(prev = info$index$prev),
          state = c(prev = info$index$prev,
@@ -46,13 +56,17 @@ run_pmcmc <- function(data_raw,
                    Pout = info$index$Pout))
   }
   
+  ## Provide schedule for changes in stochastic process (in this case EIR)
+  ## Converts a sequence of dates (from start_stoch to 1 month after last observation point) to days since January 1 of the first year of observation
   stochastic_schedule <- as.integer(difftime(seq.Date(start_stoch,max(as.Date(data_raw_time$date+30)),by='month'),time_origin,units="days"))[-1]
-  print(stochastic_schedule)
+  # print(stochastic_schedule)
   
+  #Provide age categories, proportion treated, and number of heterogeneity brackets
   init_age <- c(0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 3.5, 5, 7.5, 10, 15, 20, 30, 40, 50, 60, 70, 80)
   prop_treated <- 0.4
   het_brackets <- 5
   
+  #Create model parameter list. Also loads seasonality profile data file to match to desired admin_unit and country
   mpl_pf <- model_param_list_create(init_age = init_age,
                                     pro_treated = prop_treated,
                                     het_brackets = het_brackets,
@@ -66,17 +80,20 @@ run_pmcmc <- function(data_raw,
                                     seasonality_on = seasonality_on)
   # print(mpl_pf$state_check)
   # print(mpl_pf$ssa0)
+  ## If a deterministic seasonal model is needed prior to the stochastic model, this loads the deterministic odin model
   if(seasonality_on == 1){
     season_model <- odin("shared/odin_model_stripped_seasonal.R")
   }
 
-  transform <- function(mpl,season_model){
+  ## Transformation function that calculates initial values for stohastic model
+  transform <- function(mpl,season_model){ ## Wraps transformation function in a 'closure' environment so you can pass other parameters that you aren't fitting with the pMCMC
     function(theta) {
-      init_EIR <- 10#exp(theta[["log_init_EIR"]])
-      EIR_vol <- 0.2#theta[["EIR_SD"]]
-      mpl <- append(mpl_pf,list(EIR_SD = EIR_vol,init_EIR = init_EIR))
-      # mpl <- append(mpl,list(EIR_SD = theta[["EIR_SD"]],init_EIR = init_EIR))
+      ## theta: particle filter parameters that are being fitted (and so are changing at each MCMC step)
+      init_EIR <- exp(theta[["log_init_EIR"]]) ## Exponentiate EIR since MCMC samples on the log scale for EIR
+      EIR_vol <- theta[["EIR_SD"]]
+      mpl <- append(mpl_pf,list(EIR_SD = EIR_vol,init_EIR = init_EIR)) ## Add MCMC parameters to model parameter list
       
+      ## Run equilibrium function
       state <- equilibrium_init_create_stripped(age_vector = mpl$init_age,
                                        init_EIR = init_EIR,
                                        ft = prop_treated,
@@ -86,40 +103,37 @@ run_pmcmc <- function(data_raw,
       ##run seasonality model first if seasonality_on == 1
       if(seasonality_on==1){
         state_use <- state[names(state) %in% coef(season_model)$name]
-        # print(state_use)
+
         # create model with initial values
         mod <- season_model$new(user = state_use, use_dde = TRUE)
-        # print('generated seasonal model')
-        # print(mpl$start_stoch)
-        # print(preyears*365+as.integer(difftime(mpl$start_stoch,mpl$time_origin,units="days")))
+
         # tt <- c(0, preyears*365+as.integer(difftime(mpl$start_stoch,mpl$time_origin,units="days")))
         tt <- seq(0, preyears*365+as.integer(difftime(mpl$start_stoch,mpl$time_origin,units="days")),length.out=500)
-        # print(tt)
-        # run model
+
+        # run seasonality model
         mod_run <- mod$run(tt, verbose=FALSE,step_size_max=9)
-        # print('ran seasonal model')
-        # View(mod_run)
+
         # shape output
         out <- mod$transform_variables(mod_run)
-        # windows(10,8)
-        # plot(out$t,out$prev_all)
+        windows(10,8)
+        plot(out$t,out$prev,type='l')
         # View(out)
+        
+        # Transform seasonality model output to match expected input of the stochastic model
         init4pmcmc <- transform_init(out)
-        # print(init4pmcmc)
-        # print(out)
-        # print('leaving transformation function')
-        return(append(init4pmcmc,mpl))
+
+        return(append(init4pmcmc,mpl)) #Append all parameters from model parameter list for stochastic model
       }
       else{
         return(state)
       }
     }
   }
-  
-  #### NB the volatility and initial EIR is hard-coded in the odinmodelmatchedstoch bw lines 230 and 234###
+
+  ## Load stochastic model in odin.dust  
   model <- odin.dust::odin_dust("shared/odinmodelmatchedstoch.R")
   
-  set.seed(1)
+  set.seed(1) #To reproduce pMCMC results
   
   ### Set particle filter
   pf <- mcstate::particle_filter$new(data, model, n_particles, compare,
@@ -141,18 +155,16 @@ run_pmcmc <- function(data_raw,
     rerun_random = TRUE)
   
   ### Set pmcmc parameters
-  # EIR_SD <- mcstate::pmcmc_parameter("EIR_SD", 0.3, min = 0,max=2.5,
-  #                                    prior = function(p) dexp(p, rate = 5, log = TRUE))
   EIR_SD <- mcstate::pmcmc_parameter("EIR_SD", 0.3, min = 0,max=2.5,
                                      prior = function(p) dlnorm(p, meanlog = -.2, sdlog = 0.5, log = TRUE))
   log_init_EIR <- mcstate::pmcmc_parameter("log_init_EIR", 1.5, min = -8.5, max = 8.5,
                                            prior = function(p) dnorm(p, mean = 0, sd = 10, log = TRUE) + p) #Add p to adjust for sampling on log scale
   
-  pars = list(EIR_SD = EIR_SD, log_init_EIR = log_init_EIR)
+  pars = list(EIR_SD = EIR_SD, log_init_EIR = log_init_EIR) ## Put pmcmc parameters into a list
   
   mcmc_pars <- mcstate::pmcmc_parameters$new(pars,
                                              proposal_matrix,
-                                             transform = transform(mpl_pf,season_model))
+                                             transform = transform(mpl_pf,season_model)) ## Calls transformation function based on pmcmc parameters
   
   ### Run pMCMC
   start.time <- Sys.time()

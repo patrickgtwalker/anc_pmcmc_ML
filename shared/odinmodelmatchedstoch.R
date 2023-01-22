@@ -237,7 +237,13 @@ deriv(FOI[,,2:lag_rates]) <- (lag_rates/dE)*FOI[i,j,k-1] - (lag_rates/dE)*FOI[i,
 
 # EIR -rate at which each age/het/int group is bitten
 # rate for age group * rate for biting category * FOI for age group * prop of
-# RANDOM WALK ON LOG EIR with SD hard coded
+tau1 <- user() # duration of host-seeking behaviour
+tau2 <- user() # duration of resting behaviour
+Q0 <- user() # proportion of anthropophagy
+
+fv <- 1/( tau1 + tau2 ) # mosquito feeding rate (zbar from intervention param.)
+av <- fv*Q0
+
 DY<-user()
 EIR_SD<-user()
 init_EIR <- user()
@@ -247,7 +253,7 @@ initial(log_EIR) <- log(init_EIR/DY)
 # update(log_EIR) <- min(log_EIR+rnorm(0,1)*EIR_SD,log(max_EIR/DY))
 eir_update <- if(state_check==0) min(log_EIR+rnorm(0,1)*EIR_SD,log(max_EIR/DY)) else log(init_EIR/DY)
 update(log_EIR) <- eir_update
-EIR[,] <- exp(log_EIR)*rel_foi[j] * foi_age[i]
+EIR[,] <- exp(log_EIR)*av*rel_foi[j] * foi_age[i] 
 output(EIR_out) <- exp(log_EIR)*DY
 
 #EIR_td<-interpolate(EIR_times, EIR_valsd, "constant")

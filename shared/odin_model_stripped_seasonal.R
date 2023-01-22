@@ -413,7 +413,7 @@ age05 <- user(integer=TRUE)
 # slide positivity in 0 -5 year age bracket
 dim(prev0to59) <- c(age59,nh)
 prev0to59[1:age59,] <- T[i,j] + D[i,j]  + A[i,j]*p_det[i,j]
-#output(prev) <- sum(prev0to59[,])/sum(den[1:age59])
+output(prev) <- sum(prev0to59[,])/sum(den[1:age59])
 #output(age59)<-age59
 
 dim(prevall) <- c(na,nh)
@@ -427,9 +427,9 @@ clin_inc0tounder5[1:age59,] <- clin_inc[i,j]
 
 dim(clin_inc0to5) <- c(age05,nh)
 clin_inc0to5[1:age05,] <- clin_inc[i,j]
-#output(inc05) <- sum(clin_inc0to5)/sum(den[1:age05])
+output(inc05) <- sum(clin_inc0to5)/sum(den[1:age05])
 
-#output(inc) <- sum(clin_inc[,])
+output(inc) <- sum(clin_inc[,])
 
 
 # Param checking outputs
