@@ -61,19 +61,19 @@ test_run <- run_pmcmc(data = data_raw_bf_pg_banfora,
                       admin_unit = 'Cascades',
                       seasonality_on = 1)
 test_run <- run_pmcmc(data = data_raw_bf_pg_banfora,
-                      n_particles = 10,
+                      n_particles = 200,
                       proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
                       max_EIR=1000,
                       max_steps = 1e7,
                       atol = 1e-5,
                       rtol = 1e-6,
-                      n_steps = 10,
+                      n_steps = 100,
                       n_threads = 2,
                       lag_rates = 10,
                       country = 'Burkina Faso',
                       admin_unit = 'Cascades',
-                      seasonality_on = 0,
-                      state_check = 1)
+                      seasonality_on = 1,
+                      state_check = 0)
 windows(10,8)
 plot_particle_filter(test_run$history,true_history=data_raw_bf_pg_banfora,times=data_raw_bf_pg_banfora$t)
 1 - coda::rejectionRate(as.mcmc(test_run$mcmc)) ##Acceptance rate
@@ -81,3 +81,4 @@ coda::effectiveSize(as.mcmc(test_run$mcmc)) ##ESS
 cov(result_32_200$pars) ##Covariance
 summary(as.mcmc(test_run$mcmc)) ##Summarize mcmc run
 plot(as.mcmc(test_run$mcmc)) ##Plot traces and distributions
+

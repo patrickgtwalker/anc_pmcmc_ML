@@ -253,7 +253,7 @@ initial(log_EIR) <- log(init_EIR/DY)
 # update(log_EIR) <- min(log_EIR+rnorm(0,1)*EIR_SD,log(max_EIR/DY))
 eir_update <- if(state_check==0) min(log_EIR+rnorm(0,1)*EIR_SD,log(max_EIR/DY)) else log(init_EIR/DY)
 update(log_EIR) <- eir_update
-EIR[,] <- exp(log_EIR)*av*rel_foi[j] * foi_age[i] 
+EIR[,] <- exp(log_EIR) * rel_foi[j] * foi_age[i] 
 output(EIR_out) <- exp(log_EIR)*DY
 
 #EIR_td<-interpolate(EIR_times, EIR_valsd, "constant")

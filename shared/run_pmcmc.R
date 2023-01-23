@@ -91,7 +91,7 @@ run_pmcmc <- function(data_raw,
       ## theta: particle filter parameters that are being fitted (and so are changing at each MCMC step)
       init_EIR <- exp(theta[["log_init_EIR"]]) ## Exponentiate EIR since MCMC samples on the log scale for EIR
       EIR_vol <- theta[["EIR_SD"]]
-      mpl <- append(mpl_pf,list(EIR_SD = EIR_vol,init_EIR = init_EIR)) ## Add MCMC parameters to model parameter list
+      mpl <- append(mpl_pf,list(EIR_SD = EIR_vol)) ## Add MCMC parameters to model parameter list
       
       ## Run equilibrium function
       state <- equilibrium_init_create_stripped(age_vector = mpl$init_age,
@@ -115,14 +115,27 @@ run_pmcmc <- function(data_raw,
 
         # shape output
         out <- mod$transform_variables(mod_run)
-        windows(10,8)
-        plot(out$t,out$prev,type='l')
+        # windows(10,8)
+        # plot(out$t,out$prev,type='l')
         # View(out)
         
         # Transform seasonality model output to match expected input of the stochastic model
         init4pmcmc <- transform_init(out)
-
-        return(append(init4pmcmc,mpl)) #Append all parameters from model parameter list for stochastic model
+        # print(init4pmcmc)
+        if(state_check==1){
+          cat('S check: ',init4pmcmc$init_S-state_use$init_S,'\n')
+          cat('T check: ',init4pmcmc$init_T-state_use$init_T,'\n')
+          cat('D check: ',init4pmcmc$init_D-state_use$init_D,'\n')
+          cat('A check: ',init4pmcmc$init_A-state_use$init_A,'\n')
+          cat('U check: ',init4pmcmc$init_U-state_use$init_U,'\n')
+          cat('P check: ',init4pmcmc$init_P-state_use$init_P,'\n')
+          cat('init_EIR: ',state_use$init_EIR,'\n')
+          cat('init_EIR seasonal: ',init4pmcmc$init_EIR,'\n')
+          # mpl['init_EIR'] <- NULL
+          # View(init4pmcmc)
+          # View(state_use)
+        }
+        return(init4pmcmc) #Append all parameters from model parameter list for stochastic model
       }
       else{
         return(state)

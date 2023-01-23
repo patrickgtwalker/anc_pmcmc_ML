@@ -80,6 +80,8 @@ tt <- seq(0, 0.5*365,length.out=500)
 mod_seas_run <- mod_seas$run(tt, verbose=FALSE,step_size_max=9)
 
 out_seas <- mod_seas$transform_variables(mod_seas_run)
+out_seas$EIR_init[1,,]
+
 # windows(10,8)
 plot(out_seas$t,out_seas$prev_all,type = 'l')
 plot(out_seas$t,out_seas$inc,type = 'l')

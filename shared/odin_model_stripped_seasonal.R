@@ -431,7 +431,8 @@ output(inc05) <- sum(clin_inc0to5)/sum(den[1:age05])
 
 output(inc) <- sum(clin_inc[,])
 
-
+EIR_agg[,] <- EIR[i,j]* DY /(rel_foi[j] * foi_age[i]) 
+dim(EIR_agg) <- c(na,nh)
 # Param checking outputs
 #output(mu) <- mu
 #output(beta_larval) <- beta_larval
@@ -446,7 +447,7 @@ output(cA_init[,]) <- cA[i,j]
 dim(cA_init) <- c(na,nh)
 output(FOI_init[,]) <- FOI[i,j]
 dim(FOI_init) <- c(na,nh)
-output(EIR_init[,]) <- EIR[i,j]
+output(EIR_init[,]) <- EIR_agg[i,j]
 dim(EIR_init) <- c(na,nh)
 output(FOIv_init) <- FOIv
 output(S_init[,]) <- S[i,j]
@@ -492,38 +493,44 @@ output(ft_init) <- ft
 output(age20l_init) <- age20l
 output(age20u_init) <- age20u
 output(age_20_factor_init) <- age_20_factor
-# output(mv_init) <- mv
-# output(mv0_init) <- mv0
-# output(eta_init) <- eta
-# output(rA_init) <- rA
-# output(rT_init) <- rT
-# output(rD_init) <- rD
-# output(rU_init) <- rU
-# output(rP_init) <- rP
-# output(uCA_init) <- uCA
-# output(dCA_init) <- dCA
-# output(dB_init) <- dB
-# output(uB_init) <- uB
-# output(dID_init) <- dID
-# output(uD_init) <- uD
-# output(PM_init) <- PM
-# output(phi0_init) <- phi0
-# output(phi1_init) <- phi1
-# output(IC0_init) <- IC0
-# output(kC_init) <- kC
-# output(b0_init) <- b0
-# output(b1_init) <- b1
-# output(kB_init) <- kB
-# output(IB0_init) <- IB0
-# output(aD_init) <- aD
-# output(fD0_init) <- fD0
-# output(gammaD_init) <- gammaD
-# output(d1_init) <- d1
-# output(ID0_init) <- ID0
-# output(kD_init) <- kD
-# output(dE_init) <- dE
-# output(DY_init) <- DY
-# EIR_SD <- user()
-# output(EIR_SD_init) <- EIR_SD
-# init_EIR <- user()
-# output(EIR_init) <- init_EIR
+output(mv_init) <- mv
+output(mv0_init) <- mv0
+output(eta_init) <- eta
+output(rA_init) <- rA
+output(rT_init) <- rT
+output(rD_init) <- rD
+output(rU_init) <- rU
+output(rP_init) <- rP
+output(uCA_init) <- uCA
+output(dCA_init) <- dCA
+output(dB_init) <- dB
+output(uB_init) <- uB
+output(dID_init) <- dID
+output(uD_init) <- uD
+output(PM_init) <- PM
+output(phi0_init) <- phi0
+output(phi1_init) <- phi1
+output(IC0_init) <- IC0
+output(kC_init) <- kC
+output(b0_init) <- b0
+output(b1_init) <- b1
+output(kB_init) <- kB
+output(IB0_init) <- IB0
+output(aD_init) <- aD
+output(fD0_init) <- fD0
+output(gammaD_init) <- gammaD
+output(d1_init) <- d1
+output(ID0_init) <- ID0
+output(kD_init) <- kD
+output(dE_init) <- dE
+output(DY_init) <- DY
+EIR_SD <- user()
+output(EIR_SD_init) <- EIR_SD
+lag_rates <- user()
+output(lag_rates_init) <- lag_rates
+max_EIR <- user()
+output(max_EIR_init) <- max_EIR
+output(Q0_init) <- Q0
+output(state_check_init) <- state_check
+output(tau1_init) <- tau1
+output(tau2_init) <- tau2
