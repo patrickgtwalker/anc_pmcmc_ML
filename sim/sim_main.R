@@ -33,7 +33,7 @@ source('shared/equilibrium-init-create-stripped.R')
 ##Generate simulated data##
 windows(10,8)
 data_sim_comptest <- data_gen(EIR_volatility = 0.8, init_EIR = 20)
-plot(data_sim_comptest$EIR_true)
+plot(data_sim_comptest$EIR_true,type = 'l')
 
 ##Three previously run simulated data sets are saved in the folder
 ## 'anc_pmcmc/sim/sim_datasets

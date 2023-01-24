@@ -32,7 +32,7 @@ mpl <- model_param_list_create(init_EIR = init_EIR,
                                )
 
 pars <- equilibrium_init_create_stripped(age_vector = init_age,
-                                EIR = init_EIR,
+                                init_EIR = init_EIR,
                                 ft = prop_treated,
                                 model_param_list = mpl,
                                 het_brackets = het_brackets)
@@ -60,7 +60,9 @@ plot(out$t,out$prev,col="white")
 lines(out$t,out$prev,col="blue",lwd=4)
 tested<-round(rnorm(length(out$prev_all),220,40))
 positive<-rbinom(length(out$prev_all),tested,out$prev_all)
+month <- seq.Date(from = as.Date('2015-01-01'),by = 'month',length.out = length(tt))
 data_raw<-data.frame(t=out$t+30,
+                     month=as.yearmon(month),
                      tested=tested,
                      positive=positive,
                      prev_true=out$prev_all,
