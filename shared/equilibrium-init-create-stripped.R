@@ -222,6 +222,7 @@ equilibrium_init_create_stripped <- function(age_vector, het_brackets,
   A_eq <- matrix(ncol = nh, nrow = na)
   U_eq <- matrix(ncol = nh, nrow = na)
   S_eq <- matrix(ncol = nh, nrow = na)
+  prev_eq <- matrix(ncol = nh, nrow = na)
   
   for (i in 1:na)
   {
@@ -235,9 +236,11 @@ equilibrium_init_create_stripped <- function(age_vector, het_brackets,
       S_eq[i, j] <- Y_eq[i, j] - A_eq[i, j] - U_eq[i, j]
       FOIvij_eq[i, j] <- foi_age[i] * mpl$av0 * (mpl$cT * T_eq[i, j] + mpl$cD *
                                                  D_eq[i, j] + cA_eq[i, j] * A_eq[i, j] + mpl$cU * U_eq[i, j]) * rel_foi[j]/omega
+      prev_eq[i,j] <- T_eq[i,j] + D_eq[i,j]  + A_eq[i,j]*p_det_eq[i,j]
       # print(FOIvij_eq[i,j])
     }
   }
+  prev <- sum(prev_eq[1:age59,])/sum(den[1:age59])
   # print(FOIvij_eq)
   # mosquito states
   FOIv_eq <- sum(FOIvij_eq)
@@ -277,6 +280,7 @@ equilibrium_init_create_stripped <- function(age_vector, het_brackets,
   het_bounds <- sort(zetas)[wt_cuts]
   het_bounds[length(het_bounds)] <- (mpl$max_age/365)+1
   
+
   ## collate init
   res <- list(init_S = S_eq, init_T = T_eq, init_D = D_eq, init_A = A_eq, init_U = U_eq,
               init_P = P_eq, init_Y = Y_eq, init_IB = IB_eq, init_ID = ID_eq, init_ICA = ICA_eq,
@@ -291,6 +295,7 @@ equilibrium_init_create_stripped <- function(age_vector, het_brackets,
               den = den, age59 = age59, age05 = age05,
               # ssa0 = mpl$ssa0, ssa1 = mpl$ssa1,ssa2 = mpl$ssa2, ssa3 = mpl$ssa3, ssb1 = mpl$ssb1, ssb2 = mpl$ssb2, ssb3 = mpl$ssb3,theta_c = mpl$theta_c,
               pi = pi,
+              prev = prev,
               age = age_vector*mpl$DY, ft = ft,
               betaS = betaS, betaA = betaA, betaU = betaU, FOIvij_eq=FOIvij_eq,
               age_mid_point = age_mid_point, het_bounds = het_bounds,

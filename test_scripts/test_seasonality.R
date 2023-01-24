@@ -61,13 +61,13 @@ test_run <- run_pmcmc(data = data_raw_bf_pg_banfora,
                       admin_unit = 'Cascades',
                       seasonality_on = 1)
 test_run <- run_pmcmc(data = data_raw_bf_pg_banfora,
-                      n_particles = 200,
+                      n_particles = 10,
                       proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
                       max_EIR=1000,
                       max_steps = 1e7,
                       atol = 1e-5,
                       rtol = 1e-6,
-                      n_steps = 100,
+                      n_steps = 3,
                       n_threads = 2,
                       lag_rates = 10,
                       country = 'Burkina Faso',
@@ -82,3 +82,17 @@ cov(result_32_200$pars) ##Covariance
 summary(as.mcmc(test_run$mcmc)) ##Summarize mcmc run
 plot(as.mcmc(test_run$mcmc)) ##Plot traces and distributions
 
+matplot(c(1:22),t(test_run$history['prev',,]), type = 'l')
+matplot(c(1:22),test_run$history['prev',1,], type = 'l')
+matplot(c(1:22),t(test_run$history['Sout',,]), type = 'l')
+matplot(c(1:22),t(test_run$history['Tout',,]))
+matplot(c(1:22),t(test_run$history['prev',,]))
+matplot(c(1:22),t(test_run$history['prev',,]))
+matplot(c(1:22),t(test_run$history['prev',,]))
+plot(c(1:22),test_run$history['Sout',1,])
+plot(c(1:22),test_run$history['Tout',1,])
+plot(c(1:22),test_run$history['Dout',1,-1])
+plot(c(1:22),test_run$history['Aout',1,-1])
+plot(c(1:22),test_run$history['Uout',1,-1])
+plot(c(1:22),test_run$history['Pout',1,-1])
+length(data_raw_bf_pg_banfora$t)

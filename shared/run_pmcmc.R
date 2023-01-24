@@ -122,15 +122,34 @@ run_pmcmc <- function(data_raw,
         # Transform seasonality model output to match expected input of the stochastic model
         init4pmcmc <- transform_init(out)
         # print(init4pmcmc)
+        cat('prev equilibrium: ',state$prev,'\n')
+        cat('prev seasonal: ',init4pmcmc$prev,'\n')
         if(state_check==1){
-          cat('S check: ',init4pmcmc$init_S-state_use$init_S,'\n')
-          cat('T check: ',init4pmcmc$init_T-state_use$init_T,'\n')
-          cat('D check: ',init4pmcmc$init_D-state_use$init_D,'\n')
-          cat('A check: ',init4pmcmc$init_A-state_use$init_A,'\n')
-          cat('U check: ',init4pmcmc$init_U-state_use$init_U,'\n')
-          cat('P check: ',init4pmcmc$init_P-state_use$init_P,'\n')
+          H <- sum(init4pmcmc$init_S) + sum(init4pmcmc$init_T) + sum(init4pmcmc$init_D) + sum(init4pmcmc$init_A) + sum(init4pmcmc$init_U) + sum(init4pmcmc$init_P)
+
+          deriv_S11 <- -init4pmcmc$FOI_eq[1,1]*init4pmcmc$init_S[1,1] + init4pmcmc$rP*init4pmcmc$init_P[1,1] + init4pmcmc$rU*init4pmcmc$init_U[1,1] +
+            init4pmcmc$eta*H*init4pmcmc$het_wt[1] - (init4pmcmc$eta+init4pmcmc$age_rate[1])*init4pmcmc$init_S[1,1]
+          cat('deriv S check: ',deriv_S11,'\n')
+          b <- init4pmcmc$b0 * ((1-init4pmcmc$b1)/(1+(init4pmcmc$init_IB[1,1]/init4pmcmc$IB0)^init4pmcmc$kB)+init4pmcmc$b1)
+          print(b)
+          EIR_eq11 <- init4pmcmc$init_EIR/365 * init4pmcmc$rel_foi[1] * init4pmcmc$foi_age[1]
+          print(EIR_eq11)
+          FOI_lag <- EIR_eq11 * (if(init4pmcmc$init_IB[1,1]==0) init4pmcmc$b0 else b)
+          print(FOI_lag)
+          deriv_FOI111 <- (init4pmcmc$lag_rates/init4pmcmc$dE)*FOI_lag - (init4pmcmc$lag_rates/init4pmcmc$dE)*init4pmcmc$FOI_eq[1,1]
+          cat('deriv FOI check: ',deriv_FOI111,'\n')
+          
+          # cat('S check: ',init4pmcmc$init_S-state_use$init_S,'\n')
+          # cat('T check: ',init4pmcmc$init_T-state_use$init_T,'\n')
+          # cat('D check: ',init4pmcmc$init_D-state_use$init_D,'\n')
+          # cat('A check: ',init4pmcmc$init_A-state_use$init_A,'\n')
+          # cat('U check: ',init4pmcmc$init_U-state_use$init_U,'\n')
+          # cat('P check: ',init4pmcmc$init_P-state_use$init_P,'\n')
           cat('init_EIR: ',state_use$init_EIR,'\n')
           cat('init_EIR seasonal: ',init4pmcmc$init_EIR,'\n')
+          cat('prev seasonal: ',state$prev,'\n')
+          cat('prev seasonal: ',init4pmcmc$prev,'\n')
+          
           # mpl['init_EIR'] <- NULL
           # View(init4pmcmc)
           # View(state_use)

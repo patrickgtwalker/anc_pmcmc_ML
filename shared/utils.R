@@ -279,7 +279,8 @@ transform_init <- function(final_state = NULL){
        Q0 = f$Q0_init[last],
        state_check = f$state_check_init[last],
        tau1 = f$tau1_init[last],
-       tau2 = f$tau2_init[last]
+       tau2 = f$tau2_init[last],
+       prev = f$prev[last]
        
   )
 }
