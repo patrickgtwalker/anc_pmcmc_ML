@@ -14,7 +14,7 @@ source('shared/addCIs.R')
 ########NIGERIA########
 #######################
 #Read in Nigeria data and rename most used variables
-NG_ANC_mother <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl300522/Nigeria/ANC-based surveillance/data_anc_mother_nigeria.xlsx')%>%
+NG_ANC_mother <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl180123/Nigeria/ANC-based surveillance/data_anc_mother_nigeria.xlsx')%>%
   dplyr::rename(primigrav = q1_preg,
          prev_pregs = q2_preg,
          mal_symp = q1_mal,
@@ -24,12 +24,12 @@ NG_ANC_mother <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College Lond
          grav = prev_pregs+1,
          ward = toupper(ward))
 #Read in Nigeria data and rename most used variables
-NG_CS_child_2020 <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl300522/Nigeria/Cross-sectional survey/data_nnp_survey_child_nigeria_2020.xlsx')%>%
+NG_CS_child_2020 <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl180123/Nigeria/Cross-sectional survey/data_nnp_survey_child_nigeria_2020.xlsx')%>%
   dplyr::rename(rdt = q85c_result,
          mal_symp = q86a_symptoms) %>%
   mutate(age = ifelse(age==0,age_months/12,age))
 
-NG_CS_hh_2020 <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl300522/Nigeria/Cross-sectional survey/data_nnp_survey_hh_nigeria_2020.xlsx')%>%
+NG_CS_hh_2020 <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl180123/Nigeria/Cross-sectional survey/data_nnp_survey_hh_nigeria_2020.xlsx')%>%
   rename(individual_id = hh_id,
          date = start) %>%
   mutate(date = as.Date(date))
@@ -38,12 +38,12 @@ NG_CS_hh_2020 <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College Lond
 NG_CS_2020 <- merge(NG_CS_child_2020,NG_CS_hh_2020,by='submission_id',all.x=TRUE,suffixes=c('.child','.hh'))
 
 ##Read in 2021 data
-NG_CS_child_2021 <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl300522/Nigeria/Cross-sectional survey/data_nnp_survey_child_nigeria_2021.xlsx')%>%
+NG_CS_child_2021 <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl180123/Nigeria/Cross-sectional survey/data_nnp_survey_child_nigeria_2021.xlsx')%>%
   rename(rdt = q90c_result_6to59months,
          mal_symp = q91_a_symptoms) %>%
   mutate(age = ifelse(age==0,age_months/12,age))
 
-NG_CS_hh_2021 <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl300522/Nigeria/Cross-sectional survey/data_nnp_survey_hh_nigeria_2021.xlsx')%>%
+NG_CS_hh_2021 <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl180123/Nigeria/Cross-sectional survey/data_nnp_survey_hh_nigeria_2021.xlsx')%>%
   rename(individual_id = hh_id,
          date = start) %>%
   mutate(date = as.Date(date))
@@ -67,7 +67,7 @@ NG_CS_all_grouped_site <- NG_CS_all %>%
   group_by(site,month,.drop=FALSE)%>%
   dplyr::summarise(positive=sum(rdt),total=n())
 NG_CS_all_grouped_site <- addCIs(NG_CS_all_grouped_site,NG_CS_all_grouped_site$positive,NG_CS_all_grouped_site$total)
-saveRDS(NG_CS_all_grouped_site,'NG_CS_all_grouped_site.rds')
+saveRDS(NG_CS_all_grouped_site,'nnp/data/NG_CS_all_grouped_site.rds')
 #Group by grav
 NG_ANC_mother_grouped_sitegrav <- NG_ANC_mother %>%
   dplyr::rename(site = lga) %>%
@@ -76,13 +76,13 @@ NG_ANC_mother_grouped_sitegrav <- NG_ANC_mother %>%
   group_by(site,month,grav_cat,.drop=FALSE)%>%
   dplyr::summarise(positive=sum(rdt),total=n())
 NG_ANC_mother_grouped_sitegrav <- addCIs(NG_ANC_mother_grouped_sitegrav,NG_ANC_mother_grouped_sitegrav$positive,NG_ANC_mother_grouped_sitegrav$total)
-saveRDS(NG_ANC_mother_grouped_sitegrav,'NG_ANC_mother_grouped_sitegrav.rds')
+saveRDS(NG_ANC_mother_grouped_sitegrav,'nnp/data/NG_ANC_mother_grouped_sitegrav.rds')
 
 #######################
 ######MOZAMBIQUE#######
 #######################
 #Read in Mozambique data and rename most used variables
-MZ_ANC_mother <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl160822/Mozambique/ANC-based surveillance/ANC Surveillance_11.2011.xlsx',
+MZ_ANC_mother_2021 <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl180123/Mozambique/ANC-based surveillance/ANC_Mozambique_2021.11.xlsx',
                               xl.sheet = 'ANC')%>%
   dplyr::rename(primigrav = q4_primagravidae,
                 prev_pregs = q5_num_pregnancy,
@@ -91,14 +91,30 @@ MZ_ANC_mother <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College Lond
                 age = q2_age_n) %>%
   dplyr::mutate(month = as.yearmon(as.Date(date_interview_n)),
                 grav = ifelse(primigrav=='Yes',1,ifelse(prev_pregs==0,NA,prev_pregs+1)))
+MZ_ANC_mother_2022 <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl180123/Mozambique/ANC-based surveillance/ANC_Mozambique_2022.09_FINAL.xlsx',
+                                   xl.sheet = 'ANC')%>%
+  dplyr::rename(primigrav = q4_primagravidae,
+                prev_pregs = q5_num_pregnancy,
+                mal_symp = q6_mal_symptoms,
+                rdt = q7_rdt_result,
+                age = q2_age_n) %>%
+  dplyr::mutate(month = as.yearmon(as.Date(date_interview_n)),
+                grav = ifelse(primigrav=='Yes',1,ifelse(prev_pregs==0,NA,prev_pregs+1)))
+#Combine 2 years of data
+MZ_ANC_mother <- plyr::rbind.fill(MZ_ANC_mother_2021,MZ_ANC_mother_2022)
+
 #Read in Mozambique data and rename most used variables
-MZ_CS_rdt_base <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl160822/Mozambique/Cross-sectional survey/Moz Baseline CSS Datasets 2020.xlsx',
+MZ_CS_rdt_base <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl180123/Mozambique/Cross-sectional survey/Moz Baseline CSS Datasets 2020.xlsx',
                                xl.sheet = 'RDT')%>%
   mutate(date = as.Date(date))
-MZ_CS_rdt_mid <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl160822/Mozambique/Cross-sectional survey/Moz Midline CSS Datasets 2021.xlsx',
+MZ_CS_rdt_mid <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl180123/Mozambique/Cross-sectional survey/Moz Midline CSS Datasets 2021.xlsx',
                               xl.sheet = 'RDT')%>%
   mutate(date = as.Date(date,"%m/%d/%Y"))
-MZ_CS_rdt <- rbind(MZ_CS_rdt_base,MZ_CS_rdt_mid)
+MZ_CS_rdt_end <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl180123/Mozambique/Cross-sectional survey/Moz Endline CSS Datasets 2022.xlsx',
+                              xl.sheet = 'RDT')%>%
+  mutate(date_interview = as.Date(date_interview))%>%
+  rename(date = date_interview)
+MZ_CS_rdt <- rbind(MZ_CS_rdt_base,MZ_CS_rdt_mid,MZ_CS_rdt_end)
 
 #Group CS data by site and calculate prevalence and CI by month
 MZ_CS_all_grouped_site <- MZ_CS_rdt %>%
@@ -111,7 +127,7 @@ MZ_CS_all_grouped_site <- MZ_CS_rdt %>%
   group_by(site,month,.drop=FALSE)%>%
   dplyr::summarise(positive=sum(rdt),total=n())
 MZ_CS_all_grouped_site <- addCIs(MZ_CS_all_grouped_site,MZ_CS_all_grouped_site$positive,MZ_CS_all_grouped_site$total)
-saveRDS(MZ_CS_all_grouped_site,'MZ_CS_all_grouped_site_160822.rds')
+saveRDS(MZ_CS_all_grouped_site,'nnp/data/MZ_CS_all_grouped_site_180123.rds')
 
 #Group ANC data by grav and site
 MZ_ANC_mother_grouped_sitegrav <- MZ_ANC_mother %>%
@@ -125,13 +141,13 @@ MZ_ANC_mother_grouped_sitegrav <- MZ_ANC_mother %>%
   group_by(site,month,grav_cat,.drop=FALSE)%>%
   dplyr::summarise(positive=sum(rdt),total=n())
 MZ_ANC_mother_grouped_sitegrav <- addCIs(MZ_ANC_mother_grouped_sitegrav,MZ_ANC_mother_grouped_sitegrav$positive,MZ_ANC_mother_grouped_sitegrav$total)
-saveRDS(MZ_ANC_mother_grouped_sitegrav,'MZ_ANC_mother_grouped_sitegrav_0822.rds')
+saveRDS(MZ_ANC_mother_grouped_sitegrav,'nnp/data/MZ_ANC_mother_grouped_sitegrav_0822.rds')
 
 #########################
 ######Burkina Faso#######
 #########################
 #Read in Burkina Faso data and rename most used variables
-BF_ANC_mother <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl300522/Burkina Faso/ANC-based surveillance/ANC_BF_5.16.2022.xlsx',
+BF_ANC_mother <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl180123/Burkina Faso/ANC-based surveillance/ANC_BF_2022.12.28_FINAL.xlsx',
                               xl.sheet = 'ANC_woman')%>%
   dplyr::rename(primigrav = Q04_first_preg,
                 prev_pregs = Q05_nbr_prior_preg,
@@ -141,22 +157,28 @@ BF_ANC_mother <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College Lond
   dplyr::mutate(month = as.yearmon(as.Date(Date)),
                 grav = ifelse(primigrav=='Oui',1,prev_pregs+1))
 #Read in Burkina Faso data and rename most used variables
-BF_CS_child_2019 <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl160822/Burkina Faso/Cross-sectional survey/NNET_CSS_2019.xls',
+BF_CS_child_2019 <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl180123/Burkina Faso/Cross-sectional survey/NNET_CSS_2019.xls',
                                  xl.sheet = 'Child_data')%>%
   dplyr::rename(rdt = Result_RDT) %>%
   dplyr::mutate(month = as.yearmon(as.Date('2019-07-01')))
 
-BF_CS_child_2020 <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl160822/Burkina Faso/Cross-sectional survey/NNET_CSS_2020.xls',
+BF_CS_child_2020 <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl180123/Burkina Faso/Cross-sectional survey/NNET_CSS_2020.xls',
                                  xl.sheet = 'Child_data')%>%
   dplyr::rename(rdt = Result_RDT) %>%
   dplyr::mutate(month = as.yearmon(as.Date('2020-06-01')))
 
-BF_CS_child_2021 <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl160822/Burkina Faso/Cross-sectional survey/NNET_CSS_2021.xlsx',
+BF_CS_child_2021 <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl180123/Burkina Faso/Cross-sectional survey/NNET_CSS_2021.xlsx',
                                  xl.sheet = 'Child_data')%>%
   dplyr::rename(rdt = Result_RDT) %>%
   dplyr::mutate(month = as.yearmon(as.Date('2021-06-01')))
 
-BF_CS_child_all <- rbind.fill(BF_CS_child_2019,BF_CS_child_2020,BF_CS_child_2021)
+BF_CS_child_2022 <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl180123/Burkina Faso/Cross-sectional survey/NNET_CSS_2022.xlsx',
+                                 xl.sheet = 'HH_data')%>%
+  dplyr::rename(rdt = Q87_tdr,
+                District = district) %>%
+  dplyr::mutate(month = as.yearmon(as.Date('2022-06-01')))
+
+BF_CS_child_all <- rbind.fill(BF_CS_child_2019,BF_CS_child_2020,BF_CS_child_2021,BF_CS_child_2022)
 
 #Group CS data and calculate prevalence and CI by month
 BF_CS_all_grouped_site <- BF_CS_child_all %>%
@@ -168,7 +190,7 @@ BF_CS_all_grouped_site <- BF_CS_child_all %>%
   group_by(site,month,.drop=FALSE)%>%
   dplyr::summarise(positive=sum(rdt),total=n())
 BF_CS_all_grouped_site <- addCIs(BF_CS_all_grouped_site,BF_CS_all_grouped_site$positive,BF_CS_all_grouped_site$total)
-saveRDS(BF_CS_all_grouped_site,'BF_CS_all_grouped_site_0822.rds')
+saveRDS(BF_CS_all_grouped_site,'nnp/data/BF_CS_all_grouped_site_0822.rds')
 
 #Group ANC data by site
 #Group by grav
@@ -183,7 +205,7 @@ BF_ANC_mother_grouped_sitegrav <- BF_ANC_mother %>%
   group_by(site,month,grav_cat,.drop=FALSE)%>%
   dplyr::summarise(positive=sum(rdt),total=n())
 BF_ANC_mother_grouped_sitegrav <- addCIs(BF_ANC_mother_grouped_sitegrav,BF_ANC_mother_grouped_sitegrav$positive,BF_ANC_mother_grouped_sitegrav$total)
-saveRDS(BF_ANC_mother_grouped_sitegrav,'BF_ANC_mother_grouped_sitegrav.rds')
+saveRDS(BF_ANC_mother_grouped_sitegrav,'nnp/data/BF_ANC_mother_grouped_sitegrav.rds')
 
 ########################################
 ####Create Plots for Each Country#######
@@ -285,28 +307,28 @@ NG_pg_asa <- NG_anc[NG_anc$site=='Asa'&NG_anc$grav_cat=='Gravidities 1',] %>%
   summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
-saveRDS(NG_pg_asa,'data_raw_NG_pg_asa.RDS')
+saveRDS(NG_pg_asa,'nnp/data/data_raw_NG_pg_asa.RDS')
 
 NG_pg_ejigbo <- NG_anc[NG_anc$site=='Ejigbo'&NG_anc$grav_cat=='Gravidities 1',] %>%
   group_by(month)%>%
   summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
-saveRDS(NG_pg_ejigbo,'data_raw_NG_pg_ejigbo.RDS')
+saveRDS(NG_pg_ejigbo,'nnp/data/data_raw_NG_pg_ejigbo.RDS')
 
 NG_pg_ifenorth <- NG_anc[NG_anc$site=='Ife North'&NG_anc$grav_cat=='Gravidities 1',] %>%
   group_by(month)%>%
   summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
-saveRDS(NG_pg_ifenorth,'data_raw_NG_pg_ifenorth.RDS')
+saveRDS(NG_pg_ifenorth,'nnp/data/data_raw_NG_pg_ifenorth.RDS')
 
 NG_pg_moro <- NG_anc[NG_anc$site=='Moro'&NG_anc$grav_cat=='Gravidities 1',] %>%
   group_by(month)%>%
   summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
-saveRDS(NG_pg_moro,'data_raw_NG_pg_moro.RDS')
+saveRDS(NG_pg_moro,'nnp/data/data_raw_NG_pg_moro.RDS')
 
 ##Burkina Faso
 BF_anc <- BF_ANC_mother_grouped_sitegrav
@@ -317,7 +339,7 @@ BF_pg_banfora <- BF_anc[BF_anc$site=='Banfora'&BF_anc$grav_cat=='Gravidities 1',
   summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
-saveRDS(BF_pg_banfora,'data_raw_BF_pg_banfora.RDS')
+saveRDS(BF_pg_banfora,'nnp/data/data_raw_BF_pg_banfora.RDS')
 
 
 BF_pg_gaoua <- BF_anc[BF_anc$site=='Gaoua'&BF_anc$grav_cat=='Gravidities 1',] %>%
@@ -325,14 +347,14 @@ BF_pg_gaoua <- BF_anc[BF_anc$site=='Gaoua'&BF_anc$grav_cat=='Gravidities 1',] %>
   summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
-saveRDS(BF_pg_gaoua,'data_raw_BF_pg_gaoua.RDS')
+saveRDS(BF_pg_gaoua,'nnp/data/data_raw_BF_pg_gaoua.RDS')
 
 BF_pg_orodara <- BF_anc[BF_anc$site=='Orodara'&BF_anc$grav_cat=='Gravidities 1',] %>%
   group_by(month)%>%
   summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
-saveRDS(BF_pg_orodara,'data_raw_BF_pg_orodara.RDS')
+saveRDS(BF_pg_orodara,'nnp/data/data_raw_BF_pg_orodara.RDS')
 
 ##Mozambique
 MZ_anc <- MZ_ANC_mother_grouped_sitegrav
@@ -343,21 +365,21 @@ MZ_pg_changara <- MZ_anc[MZ_anc$site=='Changara'&MZ_anc$grav_cat=='Gravidities 1
   summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
-saveRDS(MZ_pg_changara,'data_raw_MZ_pg_changara.RDS')
+saveRDS(MZ_pg_changara,'nnp/data/data_raw_MZ_pg_changara.RDS')
 
 MZ_pg_chemba <- MZ_anc[MZ_anc$site=='Chemba'&MZ_anc$grav_cat=='Gravidities 1',] %>%
   group_by(month)%>%
   summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
-saveRDS(MZ_pg_chemba,'data_raw_MZ_pg_chemba.RDS')
+saveRDS(MZ_pg_chemba,'nnp/data/data_raw_MZ_pg_chemba.RDS')
 
 MZ_pg_guro <- MZ_anc[MZ_anc$site=='Guro'&MZ_anc$grav_cat=='Gravidities 1',] %>%
   group_by(month)%>%
   summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
-saveRDS(MZ_pg_guro,'data_raw_MZ_pg_guro.RDS')
+saveRDS(MZ_pg_guro,'nnp/data/data_raw_MZ_pg_guro.RDS')
 
 ##Multigrav
 NG_mg_asa <- NG_anc[NG_anc$site=='Asa'&NG_anc$grav_cat!='Gravidities 1',] %>%

@@ -34,6 +34,7 @@ run_pmcmc <- function(data_raw,
   
   # Compare function to calculate likelihood
   compare <- function(state, observed, pars = NULL) {
+    print('in compare function')
     dbinom(x = observed$positive,
            size = observed$tested,
            prob = state[1,],
@@ -82,13 +83,14 @@ run_pmcmc <- function(data_raw,
   # print(mpl_pf$ssa0)
   ## If a deterministic seasonal model is needed prior to the stochastic model, this loads the deterministic odin model
   if(seasonality_on == 1){
-    season_model <- odin("shared/odin_model_stripped_seasonal.R")
+    season_model <- odin::odin("shared/odin_model_stripped_seasonal.R")
   }
 
   ## Transformation function that calculates initial values for stohastic model
   transform <- function(mpl,season_model){ ## Wraps transformation function in a 'closure' environment so you can pass other parameters that you aren't fitting with the pMCMC
     function(theta) {
       ## theta: particle filter parameters that are being fitted (and so are changing at each MCMC step)
+      print('in transform function')
       init_EIR <- exp(theta[["log_init_EIR"]]) ## Exponentiate EIR since MCMC samples on the log scale for EIR
       EIR_vol <- theta[["EIR_SD"]]
       mpl <- append(mpl_pf,list(EIR_SD = EIR_vol)) ## Add MCMC parameters to model parameter list
@@ -165,16 +167,20 @@ run_pmcmc <- function(data_raw,
   }
 
   ## Load stochastic model in odin.dust  
+  print('about to load stochastic model')
   model <- odin.dust::odin_dust("shared/odinmodelmatchedstoch.R")
+  print('loaded stochastic model')
   
   set.seed(1) #To reproduce pMCMC results
   
   ### Set particle filter
+  print('about to set up particle filter')
   pf <- mcstate::particle_filter$new(data, model, n_particles, compare,
                                      index = index, seed = 1L,
                                      stochastic_schedule = stochastic_schedule,
                                      ode_control = mode::mode_control(max_steps = max_steps, atol = atol, rtol = rtol),
                                      n_threads = n_threads)
+  print('set up particle filter')
   
   ### Set pmcmc control
   control <- mcstate::pmcmc_control(
@@ -199,8 +205,9 @@ run_pmcmc <- function(data_raw,
   mcmc_pars <- mcstate::pmcmc_parameters$new(pars,
                                              proposal_matrix,
                                              transform = transform(mpl_pf,season_model)) ## Calls transformation function based on pmcmc parameters
-  
+  print('parameters set')
   ### Run pMCMC
+  print('starting pmcmc run')
   start.time <- Sys.time()
   pmcmc_run <- mcstate::pmcmc(mcmc_pars, pf, control = control)
   run_time <- difftime(Sys.time(),start.time,units = 'secs')
