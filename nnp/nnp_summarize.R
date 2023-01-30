@@ -5,7 +5,9 @@ library(ggpubr)
 library(zoo)
 library(patchwork)
 library(RColorBrewer)
-source('addCIs.R')
+library(bayesplot)
+library(binom)
+source('shared/addCIs.R')
 
 theme_set(theme_minimal()+
             theme(panel.grid.major = element_blank(),
@@ -14,9 +16,6 @@ theme_set(theme_minimal()+
                   panel.border = element_rect(colour = "black",fill=NA),
                   legend.position = 'bottom'))
 
-result <- mz_chemba
-result <- ng_asa
-result <- bf_banfora
 create_diag_figs <- function(result){
   print('acceptance rate')
   print(1 - coda::rejectionRate(as.mcmc(result$mcmc)))
@@ -32,28 +31,11 @@ create_diag_figs <- function(result){
   return(diag)
 }
 
-diag_plots <- lapply(1:10,function(i) create_diag_figs(nnp_result_list[[i]]))
-diag_pg_plots <- lapply(1:10,function(i) create_diag_figs(nnp_pg_result_list[[i]]))
-diag_pgcorr_plots <- lapply(1:10,function(i) create_diag_figs(nnp_pgcorr_result_list[[i]]))
-diag_pgvol_plots <- lapply(1:10,function(i) create_diag_figs(nnp_pgvol_result_list[[i]]))
-diag_pgseas_plots <- lapply(1:10,function(i) create_diag_figs(nnp_pgseas_result_list[[i]]))
-diag_pgorig_plots <- lapply(1:10,function(i) create_diag_figs(nnp_pgorig_result_list[[i]]))
+diag_std_mzbf_plots <- lapply(1:6,function(i) create_diag_figs(std_mzbf_result_list[[i]]))
 
 windows(10,7)
-diag_pg_plots[10]
-diag_pgcorr_plots[9]
-diag_pgvol_plots[9]
-diag_pgseas_plots[10]
-diag_pgorig_plots[10]
+diag_std_mzbf_plots[6]
 
-country <- 'BF'
-country <- 'MZ'
-country <- 'NG'
-
-results <- nnp_result_list
-nnp_list <- list(Banfora = data_raw_bf_banfora,Gaoua = data_raw_bf_gaoua,Orodara = data_raw_bf_orodara,
-                 Changara = data_raw_mz_changara, Chemba = data_raw_mz_chemba,Guro = data_raw_mz_guro,
-                 Asa = data_raw_ng_asa,Ejigbo = data_raw_ng_ejigbo,`Ife North` = data_raw_ng_ifenorth, Moro = data_raw_ng_moro)
 nnp_pg_list <- list(Banfora = data_raw_bf_pg_banfora,Gaoua = data_raw_bf_pg_gaoua,Orodara = data_raw_bf_pg_orodara,
                  Changara = data_raw_mz_pg_changara, Chemba = data_raw_mz_pg_chemba,Guro = data_raw_mz_pg_guro,
                  Asa = data_raw_ng_pg_asa,Ejigbo = data_raw_ng_pg_ejigbo,`Ife North` = data_raw_ng_pg_ifenorth, Moro = data_raw_ng_pg_moro)
@@ -62,8 +44,8 @@ create_prev_plots <- function(results,data_list=nnp_list,country=c('BF','MZ','NG
   district_list <- list(BF = c('Banfora','Gaoua','Orodara'),
                  MZ = c('Changara','Chemba','Guro'),
                  NG = c('Asa','Ejigbo','Ife North','Moro'))
-  dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-5-1'),by='months'),
-                     MZ = seq(as.Date('2020-12-1'),as.Date('2021-9-1'),by='months'),
+  dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-6-1'),by='months'),
+                     MZ = seq(as.Date('2020-12-1'),as.Date('2022-9-1'),by='months'),
                      NG = seq(as.Date('2020-11-1'),as.Date('2021-12-1'),by='months'))
   colors_list <- list(BF = c(Banfora = "#1B9E77", Gaoua = "#999999", Orodara = "#D95F02"),
                       MZ = c(Changara = "#D95F02", Chemba = "#999999", Guro = "#1B9E77"),
@@ -119,7 +101,8 @@ create_prev_plots <- function(results,data_list=nnp_list,country=c('BF','MZ','NG
       annotate("rect", xmin = as.Date('2020-9-1'), xmax = as.Date('2020-10-31'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")+
       annotate("rect", xmin = as.Date('2021-6-1'), xmax = as.Date('2021-10-31'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999"),
     MZ = ggplot(df)+
-      annotate("rect", xmin = as.Date('2021-1-1'), xmax = as.Date('2021-6-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999"),
+      annotate("rect", xmin = as.Date('2021-1-1'), xmax = as.Date('2021-6-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")+
+      annotate("rect", xmin = as.Date('2022-1-1'), xmax = as.Date('2022-6-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999"),
     NG = ggplot(df)+
       annotate("rect", xmin = as.Date('2021-7-1'), xmax = as.Date('2021-11-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")
       
@@ -143,8 +126,8 @@ create_prev_plots <- function(results,data_list=nnp_list,country=c('BF','MZ','NG
 }
 
 ##Prev plots
-BF_prev_pg <- create_prev_plots(results = nnp_pg_result_list,data_list=nnp_pg_list,country='BF')
-MZ_prev_pg <- create_prev_plots(results = nnp_pg_result_list,data_list=nnp_pg_list,country='MZ')
+BF_prev_pg <- create_prev_plots(results = std_mzbf_result_list,data_list=nnp_pg_list,country='BF')
+MZ_prev_pg <- create_prev_plots(results = std_mzbf_result_list,data_list=nnp_pg_list,country='MZ')
 NG_prev_pg <- create_prev_plots(results = nnp_pg_result_list,data_list=nnp_pg_list,country='NG')
 
 windows(10,7)
@@ -158,8 +141,8 @@ create_inc_plots <- function(results,country=c('BF','MZ','NG')){
   district_list <- list(BF = c('Banfora','Gaoua','Orodara'),
                         MZ = c('Changara','Chemba','Guro'),
                         NG = c('Asa','Ejigbo','Ife North','Moro'))
-  dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-5-1'),by='months'),
-                     MZ = seq(as.Date('2020-12-1'),as.Date('2021-9-1'),by='months'),
+  dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-6-1'),by='months'),
+                     MZ = seq(as.Date('2020-12-1'),as.Date('2022-9-1'),by='months'),
                      NG = seq(as.Date('2020-11-1'),as.Date('2021-12-1'),by='months'))
   colors_list <- list(BF = c(Banfora = "#1B9E77", Gaoua = "#999999", Orodara = "#D95F02"),
                       MZ = c(Changara = "#D95F02", Chemba = "#999999", Guro = "#1B9E77"),
@@ -224,8 +207,9 @@ create_inc_plots <- function(results,country=c('BF','MZ','NG')){
       annotate("rect", xmin = as.Date('2021-6-1'), xmax = as.Date('2021-10-1'), ymin = 0, ymax = 3750,alpha = .1,fill = "#999999")+
       scale_y_continuous(limits = c(0,3750)),
     MZ = ggplot(df)+
-      annotate("rect", xmin = as.Date('2021-1-1'), xmax = as.Date('2021-6-1'), ymin = 0, ymax = 400,alpha = .1,fill = "#999999")+
-      scale_y_continuous(limits=c(0,400)),
+      annotate("rect", xmin = as.Date('2021-1-1'), xmax = as.Date('2021-6-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")+
+      annotate("rect", xmin = as.Date('2022-1-1'), xmax = as.Date('2022-6-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999"),
+    scale_y_continuous(limits=c(0,400)),
     NG = ggplot(df)+
       annotate("rect", xmin = as.Date('2021-7-1'), xmax = as.Date('2021-11-1'), ymin = 0, ymax = 3750,alpha = .1,fill = "#999999")+
       scale_y_continuous(limits=c(0,3750))
@@ -252,8 +236,8 @@ create_inc_plots <- function(results,country=c('BF','MZ','NG')){
   inc_plot
 }
 
-BF_inc_pg <- create_inc_plots(results = nnp_pg_result_list,country='BF')
-MZ_inc_pg <- create_inc_plots(results = nnp_pg_result_list,country='MZ')
+BF_inc_pg <- create_inc_plots(results = std_mzbf_result_list,country='BF')
+MZ_inc_pg <- create_inc_plots(results = std_mzbf_result_list,country='MZ')
 NG_inc_pg <- create_inc_plots(results = nnp_pg_result_list,country='NG')
 
 windows(7,5)
@@ -347,8 +331,8 @@ create_eir_plots <- function(results,country=c('BF','MZ','NG')){
   district_list <- list(BF = c('Banfora','Gaoua','Orodara'),
                         MZ = c('Changara','Chemba','Guro'),
                         NG = c('Asa','Ejigbo','Ife North','Moro'))
-  dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-5-1'),by='months'),
-                     MZ = seq(as.Date('2020-12-1'),as.Date('2021-9-1'),by='months'),
+  dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-6-1'),by='months'),
+                     MZ = seq(as.Date('2020-12-1'),as.Date('2022-9-1'),by='months'),
                      NG = seq(as.Date('2020-11-1'),as.Date('2021-12-1'),by='months'))
   colors_list <- list(BF = c(Banfora = "#1B9E77", Gaoua = "#999999", Orodara = "#D95F02"),
                       MZ = c(Changara = "#D95F02", Chemba = "#999999", Guro = "#1B9E77"),
@@ -390,8 +374,9 @@ create_eir_plots <- function(results,country=c('BF','MZ','NG')){
       annotate("rect", xmin = as.Date('2021-6-1'), xmax = as.Date('2021-10-1'), ymin = 0, ymax = 1000,alpha = .1,fill = "#999999")+
       scale_y_continuous(limits = c(0,105)),
     MZ = ggplot(df_eir)+
-      annotate("rect", xmin = as.Date('2021-1-1'), xmax = as.Date('2021-6-1'), ymin = 0, ymax = 1000,alpha = .1,fill = "#999999")+
-      scale_y_continuous(limits=c(0,400)),
+      annotate("rect", xmin = as.Date('2021-1-1'), xmax = as.Date('2021-6-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")+
+      annotate("rect", xmin = as.Date('2022-1-1'), xmax = as.Date('2022-6-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999"),
+    scale_y_continuous(limits=c(0,400)),
     NG = ggplot(df_eir)+
       annotate("rect", xmin = as.Date('2021-7-1'), xmax = as.Date('2021-11-1'), ymin = 0, ymax = 1000,alpha = .1,fill = "#999999")+
       scale_y_continuous(limits=c(0,45))
@@ -418,8 +403,8 @@ create_eir_plots <- function(results,country=c('BF','MZ','NG')){
   eir_plot
 }
 
-BF_eir_pg <- create_eir_plots(results = nnp_pg_result_list,country='BF')
-MZ_eir_pg <- create_eir_plots(results = nnp_pg_result_list,country='MZ')
+BF_eir_pg <- create_eir_plots(results = std_mzbf_result_list,country='BF')
+MZ_eir_pg <- create_eir_plots(results = std_mzbf_result_list,country='MZ')
 NG_eir_pg <- create_eir_plots(results = nnp_pg_result_list,country='NG')
 
 # ##Compare posterior distributions
@@ -540,8 +525,8 @@ create_obsprev_plots <- function(results,data_list=nnp_list,country=c('BF','MZ',
   district_list <- list(BF = c('Banfora','Gaoua','Orodara'),
                         MZ = c('Changara','Chemba','Guro'),
                         NG = c('Asa','Ejigbo','Ife North','Moro'))
-  dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-5-1'),by='months'),
-                     MZ = seq(as.Date('2020-12-1'),as.Date('2021-9-1'),by='months'),
+  dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-6-1'),by='months'),
+                     MZ = seq(as.Date('2020-12-1'),as.Date('2022-9-1'),by='months'),
                      NG = seq(as.Date('2020-11-1'),as.Date('2021-12-1'),by='months'))
   colors_list <- list(BF = c(Banfora = "#1B9E77", Gaoua = "#999999", Orodara = "#D95F02"),
                       MZ = c(Changara = "#D95F02", Chemba = "#999999", Guro = "#1B9E77"),
@@ -597,7 +582,8 @@ create_obsprev_plots <- function(results,data_list=nnp_list,country=c('BF','MZ',
       annotate("rect", xmin = as.Date('2020-9-1'), xmax = as.Date('2020-10-31'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")+
       annotate("rect", xmin = as.Date('2021-6-1'), xmax = as.Date('2021-10-31'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999"),
     MZ = ggplot(df)+
-      annotate("rect", xmin = as.Date('2021-1-1'), xmax = as.Date('2021-6-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999"),
+      annotate("rect", xmin = as.Date('2021-1-1'), xmax = as.Date('2021-6-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")+
+      annotate("rect", xmin = as.Date('2022-1-1'), xmax = as.Date('2022-6-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999"),
     NG = ggplot(df)+
       annotate("rect", xmin = as.Date('2021-7-1'), xmax = as.Date('2021-11-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")
     
@@ -622,17 +608,20 @@ create_obsprev_plots <- function(results,data_list=nnp_list,country=c('BF','MZ',
     )
   prev_plot
 }
-BF_obsprev_pg <- create_obsprev_plots(results = nnp_pg_result_list,data_list=nnp_pg_list,country='BF')
-NG_obsprev_pg <- create_obsprev_plots(results = nnp_pg_result_list,data_list=nnp_pg_list,country='NG')
-BF_obsprev_pg / plot_spacer()
-NG_obsprev_pg / plot_spacer()
+BF_obsprev_pg <- create_obsprev_plots(results = std_mzbf_result_list,data_list=nnp_pg_list,country='BF')
+MZ_obsprev_pg <- create_obsprev_plots(results = std_mzbf_result_list,data_list=nnp_pg_list,country='MZ')
+NG_obsprev_pg <- create_obsprev_plots(results = std_mzbf_result_list,data_list=nnp_pg_list,country='NG')
+windows(7,5)
+BF_obsprev_pg
+MZ_obsprev_pg
+NG_obsprev_pg
 
 create_estprev_plots <- function(results,data_list=nnp_list,country=c('BF','MZ','NG')){
   district_list <- list(BF = c('Banfora','Gaoua','Orodara'),
                         MZ = c('Changara','Chemba','Guro'),
                         NG = c('Asa','Ejigbo','Ife North','Moro'))
-  dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-5-1'),by='months'),
-                     MZ = seq(as.Date('2020-12-1'),as.Date('2021-9-1'),by='months'),
+  dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-6-1'),by='months'),
+                     MZ = seq(as.Date('2020-12-1'),as.Date('2022-9-1'),by='months'),
                      NG = seq(as.Date('2020-11-1'),as.Date('2021-12-1'),by='months'))
   colors_list <- list(BF = c(Banfora = "#1B9E77", Gaoua = "#999999", Orodara = "#D95F02"),
                       MZ = c(Changara = "#D95F02", Chemba = "#999999", Guro = "#1B9E77"),
@@ -706,7 +695,8 @@ create_estprev_plots <- function(results,data_list=nnp_list,country=c('BF','MZ',
       annotate("rect", xmin = as.Date('2020-9-1'), xmax = as.Date('2020-10-31'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")+
       annotate("rect", xmin = as.Date('2021-6-1'), xmax = as.Date('2021-10-31'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999"),
     MZ = ggplot(df)+
-      annotate("rect", xmin = as.Date('2021-1-1'), xmax = as.Date('2021-6-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999"),
+      annotate("rect", xmin = as.Date('2021-1-1'), xmax = as.Date('2021-6-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")+
+      annotate("rect", xmin = as.Date('2022-1-1'), xmax = as.Date('2022-6-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999"),
     NG = ggplot(df)+
       annotate("rect", xmin = as.Date('2021-7-1'), xmax = as.Date('2021-11-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")
     
@@ -732,26 +722,32 @@ create_estprev_plots <- function(results,data_list=nnp_list,country=c('BF','MZ',
     )
   prev_plot
 }
-windows(10,10)
+windows(7,5)
 
-BF_estprev_pg <- create_estprev_plots(results = nnp_pg_result_list,data_list=nnp_pg_list,country='BF')
+BF_estprev_pg <- create_estprev_plots(results = std_mzbf_result_list,data_list=nnp_pg_list,country='BF')
+MZ_estprev_pg <- create_estprev_plots(results = std_mzbf_result_list,data_list=nnp_pg_list,country='MZ')
 NG_estprev_pg <- create_estprev_plots(results = nnp_pg_result_list,data_list=nnp_pg_list,country='NG')
-BF_estprev_pg / plot_spacer()
+BF_estprev_pg
+MZ_estprev_pg
+
 NG_estprev_pg / plot_spacer()
 windows(6,7)
 BF_estprev_pg/BF_inc_pg
+MZ_estprev_pg/MZ_inc_pg
 NG_estprev_pg/NG_inc_pg
 
 ##Create plots for BF and NG HMIS data
-bf_hmis <- readxl::read_excel('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl160822/Burkina Faso/Routine HMIS/BF_Routine_Mar2022.xlsx')
-ng_hmis <- readxl::read_excel('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl160822/Nigeria/NNP Nigeria HMIS Data 2019-2022 - LGA.xlsx')
+bf_hmis <- readxl::read_excel('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl180123/Burkina Faso/Routine HMIS/BF_Routine_Mar2022.xlsx')
+mz_hmis <- readxl::read_excel('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl180123/Mozambique/Routine HMIS/Mozambique_Routine_Sept2022.xlsx')
+ng_hmis <- readxl::read_excel('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl180123/Nigeria/NNP Nigeria HMIS Data 2019-2022 - LGA.xlsx')
 bf_hmis$inc <- bf_hmis$Confirmed/bf_hmis$Population*10000
 
 bf_hmis_sum <- bf_hmis %>%
   group_by(Month,Year,`Net type`)%>%
   summarise(confirmed = sum(Confirmed),
             population = sum(Population))%>%
-  mutate(inc = confirmed*10000/population)
+  mutate(inc = confirmed*10000/population)%>%
+  rename(district = Distrist)
 
 bf_hmis_sum$date = as.yearmon(paste(bf_hmis_sum$Year, bf_hmis_sum$Month), "%Y %b")
 
@@ -766,8 +762,8 @@ create_inc_plots_threads <- function(results,country=c('BF','MZ','NG')){
   district_list <- list(BF = c('Banfora','Gaoua','Orodara'),
                         MZ = c('Changara','Chemba','Guro'),
                         NG = c('Asa','Ejigbo','Ife North','Moro'))
-  dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-5-1'),by='months'),
-                     MZ = seq(as.Date('2020-12-1'),as.Date('2021-9-1'),by='months'),
+  dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-6-1'),by='months'),
+                     MZ = seq(as.Date('2020-12-1'),as.Date('2022-9-1'),by='months'),
                      NG = seq(as.Date('2020-11-1'),as.Date('2021-12-1'),by='months'))
   colors_list <- list(BF = c(Banfora = "#1B9E77", Gaoua = "#999999", Orodara = "#D95F02"),
                       MZ = c(Changara = "#D95F02", Chemba = "#999999", Guro = "#1B9E77"),
@@ -825,8 +821,10 @@ create_inc_plots_threads <- function(results,country=c('BF','MZ','NG')){
       annotate("rect", xmin = as.Date('2021-6-1'), xmax = as.Date('2021-10-1'), ymin = 0, ymax = 3750,alpha = .1,fill = "#999999")+
       scale_y_continuous(limits = c(0,3750)),
     MZ = ggplot(df)+
-      annotate("rect", xmin = as.Date('2021-1-1'), xmax = as.Date('2021-6-1'), ymin = 0, ymax = 400,alpha = .1,fill = "#999999")+
-      scale_y_continuous(limits=c(0,400)),
+      annotate("rect", xmin = as.Date('2021-1-1'), xmax = as.Date('2021-6-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")+
+      annotate("rect", xmin = as.Date('2022-1-1'), xmax = as.Date('2022-6-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")+
+      scale_y_continuous(limits=c(0,8000))+
+      coord_cartesian(ylim=c(0, 4000)),
     NG = ggplot(df)+
       annotate("rect", xmin = as.Date('2021-7-1'), xmax = as.Date('2021-11-1'), ymin = 0, ymax = 3750,alpha = .1,fill = "#999999")+
       scale_y_continuous(limits=c(0,3750))+
@@ -858,8 +856,8 @@ create_inc_plots_threads <- function(results,country=c('BF','MZ','NG')){
 }
 windows(7,5)
 
-BF_inc_pg_threads <- create_inc_plots_threads(results = nnp_pg_result_list,country='BF')
-MZ_inc_pg_threads <- create_inc_plots_threads(results = nnp_pg_result_list,country='MZ')
+BF_inc_pg_threads <- create_inc_plots_threads(results = std_mzbf_result_list,country='BF')
+MZ_inc_pg_threads <- create_inc_plots_threads(results = std_mzbf_result_list,country='MZ')
 NG_inc_pg_threads <- create_inc_plots_threads(results = nnp_pg_result_list,country='NG')
 
 
@@ -867,8 +865,8 @@ create_obsinc_plots <- function(results,country=c('BF','MZ','NG')){
   district_list <- list(BF = c('Banfora','Gaoua','Orodara'),
                         MZ = c('Changara','Chemba','Guro'),
                         NG = c('Asa','Ejigbo','Ife North','Moro'))
-  dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-5-1'),by='months'),
-                     MZ = seq(as.Date('2020-12-1'),as.Date('2021-9-1'),by='months'),
+  dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-6-1'),by='months'),
+                     MZ = seq(as.Date('2020-12-1'),as.Date('2022-9-1'),by='months'),
                      NG = seq(as.Date('2020-11-1'),as.Date('2021-12-1'),by='months'))
   colors_list <- list(BF = c(Banfora = "#1B9E77", Gaoua = "#999999", Orodara = "#D95F02"),
                       MZ = c(Changara = "#D95F02", Chemba = "#999999", Guro = "#1B9E77"),
@@ -890,8 +888,9 @@ create_obsinc_plots <- function(results,country=c('BF','MZ','NG')){
       scale_y_continuous(limits = c(0,3750))+
       coord_cartesian(ylim=c(0, 2000)),
     MZ = ggplot(results)+
-      annotate("rect", xmin = as.Date('2021-1-1'), xmax = as.Date('2021-6-1'), ymin = 0, ymax = 400,alpha = .1,fill = "#999999")+
-      scale_y_continuous(limits=c(0,900)),
+      annotate("rect", xmin = as.Date('2021-1-1'), xmax = as.Date('2021-6-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")+
+      annotate("rect", xmin = as.Date('2022-1-1'), xmax = as.Date('2022-6-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")+
+      scale_y_continuous(limits=c(0,3000)),
     NG = ggplot(results)+
       annotate("rect", xmin = as.Date('2021-7-1'), xmax = as.Date('2021-11-1'), ymin = 0, ymax = 1500,alpha = .1,fill = "#999999")+
       scale_y_continuous(limits=c(0,1500))+
@@ -900,7 +899,7 @@ create_obsinc_plots <- function(results,country=c('BF','MZ','NG')){
   )
   inc_plot <- annotations[[country]]+
     # geom_ribbon(aes(x=date_ex,ymin=lower,ymax=upper,fill=Distrist,group=Distrist),alpha=0.2)+
-    geom_line(aes(x=date_ex,y=inc,color=Distrist,group=Distrist),size=1)+
+    geom_line(aes(x=date_ex,y=inc,color=district,group=district),size=1)+
     # geom_line(data=df_eir,aes(x=month,y=median,color=district,group=district),size=1,linetype='dashed')+
     scale_color_manual(values=colors)+
     scale_fill_manual(values=colors)+
@@ -910,7 +909,7 @@ create_obsinc_plots <- function(results,country=c('BF','MZ','NG')){
     # scale_y_continuous(sec.axis = sec_axis(~ . /ratio, name = "EIR"))+
     labs(x='Date',y='Clinical Incidence\nper 10,000 person-months')+
     # labs(x='Date',y='EIR')+
-    facet_grid(~Distrist)+
+    facet_grid(~district)+
     theme(legend.title = element_blank(),
           axis.title.x = element_blank(),
           axis.text.x=element_text(angle=45, hjust=1, vjust=1),
@@ -919,13 +918,26 @@ create_obsinc_plots <- function(results,country=c('BF','MZ','NG')){
   inc_plot
 }
 library(epitools)
-source('addCIs_inc.R')
+source('shared/addCIs_inc.R')
 bf_hmis$date = as.yearmon(paste(bf_hmis$Year, bf_hmis$Month), "%Y %b")
 bf_hmis_forplot <- bf_hmis[bf_hmis$Distrist %in% c('Banfora','Gaoua','Orodara')&bf_hmis$date>=as.yearmon('Sep 2020')&
-                     bf_hmis$date<=as.yearmon('May 2022')&!is.na(bf_hmis$Confirmed),]
+                     bf_hmis$date<=as.yearmon('Jun 2022')&!is.na(bf_hmis$Confirmed),]
 bf_hmis_forplot <- addCIs_inc(bf_hmis_forplot,bf_hmis_forplot$Confirmed,bf_hmis_forplot$Population)
-bf_hmis_forplot <- mutate(bf_hmis_forplot, date_ex = as.Date(date, frac = 0))
+bf_hmis_forplot <- bf_hmis_forplot %>%
+  mutate(date_ex = as.Date(date, frac = 0))%>%
+  rename(district = Distrist,
+         inc = mean)
 BF_obsinc_plot <- create_obsinc_plots(bf_hmis_forplot,'BF')
+
+mz_hmis_filtered <- mz_hmis[mz_hmis$District %in% c('Changara','Chemba','Guro')&!is.na(mz_hmis$Positive)&mz_hmis$`Age group`=='u5',]
+mz_hmis_forplot <- addCIs_inc(mz_hmis_filtered,mz_hmis_filtered$Positive,mz_hmis_filtered$u5.Population)%>%
+  mutate(date_ex=as.Date(as.yearmon(paste(Year, Month), "%Y %b")))%>%
+  filter(date_ex>=as.Date('2020-12-1')&date_ex<=as.Date('2022-09-1'))%>%
+  rename(district = District,
+         inc = mean)
+
+MZ_obsinc_plot <- create_obsinc_plots(mz_hmis_forplot,'MZ')
+
 
 ng_hmis_forplot <- ng_hmis%>%
   mutate(date=as.Date(period))%>%

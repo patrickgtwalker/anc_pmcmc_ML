@@ -43,6 +43,12 @@ nnp_pg_list <- list(data_raw_bf_pg_banfora,data_raw_bf_pg_gaoua,data_raw_bf_pg_o
                     data_raw_mz_pg_changara,data_raw_mz_pg_chemba,data_raw_mz_pg_guro,
                     data_raw_ng_pg_asa,data_raw_ng_pg_ejigbo,data_raw_ng_pg_ifenorth,data_raw_ng_pg_moro)
 
+country <- c('Burkina Faso','Burkina Faso','Burkina Faso',
+             'Mozambique','Mozambique','Mozambique',
+             'Nigeria','Nigeria','Nigeria','Nigeria')
+admin <- c('Cascades','Sud-Ouest','Haut-Bassins',
+           'Tete','Sofala','Manica',
+           'Kwara','Osun','Osun','Kwara')
 ##Test run_pmcmc function##
 test_run_std <- run_pmcmc(data = data_raw_bf_pg_banfora,
                       n_particles = 10,
@@ -76,6 +82,10 @@ ctx <- context::context_save("T:/jth/contexts.new", sources = sources,
                              packages = c('dplyr','statmod','coda','zoo','lubridate','stringi'),
                              package_sources = conan::conan_sources(c('mrc-ide/mode','mrc-ide/dust',"mrc-ide/odin.dust",'mrc-ide/mcstate')))
 
+ctx <- context::context_save("T:/jth/contexts.temp", sources = sources,
+                             packages = c('dplyr','statmod','coda','zoo','lubridate','stringi','dde'),
+                             package_sources = conan::conan_sources(c('mrc-ide/mode','mrc-ide/dust',"mrc-ide/odin.dust@8aef08d",'mrc-ide/mcstate')))
+
 ctx_old <- context::context_save("T:/jth/contexts", sources = sources_old,
                              packages = c('dplyr','statmod','coda','zoo','lubridate','stringi','odin'),
                              package_sources = conan::conan_sources(c("mrc-ide/odin.dust",'mrc-ide/mcstate')))
@@ -90,7 +100,7 @@ obj_16 <- didehpc::queue_didehpc(ctx,config = config_16)
 obj_16$login()
 obj_16$cluster_load(TRUE)
 
-config_1 <- didehpc::didehpc_config(template = "8Core",cores =2, parallel = TRUE,wholenode = FALSE, cluster = 'fi--dideclusthn')
+config_1 <- didehpc::didehpc_config(template = "8Core",cores =8, parallel = TRUE,wholenode = FALSE, cluster = 'fi--dideclusthn')
 obj <- didehpc::queue_didehpc(ctx,config = config_1)
 obj$enqueue(sessionInfo())
 check <- obj$task_get("6efd57d099127ba7761ce60902008e19")
@@ -196,3 +206,50 @@ nnp_pg_result_list <- lapply(1:10, function(id){
   nnp_pg_bulk$tasks[[id]]$result()
 })
 
+##Submit bulk non-seasonality runs
+nnp_pg_bulk_std_mzbf <- obj$enqueue_bulk(1:6, function(i,data_site){
+  run_pmcmc(data = data_site[[i]],
+            n_particles = 200,
+            proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
+            max_EIR=1000,
+            max_steps = 1e7,
+            atol = 1e-5,
+            rtol = 1e-6,
+            n_steps = 1000,
+            n_threads = 8,
+            lag_rates = 10,
+            seasonality_on = 0,
+            state_check = 0)
+},data_site=nnp_pg_list)
+##'gothic_halibut'
+nnp_pg_bulk_std_mzbf$status()
+nnp_pg_bulk_std_mzbf$times()
+std_mzbf_result_list <- lapply(1:6, function(id){
+  nnp_pg_bulk_std_mzbf$tasks[[id]]$result()
+})
+
+##Submit MZ and BF seasonal model
+obj$login()
+obj$cluster_load(TRUE)
+nnp_pg_bulk_seas_mzbf <- obj$enqueue_bulk(1:6, function(i,data_site,country,admin){
+  run_pmcmc(data = data_site[[i]],
+            n_particles = 200,
+            proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
+            max_EIR=1000,
+            max_steps = 1e7,
+            atol = 1e-5,
+            rtol = 1e-6,
+            n_steps = 1000,
+            n_threads = 8,
+            lag_rates = 10,
+            country = country[6],
+            admin_unit = admin[6],
+            seasonality_on = 1,
+            state_check = 0)
+},data_site=nnp_pg_list,country=country,admin=admin)
+#'highhanded_wildcat'
+nnp_pg_bulk_seas_mzbf$status()
+nnp_pg_bulk_seas_mzbf$times()
+seas_mzbf_result_list <- lapply(1:6, function(id){
+  nnp_pg_bulk_seas_mzbf$tasks[[id]]$result()
+})
