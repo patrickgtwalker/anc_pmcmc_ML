@@ -1,6 +1,8 @@
 remotes::install_github("mrc-ide/mcstate", upgrade = TRUE)
 remotes::install_github("mrc-ide/dust", upgrade = TRUE)
 remotes::install_github("mrc-ide/mode", upgrade = TRUE)
+remotes::install_github("mrc-ide/odin.dust@8aef08d", upgrade = TRUE)
+remotes::install_github("mrc-ide/didehpc", upgrade = TRUE)
 library("odin.dust")
 library("odin")
 library("patchwork")
@@ -100,7 +102,7 @@ obj_16 <- didehpc::queue_didehpc(ctx,config = config_16)
 obj_16$login()
 obj_16$cluster_load(TRUE)
 
-config_1 <- didehpc::didehpc_config(template = "8Core",cores =8, parallel = TRUE,wholenode = FALSE, cluster = 'fi--dideclusthn')
+config_1 <- didehpc::didehpc_config(template = "24Core",cores =8, parallel = TRUE,wholenode = FALSE, cluster = 'fi--didemrchnb')
 obj <- didehpc::queue_didehpc(ctx,config = config_1)
 obj$enqueue(sessionInfo())
 check <- obj$task_get("6efd57d099127ba7761ce60902008e19")
@@ -222,12 +224,34 @@ nnp_pg_bulk_std_mzbf <- obj$enqueue_bulk(1:6, function(i,data_site){
             state_check = 0)
 },data_site=nnp_pg_list)
 ##'gothic_halibut'
+nnp_pg_bulk_std_mzbf <- obj$task_bundle_get('gothic_halibut')
 nnp_pg_bulk_std_mzbf$status()
 nnp_pg_bulk_std_mzbf$times()
 std_mzbf_result_list <- lapply(1:6, function(id){
   nnp_pg_bulk_std_mzbf$tasks[[id]]$result()
 })
 
+##Submit bulk NG (not updated data) non-seasonality runs
+nnp_pg_bulk_std_ng <- obj$enqueue_bulk(7:10, function(i,data_site){
+  run_pmcmc(data = data_site[[i]],
+            n_particles = 200,
+            proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
+            max_EIR=1000,
+            max_steps = 1e7,
+            atol = 1e-5,
+            rtol = 1e-6,
+            n_steps = 1000,
+            n_threads = 8,
+            lag_rates = 10,
+            seasonality_on = 0,
+            state_check = 0)
+},data_site=nnp_pg_list)
+##'curvilinear_burro'
+nnp_pg_bulk_std_ng$status()
+std_ng_result_list <- lapply(1:4, function(id){
+  nnp_pg_bulk_std_ng$tasks[[id]]$result()
+})
+std_all_result_list <- append(std_mzbf_result_list,std_ng_result_list)
 ##Submit MZ and BF seasonal model
 obj$login()
 obj$cluster_load(TRUE)
@@ -242,14 +266,41 @@ nnp_pg_bulk_seas_mzbf <- obj$enqueue_bulk(1:6, function(i,data_site,country,admi
             n_steps = 1000,
             n_threads = 8,
             lag_rates = 10,
-            country = country[6],
-            admin_unit = admin[6],
+            country = country[i],
+            admin_unit = admin[i],
             seasonality_on = 1,
             state_check = 0)
 },data_site=nnp_pg_list,country=country,admin=admin)
-#'highhanded_wildcat'
+#'mysophobic_gopher'
+nnp_pg_bulk_seas_mzbf <- obj$task_bundle_get('mysophobic_gopher')
+nnp_pg_bulk_seas_mzbf$tasks$d1872771285bdee213a51af70d2918b6$log()
 nnp_pg_bulk_seas_mzbf$status()
 nnp_pg_bulk_seas_mzbf$times()
 seas_mzbf_result_list <- lapply(1:6, function(id){
   nnp_pg_bulk_seas_mzbf$tasks[[id]]$result()
 })
+
+##Submit bulk NG (not updated data) seasonality runs
+nnp_pg_bulk_seas_ng <- obj$enqueue_bulk(7:10, function(i,data_site,country,admin){
+  run_pmcmc(data = data_site[[i]],
+            n_particles = 200,
+            proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
+            max_EIR=1000,
+            max_steps = 1e7,
+            atol = 1e-5,
+            rtol = 1e-6,
+            n_steps = 1000,
+            n_threads = 8,
+            lag_rates = 10,
+            country = country[i],
+            admin_unit = admin[i],
+            seasonality_on = 1,
+            state_check = 0)
+},data_site=nnp_pg_list,country=country,admin=admin)
+##'somniphobic_peccary'
+nnp_pg_bulk_seas_ng$status()
+obj$cluster_load(TRUE)
+seas_ng_result_list <- lapply(1:4, function(id){
+  nnp_pg_bulk_seas_ng$tasks[[id]]$result()
+})
+seas_all_result_list <- append(seas_mzbf_result_list,seas_ng_result_list)

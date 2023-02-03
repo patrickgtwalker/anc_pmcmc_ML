@@ -77,6 +77,7 @@ NG_ANC_mother_grouped_sitegrav <- NG_ANC_mother %>%
   dplyr::summarise(positive=sum(rdt),total=n())
 NG_ANC_mother_grouped_sitegrav <- addCIs(NG_ANC_mother_grouped_sitegrav,NG_ANC_mother_grouped_sitegrav$positive,NG_ANC_mother_grouped_sitegrav$total)
 saveRDS(NG_ANC_mother_grouped_sitegrav,'nnp/data/NG_ANC_mother_grouped_sitegrav.rds')
+NG_ANC_mother_grouped_sitegrav<-readRDS('nnp/data/NG_ANC_mother_grouped_sitegrav.rds')
 
 #######################
 ######MOZAMBIQUE#######
@@ -128,6 +129,7 @@ MZ_CS_all_grouped_site <- MZ_CS_rdt %>%
   dplyr::summarise(positive=sum(rdt),total=n())
 MZ_CS_all_grouped_site <- addCIs(MZ_CS_all_grouped_site,MZ_CS_all_grouped_site$positive,MZ_CS_all_grouped_site$total)
 saveRDS(MZ_CS_all_grouped_site,'nnp/data/MZ_CS_all_grouped_site_180123.rds')
+MZ_CS_all_grouped_site <- readRDS('nnp/data/MZ_CS_all_grouped_site_180123.rds')
 
 #Group ANC data by grav and site
 MZ_ANC_mother_grouped_sitegrav <- MZ_ANC_mother %>%
@@ -142,6 +144,7 @@ MZ_ANC_mother_grouped_sitegrav <- MZ_ANC_mother %>%
   dplyr::summarise(positive=sum(rdt),total=n())
 MZ_ANC_mother_grouped_sitegrav <- addCIs(MZ_ANC_mother_grouped_sitegrav,MZ_ANC_mother_grouped_sitegrav$positive,MZ_ANC_mother_grouped_sitegrav$total)
 saveRDS(MZ_ANC_mother_grouped_sitegrav,'nnp/data/MZ_ANC_mother_grouped_sitegrav_0822.rds')
+MZ_ANC_mother_grouped_sitegrav <- readRDS('nnp/data/MZ_ANC_mother_grouped_sitegrav_0822.rds')
 
 #########################
 ######Burkina Faso#######
@@ -191,6 +194,7 @@ BF_CS_all_grouped_site <- BF_CS_child_all %>%
   dplyr::summarise(positive=sum(rdt),total=n())
 BF_CS_all_grouped_site <- addCIs(BF_CS_all_grouped_site,BF_CS_all_grouped_site$positive,BF_CS_all_grouped_site$total)
 saveRDS(BF_CS_all_grouped_site,'nnp/data/BF_CS_all_grouped_site_0822.rds')
+BF_CS_all_grouped_site <-readRDS('nnp/data/BF_CS_all_grouped_site_0822.rds')
 
 #Group ANC data by site
 #Group by grav
@@ -206,6 +210,7 @@ BF_ANC_mother_grouped_sitegrav <- BF_ANC_mother %>%
   dplyr::summarise(positive=sum(rdt),total=n())
 BF_ANC_mother_grouped_sitegrav <- addCIs(BF_ANC_mother_grouped_sitegrav,BF_ANC_mother_grouped_sitegrav$positive,BF_ANC_mother_grouped_sitegrav$total)
 saveRDS(BF_ANC_mother_grouped_sitegrav,'nnp/data/BF_ANC_mother_grouped_sitegrav.rds')
+BF_ANC_mother_grouped_sitegrav <- readRDS('nnp/data/BF_ANC_mother_grouped_sitegrav.rds')
 
 ########################################
 ####Create Plots for Each Country#######
@@ -387,28 +392,28 @@ NG_mg_asa <- NG_anc[NG_anc$site=='Asa'&NG_anc$grav_cat!='Gravidities 1',] %>%
   summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
-saveRDS(NG_mg_asa,'data_raw_NG_mg_asa.RDS')
+saveRDS(NG_mg_asa,'nnp/data/data_raw_NG_mg_asa.RDS')
 
 NG_mg_ejigbo <- NG_anc[NG_anc$site=='Ejigbo'&NG_anc$grav_cat!='Gravidities 1',] %>%
   group_by(month)%>%
   summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
-saveRDS(NG_mg_ejigbo,'data_raw_NG_mg_ejigbo.RDS')
+saveRDS(NG_mg_ejigbo,'nnp/data/data_raw_NG_mg_ejigbo.RDS')
 
 NG_mg_ifenorth <- NG_anc[NG_anc$site=='Ife North'&NG_anc$grav_cat!='Gravidities 1',] %>%
   group_by(month)%>%
   summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
-saveRDS(NG_mg_ifenorth,'data_raw_NG_mg_ifenorth.RDS')
+saveRDS(NG_mg_ifenorth,'nnp/data/data_raw_NG_mg_ifenorth.RDS')
 
 NG_mg_moro <- NG_anc[NG_anc$site=='Moro'&NG_anc$grav_cat!='Gravidities 1',] %>%
   group_by(month)%>%
   summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
-saveRDS(NG_mg_moro,'data_raw_NG_mg_moro.RDS')
+saveRDS(NG_mg_moro,'nnp/data/data_raw_NG_mg_moro.RDS')
 
 ##Burkina Faso
 BF_mg_banfora <- BF_anc[BF_anc$site=='Banfora'&BF_anc$grav_cat!='Gravidities 1',] %>%
@@ -416,21 +421,21 @@ BF_mg_banfora <- BF_anc[BF_anc$site=='Banfora'&BF_anc$grav_cat!='Gravidities 1',
   summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
-saveRDS(BF_mg_banfora,'data_raw_BF_mg_banfora.RDS')
+saveRDS(BF_mg_banfora,'nnp/data/data_raw_BF_mg_banfora.RDS')
 
 BF_mg_gaoua <- BF_anc[BF_anc$site=='Gaoua'&BF_anc$grav_cat!='Gravidities 1',] %>%
   group_by(month)%>%
   summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
-saveRDS(BF_mg_gaoua,'data_raw_BF_mg_gaoua.RDS')
+saveRDS(BF_mg_gaoua,'nnp/data/data_raw_BF_mg_gaoua.RDS')
 
 BF_mg_orodara <- BF_anc[BF_anc$site=='Orodara'&BF_anc$grav_cat!='Gravidities 1',] %>%
   group_by(month)%>%
   summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
-saveRDS(BF_mg_orodara,'data_raw_BF_mg_orodara.RDS')
+saveRDS(BF_mg_orodara,'nnp/data/data_raw_BF_mg_orodara.RDS')
 
 ##Mozambique
 MZ_mg_changara <- MZ_anc[MZ_anc$site=='Changara'&MZ_anc$grav_cat!='Gravidities 1',] %>%
@@ -438,19 +443,92 @@ MZ_mg_changara <- MZ_anc[MZ_anc$site=='Changara'&MZ_anc$grav_cat!='Gravidities 1
   summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
-saveRDS(MZ_mg_changara,'data_raw_MZ_mg_changara.RDS')
+saveRDS(MZ_mg_changara,'nnp/data/data_raw_MZ_mg_changara.RDS')
 
 MZ_mg_chemba <- MZ_anc[MZ_anc$site=='Chemba'&MZ_anc$grav_cat!='Gravidities 1',] %>%
   group_by(month)%>%
   summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
-saveRDS(MZ_mg_chemba,'data_raw_MZ_mg_chemba.RDS')
+saveRDS(MZ_mg_chemba,'nnp/data/data_raw_MZ_mg_chemba.RDS')
 
 MZ_mg_guro <- MZ_anc[MZ_anc$site=='Guro'&MZ_anc$grav_cat!='Gravidities 1',] %>%
   group_by(month)%>%
   summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
-saveRDS(MZ_mg_guro,'data_raw_MZ_mg_guro.RDS')
+saveRDS(MZ_mg_guro,'nnp/data/data_raw_MZ_mg_guro.RDS')
+
+##MAll gravidities
+NG_all_asa <- NG_anc[NG_anc$site=='Asa',] %>%
+  group_by(month)%>%
+  summarise(t=cur_group_id()*30,
+            tested=sum(total),
+            positive=sum(positive))
+saveRDS(NG_all_asa,'nnp/data/data_raw_NG_all_asa.RDS')
+
+NG_all_ejigbo <- NG_anc[NG_anc$site=='Ejigbo',] %>%
+  group_by(month)%>%
+  summarise(t=cur_group_id()*30,
+            tested=sum(total),
+            positive=sum(positive))
+saveRDS(NG_all_ejigbo,'nnp/data/data_raw_NG_all_ejigbo.RDS')
+
+NG_all_ifenorth <- NG_anc[NG_anc$site=='Ife North',] %>%
+  group_by(month)%>%
+  summarise(t=cur_group_id()*30,
+            tested=sum(total),
+            positive=sum(positive))
+saveRDS(NG_all_ifenorth,'nnp/data/data_raw_NG_all_ifenorth.RDS')
+
+NG_all_moro <- NG_anc[NG_anc$site=='Moro',] %>%
+  group_by(month)%>%
+  summarise(t=cur_group_id()*30,
+            tested=sum(total),
+            positive=sum(positive))
+saveRDS(NG_all_moro,'nnp/data/data_raw_NG_all_moro.RDS')
+
+##Burkina Faso
+BF_all_banfora <- BF_anc[BF_anc$site=='Banfora',] %>%
+  group_by(month)%>%
+  summarise(t=cur_group_id()*30,
+            tested=sum(total),
+            positive=sum(positive))
+saveRDS(BF_all_banfora,'nnp/data/data_raw_BF_all_banfora.RDS')
+
+BF_all_gaoua <- BF_anc[BF_anc$site=='Gaoua',] %>%
+  group_by(month)%>%
+  summarise(t=cur_group_id()*30,
+            tested=sum(total),
+            positive=sum(positive))
+saveRDS(BF_all_gaoua,'nnp/data/data_raw_BF_all_gaoua.RDS')
+
+BF_all_orodara <- BF_anc[BF_anc$site=='Orodara',] %>%
+  group_by(month)%>%
+  summarise(t=cur_group_id()*30,
+            tested=sum(total),
+            positive=sum(positive))
+saveRDS(BF_all_orodara,'nnp/data/data_raw_BF_all_orodara.RDS')
+
+##Mozambique
+MZ_all_changara <- MZ_anc[MZ_anc$site=='Changara',] %>%
+  group_by(month)%>%
+  summarise(t=cur_group_id()*30,
+            tested=sum(total),
+            positive=sum(positive))
+saveRDS(MZ_all_changara,'nnp/data/data_raw_MZ_all_changara.RDS')
+
+MZ_all_chemba <- MZ_anc[MZ_anc$site=='Chemba',] %>%
+  group_by(month)%>%
+  summarise(t=cur_group_id()*30,
+            tested=sum(total),
+            positive=sum(positive))
+saveRDS(MZ_all_chemba,'nnp/data/data_raw_MZ_all_chemba.RDS')
+
+MZ_all_guro <- MZ_anc[MZ_anc$site=='Guro',] %>%
+  group_by(month)%>%
+  summarise(t=cur_group_id()*30,
+            tested=sum(total),
+            positive=sum(positive))
+saveRDS(MZ_all_guro,'nnp/data/data_raw_MZ_all_guro.RDS')
 
