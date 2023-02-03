@@ -54,7 +54,10 @@ run_pmcmc <- function(data_raw,
                    Dout = info$index$Dout,
                    Aout = info$index$Aout,
                    Uout = info$index$Uout,
-                   Pout = info$index$Pout))
+                   Pout = info$index$Pout,
+                   p_det_out = info$index$p_det_out,
+                   phi_out = info$index$phi_out,
+                   b_out = info$index$b_out))
   }
   
   ## Provide schedule for changes in stochastic process (in this case EIR)
@@ -102,6 +105,7 @@ run_pmcmc <- function(data_raw,
                                        model_param_list = mpl,
                                        het_brackets = het_brackets,
                                        state_check = mpl$state_check)
+      # print(state)
       ##run seasonality model first if seasonality_on == 1
       if(seasonality_on==1){
         state_use <- state[names(state) %in% coef(season_model)$name]

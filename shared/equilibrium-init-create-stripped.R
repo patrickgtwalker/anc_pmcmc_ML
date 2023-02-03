@@ -279,6 +279,9 @@ equilibrium_init_create_stripped <- function(age_vector, het_brackets,
   wt_cuts <- c(0,wt_cuts)
   het_bounds <- sort(zetas)[wt_cuts]
   het_bounds[length(het_bounds)] <- (mpl$max_age/365)+1
+  b <- mpl$b0 * ((1-mpl$b1)/(1+(IB_eq/mpl$IB0)^mpl$kB)+mpl$b1)
+  phi <- mpl$phi0*((1-mpl$phi1)/(1+((ICM_eq+ICA_eq)/mpl$IC0)^mpl$kC) + mpl$phi1)
+  phi <- array(phi, c(na, nh))
   
 
   ## collate init
@@ -289,7 +292,7 @@ equilibrium_init_create_stripped <- function(age_vector, het_brackets,
               age_width = age_width, age_rate = age_rate, het_wt = het_wt, het_x = het_x,
               foi_age = foi_age, rel_foi = rel_foi,
               na = na, nh = nh, x_I = x_I,
-              omega = omega, K0 = K0, mv0 = mv0, 
+              omega = omega, K0 = K0, mv0 = mv0,
               FOIv_eq = FOIv_eq,
               FOI_eq = FOI_eq, EIR_eq = EIR_eq, init_EIR = init_EIR, cA_eq = cA_eq,
               den = den, age59 = age59, age05 = age05,
@@ -299,7 +302,8 @@ equilibrium_init_create_stripped <- function(age_vector, het_brackets,
               age = age_vector*mpl$DY, ft = ft,
               betaS = betaS, betaA = betaA, betaU = betaU, FOIvij_eq=FOIvij_eq,
               age_mid_point = age_mid_point, het_bounds = het_bounds,
-              age20l = age20l, age20u = age20u, age_20_factor = age_20_factor)
+              age20l = age20l, age20u = age20u, age_20_factor = age_20_factor,
+              p_det_eq = p_det_eq, b_eq = b, phi_eq = phi)
   
   ##Check that equilibrium solution produces an equilibrium for 
   ##the desired model
