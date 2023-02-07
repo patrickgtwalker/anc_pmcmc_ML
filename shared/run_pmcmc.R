@@ -18,9 +18,9 @@ run_pmcmc <- function(data_raw,
                       country = NULL,
                       admin_unit = NULL,
                       preyears = 2, #Length of time in years the deterministic seasonal model should run before Jan 1 of the year observations began
-                      seasonality_on = 1  ## state_check = 1 runs a deterministic seasonal model before running the stochastic model to get more realistic immunity levels
+                      seasonality_on = 1,  ## state_check = 1 runs a deterministic seasonal model before running the stochastic model to get more realistic immunity levels
                       ## If seasonality_on = 0, runs the stochastic model based on the standard equilibrium solution
-                      
+                      seasonality_check = 0 ##If 1, saves values of seasonality equilibrium
                       ){
   ## Modify dates from data
   start_obs <- min(as.Date(data_raw$month)) #Month of first observation (in Date format)
@@ -220,13 +220,49 @@ run_pmcmc <- function(data_raw,
   probs <- pmcmc_run$probabilities
   mcmc <- coda::as.mcmc(cbind(probs, pars))
   
+  ##Save seasonality equilibrium trajectories if checking equilibrium
+  seas_pretime <- NULL
+  if(seasonality_check==1){
+    check_seasonality <- function(theta,mpl_pf,season_model){
+      init_EIR <- exp(theta[["log_init_EIR"]]) ## Exponentiate EIR since MCMC samples on the log scale for EIR
+      EIR_vol <- theta[["EIR_SD"]]
+      mpl <- append(mpl_pf,list(EIR_SD = EIR_vol)) ## Add MCMC parameters to model parameter list
+      
+      ## Run equilibrium function
+      state <- equilibrium_init_create_stripped(age_vector = mpl$init_age,
+                                                init_EIR = init_EIR,
+                                                ft = prop_treated,
+                                                model_param_list = mpl,
+                                                het_brackets = het_brackets,
+                                                state_check = mpl$state_check)
+      # print(state)
+      ##run seasonality model first if seasonality_on == 1
+      state_use <- state[names(state) %in% coef(season_model)$name]
+      
+      # create model with initial values
+      mod <- season_model$new(user = state_use, use_dde = TRUE)
+      
+      # tt <- c(0, preyears*365+as.integer(difftime(mpl$start_stoch,mpl$time_origin,units="days")))
+      tt <- seq(0, preyears*365+as.integer(difftime(mpl$start_stoch,mpl$time_origin,units="days")),length.out=500)
+      
+      # run seasonality model
+      mod_run <- mod$run(tt, verbose=FALSE,step_size_max=9)
+      
+      # shape output
+      out <- mod$transform_variables(mod_run)
+      return(out)
+    }
+      
+    seas_pretime <- lapply(1:nrow(pars), function(x) check_seasonality(theta=pars[x,],mpl_pf=mpl_pf,season_model=season_model))
+  }
   to_return <- list(threads = n_threads,
                     particles = n_particles,
                     run_time = run_time,
                     mcmc = as.data.frame(mcmc),
                     pars = as.data.frame(pars),
                     probs = as.data.frame(probs),
-                    history = pmcmc_run$trajectories$state)
+                    history = pmcmc_run$trajectories$state,
+                    seas_history = seas_pretime)
   
   return(to_return)
 }

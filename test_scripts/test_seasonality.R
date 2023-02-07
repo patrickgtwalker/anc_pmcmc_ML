@@ -152,3 +152,21 @@ coda::effectiveSize(as.mcmc(test_run_mz_changara$mcmc)) ##ESS
 cov(result_32_200$pars) ##Covariance
 summary(as.mcmc(test_run_mz_changara$mcmc)) ##Summarize mcmc run
 plot(as.mcmc(test_run_mz_changara$mcmc)) ##Plot traces and distributions
+
+##Test seasonality equilibrium
+source('shared/run_pmcmc.R')
+test_run_eq <- run_pmcmc(data = data_raw_bf_pg_banfora,
+                      n_particles = 10,
+                      proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
+                      max_EIR=1000,
+                      max_steps = 1e7,
+                      atol = 1e-5,
+                      rtol = 1e-6,
+                      n_steps = 3,
+                      n_threads = 2,
+                      lag_rates = 10,
+                      country = 'Burkina Faso',
+                      admin_unit = 'Cascades',
+                      seasonality_on = 1,
+                      state_check = 0,
+                      seasonality_check = 1)

@@ -10,6 +10,7 @@ library(binom)
 source('shared/addCIs.R')
 library(plyr)
 library(dplyr)
+library(lubridate)
 theme_set(theme_minimal()+
             theme(panel.grid.major = element_blank(),
                   panel.grid.minor = element_blank(),
@@ -58,9 +59,9 @@ for(i in c(1:6)){
 nnp_pg_list <- list(Banfora = data_raw_bf_pg_banfora,Gaoua = data_raw_bf_pg_gaoua,Orodara = data_raw_bf_pg_orodara,
                  Changara = data_raw_mz_pg_changara, Chemba = data_raw_mz_pg_chemba,Guro = data_raw_mz_pg_guro,
                  Asa = data_raw_ng_pg_asa,Ejigbo = data_raw_ng_pg_ejigbo,`Ife North` = data_raw_ng_pg_ifenorth, Moro = data_raw_ng_pg_moro)
-nnp_mg_list <- list(Banfora = BF_mg_banfora,Gaoua = BF_mg_gaoua,Orodara = BF_mg_orodara,
-                    Changara = MZ_mg_changara, Chemba = MZ_mg_chemba,Guro = MZ_mg_guro,
-                    Asa = NG_mg_asa,Ejigbo = NG_mg_ejigbo,`Ife North` = NG_mg_ifenorth, Moro = NG_mg_moro)
+nnp_mg_list <- list(Banfora = data_raw_bf_mg_banfora,Gaoua = data_raw_bf_mg_gaoua,Orodara = data_raw_bf_mg_orodara,
+                    Changara = data_raw_mz_mg_changara, Chemba = data_raw_mz_mg_chemba,Guro = data_raw_mz_mg_guro,
+                    Asa = data_raw_ng_mg_asa,Ejigbo = data_raw_ng_mg_ejigbo,`Ife North` = data_raw_ng_mg_ifenorth, Moro = data_raw_ng_mg_moro)
 nnp_all_list <- list(Banfora = BF_all_banfora,Gaoua = BF_all_gaoua,Orodara = BF_all_orodara,
                     Changara = MZ_all_changara, Chemba = MZ_all_chemba,Guro = MZ_all_guro,
                     Asa = NG_all_asa,Ejigbo = NG_all_ejigbo,`Ife North` = NG_all_ifenorth, Moro = NG_all_moro)
@@ -1014,11 +1015,16 @@ windows(10,10)
 BF_inc_pg_threads/BF_obsinc_plot + plot_layout(guides = "collect")
 NG_inc_pg_threads / NG_obsinc_plot + plot_layout(guides = "collect")
 
+cs_data_list <- list(BF = BF_CS_all_grouped_site, MZ = MZ_CS_all_grouped_site, NG = NG_CS_all_grouped_site)
 ##Create dashboard by country
-create_dashboard_plots <- function(results,prev_pg,prev_mg,prev_all,incidence,country=c('BF','MZ','NG')){
+create_dashboard_plots <- function(results,prev_pg,prev_mg,prev_all=NULL,incidence,cs_data_list,country=c('BF','MZ','NG')){
   district_list <- list(BF = c('Banfora','Gaoua','Orodara'),
                         MZ = c('Changara','Chemba','Guro'),
                         NG = c('Asa','Ejigbo','Ife North','Moro'))
+  district_labels <- c('Banfora - IG2','Gaoua - Standard','Orodara - PBO',
+                        'Changara - PBO','Chemba - Standard','Guro - IG2',
+                        'Asa - IG2','Ejigbo - Standard','Ife North - PBO','Moro - RG')
+  names(district_labels) <- unlist(district_list)
   dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-6-1'),by='months'),
                      MZ = seq(as.Date('2020-12-1'),as.Date('2022-9-1'),by='months'),
                      NG = seq(as.Date('2020-11-1'),as.Date('2021-12-1'),by='months'))
@@ -1033,6 +1039,9 @@ create_dashboard_plots <- function(results,prev_pg,prev_mg,prev_all,incidence,co
   start <- start_list[[country]]
   number <- number_list[[country]]
   colors <- colors_list[[country]]
+  cs_data <- cs_data_list[[country]]%>%
+    rename(district=site)%>%
+    mutate(month=as.Date(month))
   
   df_prev <- data.frame(time = integer(),
                    median = numeric(),
@@ -1104,20 +1113,20 @@ create_dashboard_plots <- function(results,prev_pg,prev_mg,prev_all,incidence,co
     df_data_mg <- rbind(df_data_mg,data_cis)
   }
   
-  df_data_all <- data.frame(t=numeric(),
-                           tested=integer(),
-                           positive=numeric(),
-                           mean=numeric(),
-                           upper=numeric(),
-                           lower=numeric(),
-                           district=character())
+  # df_data_all <- data.frame(t=numeric(),
+  #                          tested=integer(),
+  #                          positive=numeric(),
+  #                          mean=numeric(),
+  #                          upper=numeric(),
+  #                          lower=numeric(),
+  #                          district=character())
   
-  for(i in start:(start+number-1)){
-    data_cis <- addCIs(prev_all[[i]],prev_all[[i]]$positive,prev_all[[i]]$tested)%>%
-      mutate(district=names(prev_all[i]),
-             month = dates_list[[country]])
-    df_data_all <- rbind(df_data_all,data_cis)
-  }
+  # for(i in start:(start+number-1)){
+  #   data_cis <- addCIs(prev_all[[i]],prev_all[[i]]$positive,prev_all[[i]]$tested)%>%
+  #     mutate(district=names(prev_all[i]),
+  #            month = dates_list[[country]])
+  #   df_data_all <- rbind(df_data_all,data_cis)
+  # }
   
   df_inc <- data.frame(time = integer(),
                    median = numeric(),
@@ -1176,13 +1185,13 @@ create_dashboard_plots <- function(results,prev_pg,prev_mg,prev_all,incidence,co
     scale_color_manual(values=colors)+
     scale_fill_manual(values=colors)+
     scale_x_date(date_labels = "%b %Y")+
-    coord_cartesian(ylim=c(0, 1000))+
-    # coord_cartesian(ylim=c(0, max(incidence$inc)*2))+
+    # coord_cartesian(ylim=c(0, 1000))+
+    coord_cartesian(ylim=c(0, ifelse(country=='NG',1000,max(incidence$inc)*2)))+
     # scale_y_continuous(limits=c(0,500))+
     # scale_y_log10(breaks=c(.001,0.01,.1,1,10,100,1000),labels=c(.001,0.01,.1,1,10,100,1000))+
     # scale_y_continuous(sec.axis = sec_axis(~ . /ratio, name = "EIR"))+
     # labs(x='Date',y='EIR')+
-    facet_grid(district~.)+
+    facet_grid(district~.,labeller = labeller(district = district_labels))+
     labs(title = 'Estimated Incidence\nper 10,000 person-months')+
     theme(legend.title = element_blank(),
           legend.position = 'none',
@@ -1192,18 +1201,21 @@ create_dashboard_plots <- function(results,prev_pg,prev_mg,prev_all,incidence,co
           axis.ticks.x = element_line(size = 0.5),
           axis.ticks.length = unit(3, "pt")
           )
+  # print('est_inc_plot')
   obs_prev_plot_mg <- annotations[[country]]+
     # geom_ribbon(aes(x=month,ymin=lower,ymax=upper,fill=district,group=district),alpha=0.2)+
     # geom_line(aes(x=month,y=median,color=district,group=district),size=1)+
     # geom_vline(xintercept = c(as.Date('2017-7-1'),as.Date('2021-5-1')),size=1,linetype='dashed') +
+    geom_point(data=cs_data,aes(x=month,y=mean,color=district,group=district),pch= 2, size=1.5,color="black")+
+    geom_errorbar(data=cs_data,aes(x=month,y=mean,ymax=upper,ymin=lower,width=0,color=district,group=district),color='black')+
     geom_point(data=df_data_mg,aes(x=month,y=mean,color=district,group=district),pch = 19,position=position_dodge(width=10))+
     geom_errorbar(data=df_data_mg,aes(x=month,ymin=lower,ymax=upper,color=district,group=district),width = 0,position=position_dodge(width=10))+
     scale_color_manual(values=colors)+
     scale_fill_manual(values=colors)+
     scale_x_date(date_labels = "%b %Y")+
-    facet_grid(district~.)+
+    facet_grid(district~.,labeller = labeller(district = district_labels))+
     scale_y_continuous(limits = c(0,1))+
-    coord_cartesian(ylim=c(0, 1))+
+    coord_cartesian(ylim=c(0, 1),xlim = range(df_data_mg$month))+
     labs(title = 'ANC Prevalence\nMultigrav')+
     theme(legend.title = element_blank(),
           axis.title.x = element_blank(),
@@ -1213,28 +1225,31 @@ create_dashboard_plots <- function(results,prev_pg,prev_mg,prev_all,incidence,co
           axis.ticks.length = unit(3, "pt"),
           legend.position = 'none'
     )
-  obs_prev_plot_all <- annotations[[country]]+
-    # geom_ribbon(aes(x=month,ymin=lower,ymax=upper,fill=district,group=district),alpha=0.2)+
-    # geom_line(aes(x=month,y=median,color=district,group=district),size=1)+
-    # geom_vline(xintercept = c(as.Date('2017-7-1'),as.Date('2021-5-1')),size=1,linetype='dashed') +
-    geom_point(data=df_data_all,aes(x=month,y=mean,color=district,group=district),pch = 19,position=position_dodge(width=10))+
-    geom_errorbar(data=df_data_all,aes(x=month,ymin=lower,ymax=upper,color=district,group=district),width = 0,position=position_dodge(width=10))+
-    scale_color_manual(values=colors)+
-    scale_fill_manual(values=colors)+
-    scale_x_date(date_labels = "%b %Y")+
-    facet_grid(district~.)+
-    scale_y_continuous(limits = c(0,1))+
-    coord_cartesian(ylim=c(0, 1))+
-    labs(title = 'ANC Prevalence\nAll gravidities')+
-    theme(legend.title = element_blank(),
-          axis.title.x = element_blank(),
-          axis.title.y = element_blank(),
-          axis.text.x=element_text(angle=45, hjust=1, vjust=1),
-          axis.ticks.x = element_line(linewidth = 0.5),
-          axis.ticks.length = unit(3, "pt"),
-          legend.position = 'none'
-    )
+  # print('obs_prev_plot_mg')
+  # # obs_prev_plot_all <- annotations[[country]]+
+  # #   # geom_ribbon(aes(x=month,ymin=lower,ymax=upper,fill=district,group=district),alpha=0.2)+
+  # #   # geom_line(aes(x=month,y=median,color=district,group=district),size=1)+
+  # #   # geom_vline(xintercept = c(as.Date('2017-7-1'),as.Date('2021-5-1')),size=1,linetype='dashed') +
+  # #   geom_point(data=df_data_all,aes(x=month,y=mean,color=district,group=district),pch = 19,position=position_dodge(width=10))+
+  # #   geom_errorbar(data=df_data_all,aes(x=month,ymin=lower,ymax=upper,color=district,group=district),width = 0,position=position_dodge(width=10))+
+  # #   scale_color_manual(values=colors)+
+  # #   scale_fill_manual(values=colors)+
+  # #   scale_x_date(date_labels = "%b %Y")+
+  # #   facet_grid(district~.)+
+  # #   scale_y_continuous(limits = c(0,1))+
+  # #   coord_cartesian(ylim=c(0, 1))+
+  # #   labs(title = 'ANC Prevalence\nAll gravidities')+
+  # #   theme(legend.title = element_blank(),
+  # #         axis.title.x = element_blank(),
+  # #         axis.title.y = element_blank(),
+  # #         axis.text.x=element_text(angle=45, hjust=1, vjust=1),
+  # #         axis.ticks.x = element_line(linewidth = 0.5),
+  # #         axis.ticks.length = unit(3, "pt"),
+  # #         legend.position = 'none'
+  # #   )
   est_prev_plot <- annotations[[country]]+
+    geom_point(data=cs_data,aes(x=month,y=mean,color=district,group=district),size=1.5,pch=2,color="black")+
+    geom_errorbar(data=cs_data,aes(x=month,y=mean,ymax=upper,ymin=lower,width=0,color=district,group=district),color="black")+
     geom_line(data=df_prev_sample,aes(x=month,y=value,color=district,group=variable),alpha=0.2)+
     # geom_ribbon(aes(x=month,ymin=lower,ymax=upper,fill=district,group=district),alpha=0.2)+
     geom_line(data=df_prev,aes(x=month,y=median,color=district,group=district),linewidth=1)+
@@ -1245,16 +1260,18 @@ create_dashboard_plots <- function(results,prev_pg,prev_mg,prev_all,incidence,co
     scale_fill_manual(values=colors)+
     scale_x_date(date_labels = "%b %Y")+
     scale_y_continuous(limits=c(0,1))+
-    facet_grid(district~.)+
+    coord_cartesian(xlim = range(df_data_pg$month))+
+    facet_grid(district~.,labeller = labeller(district = district_labels))+
     labs(title = 'ANC Prevalence\nPrimigrav')+
     theme(legend.title = element_blank(),
           axis.title.x = element_blank(),
           axis.title.y = element_blank(),
           axis.text.x=element_text(angle=45, hjust=1, vjust=1),
-          axis.ticks.x = element_line(linewidth = 0.5), 
+          axis.ticks.x = element_line(linewidth = 0.5),
           axis.ticks.length = unit(3, "pt"),
           legend.position = 'none'
     )
+  # print('est_prev_plot')
   obs_inc_plot <- annotations[[country]]+
     # geom_ribbon(aes(x=date_ex,ymin=lower,ymax=upper,fill=Distrist,group=Distrist),alpha=0.2)+
     geom_line(data=incidence,aes(x=date_ex,y=inc,color=district,group=district),size=1)+
@@ -1265,9 +1282,9 @@ create_dashboard_plots <- function(results,prev_pg,prev_mg,prev_all,incidence,co
     # scale_y_continuous(limits=c(0,500))+
     # scale_y_log10(breaks=c(.001,0.01,.1,1,10,100,1000),labels=c(.001,0.01,.1,1,10,100,1000))+
     # scale_y_continuous(sec.axis = sec_axis(~ . /ratio, name = "EIR"))+
-    facet_grid(district~.)+
+    facet_grid(district~.,labeller = labeller(district = district_labels))+
     labs(title='Observed Incidence\nper 10,000 person-months')+
-    coord_cartesian(ylim=c(0, 1000))+
+    coord_cartesian(ylim=c(0, ifelse(country=='NG',1000,max(incidence$inc)*2)))+
     # coord_cartesian(ylim=c(0, max(incidence$inc)*2))+
     theme(legend.title = element_blank(),
           legend.position = 'none',
@@ -1276,6 +1293,7 @@ create_dashboard_plots <- function(results,prev_pg,prev_mg,prev_all,incidence,co
           axis.text.x=element_text(angle=45, hjust=1, vjust=1),
           axis.ticks.x = element_line(size = 0.5),
           axis.ticks.length = unit(3, "pt"))
+  # print('obs_inc_plot')
   obs_pos_plot <- annotations[[country]]+
     # geom_ribbon(aes(x=date_ex,ymin=lower,ymax=upper,fill=Distrist,group=Distrist),alpha=0.2)+
     geom_line(data=incidence,aes(x=date_ex,y=prop_pos,color=district,group=district),size=1)+
@@ -1288,7 +1306,7 @@ create_dashboard_plots <- function(results,prev_pg,prev_mg,prev_all,incidence,co
     # scale_y_continuous(sec.axis = sec_axis(~ . /ratio, name = "EIR"))+
     # labs(x='Date',y='EIR')+
     labs(title = 'Test positivity\nproportion')+
-    facet_grid(district~.)+
+    facet_grid(district~.,labeller = labeller(district = district_labels))+
     theme(legend.title = element_blank(),
           legend.position = 'none',
           axis.title.x = element_blank(),
@@ -1296,53 +1314,54 @@ create_dashboard_plots <- function(results,prev_pg,prev_mg,prev_all,incidence,co
           axis.text.x=element_text(angle=45, hjust=1, vjust=1),
           axis.ticks.x = element_line(size = 0.5),
           axis.ticks.length = unit(3, "pt"))
-  # obs_test_plot <- annotations[[country]]+
-  #   # geom_ribbon(aes(x=date_ex,ymin=lower,ymax=upper,fill=Distrist,group=Distrist),alpha=0.2)+
-  #   geom_line(aes(x=date_ex,y=inc,color=district,group=district),size=1)+
-  #   # geom_line(data=df_eir,aes(x=month,y=median,color=district,group=district),size=1,linetype='dashed')+
-  #   scale_color_manual(values=colors)+
-  #   scale_fill_manual(values=colors)+
-  #   scale_x_date(date_labels = "%b %Y")+
-  #   # scale_y_continuous(limits=c(0,500))+
-  #   # scale_y_log10(breaks=c(.001,0.01,.1,1,10,100,1000),labels=c(.001,0.01,.1,1,10,100,1000))+
-  #   # scale_y_continuous(sec.axis = sec_axis(~ . /ratio, name = "EIR"))+
-  #   labs(x='Date',y='Clinical Incidence\nper 10,000 person-months')+
-  #   # labs(x='Date',y='EIR')+
-  #   facet_grid(~district)+
-  #   theme(legend.title = element_blank(),
-  #         axis.title.x = element_blank(),
-  #         axis.text.x=element_text(angle=45, hjust=1, vjust=1),
-  #         axis.ticks.x = element_line(size = 0.5), 
-  #         axis.ticks.length = unit(3, "pt"))
+  # print('obs_pos_plot')
+  # # obs_test_plot <- annotations[[country]]+
+  # #   # geom_ribbon(aes(x=date_ex,ymin=lower,ymax=upper,fill=Distrist,group=Distrist),alpha=0.2)+
+  # #   geom_line(aes(x=date_ex,y=inc,color=district,group=district),size=1)+
+  # #   # geom_line(data=df_eir,aes(x=month,y=median,color=district,group=district),size=1,linetype='dashed')+
+  # #   scale_color_manual(values=colors)+
+  # #   scale_fill_manual(values=colors)+
+  # #   scale_x_date(date_labels = "%b %Y")+
+  # #   # scale_y_continuous(limits=c(0,500))+
+  # #   # scale_y_log10(breaks=c(.001,0.01,.1,1,10,100,1000),labels=c(.001,0.01,.1,1,10,100,1000))+
+  # #   # scale_y_continuous(sec.axis = sec_axis(~ . /ratio, name = "EIR"))+
+  # #   labs(x='Date',y='Clinical Incidence\nper 10,000 person-months')+
+  # #   # labs(x='Date',y='EIR')+
+  # #   facet_grid(~district)+
+  # #   theme(legend.title = element_blank(),
+  # #         axis.title.x = element_blank(),
+  # #         axis.text.x=element_text(angle=45, hjust=1, vjust=1),
+  # #         axis.ticks.x = element_line(size = 0.5), 
+  # #         axis.ticks.length = unit(3, "pt"))
   est_prev_plot+obs_prev_plot_mg+est_inc_plot+obs_inc_plot+obs_pos_plot+ plot_layout(guides = "collect",ncol=5)
-  
+  # obs_prev_plot_mg
 }
 windows(30,15)
 bf_dash <- create_dashboard_plots(results=seas_all_result_list,
                        prev_pg=nnp_pg_list,
                        prev_mg=nnp_mg_list,
-                       prev_all=nnp_all_list,
                        incidence=bf_hmis_forplot,
+                       cs_data_list = cs_data_list,
                        country='BF')
 bf_dash
-ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_bf_seas_310223.pdf'),plot=bf_dash, width = 12, height = 6)
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_bf_seas_060223.pdf'),plot=bf_dash, width = 12, height = 6)
 
 mz_dash <- create_dashboard_plots(results=seas_all_result_list,
                                   prev_pg=nnp_pg_list,
                                   prev_mg=nnp_mg_list,
-                                  prev_all=nnp_all_list,
+                                  cs_data_list = cs_data_list,
                                   incidence=mz_hmis_forplot,
                                   country='MZ')
 mz_dash
-ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_mz_seas_310223.pdf'),plot = mz_dash, width = 12, height = 6)
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_mz_seas_060223.pdf'),plot = mz_dash, width = 12, height = 6)
 ng_dash <- create_dashboard_plots(results=seas_all_result_list,
                                   prev_pg=nnp_pg_list,
                                   prev_mg=nnp_mg_list,
-                                  prev_all=nnp_all_list,
+                                  cs_data_list = cs_data_list,
                                   incidence=ng_hmis_forplot,
                                   country='NG')
 ng_dash
-ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_ng_seas_310223.pdf'), plot = ng_dash, width = 12, height = 6)
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_ng_seas_060223.pdf'), plot = ng_dash, width = 12, height = 6)
 
 
 ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_mz_seas_310223.pdf'), width = 7, height = 5)
