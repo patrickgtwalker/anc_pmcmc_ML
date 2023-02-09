@@ -29,8 +29,9 @@ run_pmcmc <- function(data_raw,
   data_raw_time <- data_raw %>%
     mutate(date = as.Date(as.yearmon(month), frac = 0.5))%>% #Convert dates to middle of month
     mutate(t = as.integer(difftime(date,time_origin,units="days"))) #Calculate date as number of days since January 1 of first year of observation
+  initial_time <- min(data_raw_time$t) - 30 #Start particle_filter_data one month before first ime in data
   
-  data <- mcstate::particle_filter_data(data_raw_time, time = "t", rate = NULL, initial_time = 0) #Declares data to be used for particle filter fitting
+  data <- mcstate::particle_filter_data(data_raw_time, time = "t", rate = NULL, initial_time = initial_time) #Declares data to be used for particle filter fitting
   
   # Compare function to calculate likelihood
   compare <- function(state, observed, pars = NULL) {
@@ -62,7 +63,7 @@ run_pmcmc <- function(data_raw,
   
   ## Provide schedule for changes in stochastic process (in this case EIR)
   ## Converts a sequence of dates (from start_stoch to 1 month after last observation point) to days since January 1 of the first year of observation
-  stochastic_schedule <- as.integer(difftime(seq.Date(start_stoch,max(as.Date(data_raw_time$date+30)),by='month'),time_origin,units="days"))[-1]
+  stochastic_schedule <- as.integer(difftime(seq.Date(start_stoch,max(as.Date(data_raw_time$date+30)),by='month'),time_origin,units="days"))#[-1]
   # print(stochastic_schedule)
   
   #Provide age categories, proportion treated, and number of heterogeneity brackets
@@ -114,7 +115,7 @@ run_pmcmc <- function(data_raw,
         mod <- season_model$new(user = state_use, use_dde = TRUE)
 
         # tt <- c(0, preyears*365+as.integer(difftime(mpl$start_stoch,mpl$time_origin,units="days")))
-        tt <- seq(0, preyears*365+as.integer(difftime(mpl$start_stoch,mpl$time_origin,units="days")),length.out=500)
+        tt <- seq(0, preyears*365+as.integer(difftime(mpl$start_stoch,mpl$time_origin,units="days")),length.out=100)
 
         # run seasonality model
         mod_run <- mod$run(tt, verbose=FALSE,step_size_max=9)
@@ -261,6 +262,7 @@ run_pmcmc <- function(data_raw,
                     mcmc = as.data.frame(mcmc),
                     pars = as.data.frame(pars),
                     probs = as.data.frame(probs),
+                    times = pmcmc_run$trajectories$time,
                     history = pmcmc_run$trajectories$state,
                     seas_history = seas_pretime)
   
