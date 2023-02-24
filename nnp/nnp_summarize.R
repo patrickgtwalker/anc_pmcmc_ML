@@ -11,6 +11,7 @@ source('shared/addCIs.R')
 library(plyr)
 library(dplyr)
 library(lubridate)
+library(matrixStats)
 theme_set(theme_minimal()+
             theme(panel.grid.major = element_blank(),
                   panel.grid.minor = element_blank(),
@@ -39,6 +40,7 @@ create_diag_figs <- function(result,country,district){
 
 diag_std_mzbf_plots <- lapply(1:6,function(i) create_diag_figs(std_mzbf_result_list[[i]],country = country[i],district = district_list[i]))
 diag_seas_mzbf_plots <- lapply(1:6,function(i) create_diag_figs(seas_mzbf_result_list[[i]],country = country[i],district = district_list[i]))
+diag_std_pgmg_plots <- lapply(1:10,function(i) create_diag_figs(nnp_mgcorr_bulk_std_results[[i]],country = country[i],district = district_list[i]))
 country <- c('Burkina Faso','Burkina Faso','Burkina Faso',
              'Mozambique','Mozambique','Mozambique',
              'Nigeria','Nigeria','Nigeria','Nigeria')
@@ -55,6 +57,17 @@ for(i in c(1:6)){
   print(diag_seas_mzbf_plots[i])
   ggsave(paste0('Q:/anc_pmcmc/nnp/figures/diag/',district_list[i],'_seas_310223.pdf'), width = 10, height = 7)
 }
+for(i in c(1:6)){
+  windows(10,7)
+  print(diag_seas_mzbf_plots[i])
+  ggsave(paste0('Q:/anc_pmcmc/nnp/figures/diag/',district_list[i],'_seas_310223.pdf'), width = 10, height = 7)
+}
+for(i in c(1:10)){
+  windows(10,7)
+  print(diag_std_pgmg_plots[i])
+  ggsave(paste0('Q:/anc_pmcmc/nnp/figures/diag/',district_list[i],'_pgmg_std_220223.pdf'), width = 10, height = 7)
+}
+
 
 nnp_pg_list <- list(Banfora = data_raw_bf_pg_banfora,Gaoua = data_raw_bf_pg_gaoua,Orodara = data_raw_bf_pg_orodara,
                  Changara = data_raw_mz_pg_changara, Chemba = data_raw_mz_pg_chemba,Guro = data_raw_mz_pg_guro,
@@ -1365,3 +1378,445 @@ ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_ng_seas_060223.pdf'), plot
 
 
 ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_mz_seas_310223.pdf'), width = 7, height = 5)
+results <- nnp_mgcorr_bulk_std_results
+coefs_pg_df <- as.data.frame(readRDS('./nnp/Corr/pg_corr_sample.RDS'))
+coefs_mg_df <- as.data.frame(readRDS('./nnp/Corr/mg_corr_sample.RDS'))
+
+create_dashboard_pgmg_plots <- function(results,prev_pg,prev_mg,prev_all=NULL,coefs_pg_df,coefs_mg_df,incidence,cs_data_list,country=c('BF','MZ','NG')){
+  ## fn to return prevalence from log_odds
+  get_prev_from_log_odds<-function(log_odds){
+    return(exp(log_odds)/(1+exp(log_odds)))
+  }
+  
+  ## fn to return odds from prevalence
+  get_odds_from_prev<-function(prev){
+    return(prev/(1-prev))
+  }
+  district_list <- list(BF = c('Banfora','Gaoua','Orodara'),
+                        MZ = c('Changara','Chemba','Guro'),
+                        NG = c('Asa','Ejigbo','Ife North','Moro'))
+  district_labels <- c('Banfora - IG2','Gaoua - Standard','Orodara - PBO',
+                       'Changara - PBO','Chemba - Standard','Guro - IG2',
+                       'Asa - IG2','Ejigbo - Standard','Ife North - PBO','Moro - RG')
+  names(district_labels) <- unlist(district_list)
+  dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-6-1'),by='months'),
+                     MZ = seq(as.Date('2020-12-1'),as.Date('2022-9-1'),by='months'),
+                     NG = seq(as.Date('2020-11-1'),as.Date('2021-12-1'),by='months'))
+  colors_list <- list(BF = c(Banfora = "#1B9E77", Gaoua = "#999999", Orodara = "#D95F02"),
+                      MZ = c(Changara = "#D95F02", Chemba = "#999999", Guro = "#1B9E77"),
+                      NG = c(Asa = "#1B9E77", Ejigbo = "#999999", `Ife North` = "#D95F02", Moro = "#377EB8"))
+  
+  start_list <- c(BF = 1, MZ = 4, NG = 7)
+  number_list <- c(BF = 3, MZ = 3, NG = 4)
+  
+  districts <- district_list[[country]]
+  start <- start_list[[country]]
+  number <- number_list[[country]]
+  colors <- colors_list[[country]]
+  cs_data <- cs_data_list[[country]]%>%
+    dplyr::rename(district=site)%>%
+    mutate(month=as.Date(month))
+  
+  df_prev <- data.frame(time = integer(),
+                        median = numeric(),
+                        mean = numeric(),
+                        upper = numeric(),
+                        lower = numeric(),
+                        district = character(),
+                        month = character())
+  df_prev_sample <- data.frame(time = integer(),
+                               value = numeric(),
+                               variable = character(),
+                               district = character(),
+                               month = character())
+ for(i in start:(start+number-1)){
+    prev_history <- data.frame(t(results[[i]]$history['prev', 51:1000, -1]))
+    
+    
+    long_prev_sum <- prev_history%>%
+      mutate(t=c(1:nrow(prev_history)))%>%
+      melt(id='t')%>%
+      dplyr::rename(time=t)%>%
+      mutate(logodds_child = log(get_odds_from_prev(value)),
+             prev_pg = rowMedians(as.matrix(sapply(1:nrow(coefs_pg_df), function(x){
+               prev_preg <- get_prev_from_log_odds(logodds_child+coefs_pg_df$gradient[x]*(logodds_child-coefs_pg_df$av_lo_child[x])+coefs_pg_df$intercept[x])
+             }))),
+             prev_mg = rowMedians(as.matrix(sapply(1:nrow(coefs_mg_df), function(x){
+               prev_preg <- get_prev_from_log_odds(logodds_child+coefs_mg_df$gradient[x]*(logodds_child-coefs_mg_df$av_lo_child[x])+coefs_mg_df$intercept[x])
+             }))))%>%
+      group_by(time)%>%
+      dplyr::summarise(median_pg=median(prev_pg),
+                mean_pg=mean(prev_pg),
+                upper_pg=quantile(prev_pg,probs=0.975),
+                lower_pg=quantile(prev_pg,probs=0.025),
+                median_mg=median(prev_mg),
+                mean_mg=mean(prev_mg),
+                upper_mg=quantile(prev_mg,probs=0.975),
+                lower_mg=quantile(prev_mg,probs=0.025))%>%
+      mutate(district = districts[[i-start+1]],
+             month = dates_list[[country]])
+    df_prev <- rbind(df_prev,long_prev_sum)
+    
+    prev_sample <- prev_history[, sample(ncol(prev_history), 100)] %>%
+      mutate(t=c(1:nrow(prev_history)))%>%
+      melt(id='t')%>%
+      dplyr::rename(time=t)%>%
+      mutate(logodds_child = log(get_odds_from_prev(value)),
+             prev_pg = rowMedians(as.matrix(sapply(1:nrow(coefs_pg_df), function(x){
+               prev_preg <- get_prev_from_log_odds(logodds_child+coefs_pg_df$gradient[x]*(logodds_child-coefs_pg_df$av_lo_child[x])+coefs_pg_df$intercept[x])
+             }))),
+             prev_mg = rowMedians(as.matrix(sapply(1:nrow(coefs_pg_df), function(x){
+               prev_preg <- get_prev_from_log_odds(logodds_child+coefs_mg_df$gradient[x]*(logodds_child-coefs_mg_df$av_lo_child[x])+coefs_mg_df$intercept[x])
+             }))))%>%
+      mutate(district = districts[[i-start+1]],
+             month = rep(dates_list[[country]],100))
+    df_prev_sample <- rbind(df_prev_sample,prev_sample)
+    
+    
+  }
+  
+  df_data_pg <- data.frame(t=numeric(),
+                           tested=integer(),
+                           positive=numeric(),
+                           mean=numeric(),
+                           upper=numeric(),
+                           lower=numeric(),
+                           district=character())
+  
+  for(i in start:(start+number-1)){
+    data_cis <- addCIs(prev_pg[[i]],prev_pg[[i]]$positive,prev_pg[[i]]$tested)%>%
+      mutate(district=names(prev_pg[i]),
+             month = dates_list[[country]])
+    df_data_pg <- rbind(df_data_pg,data_cis)
+  }
+  
+  df_data_mg <- data.frame(t=numeric(),
+                           tested=integer(),
+                           positive=numeric(),
+                           mean=numeric(),
+                           upper=numeric(),
+                           lower=numeric(),
+                           district=character())
+  
+  for(i in start:(start+number-1)){
+    data_cis <- addCIs(prev_mg[[i]],prev_mg[[i]]$positive,prev_mg[[i]]$tested)%>%
+      mutate(district=names(prev_mg[i]),
+             month = dates_list[[country]])
+    df_data_mg <- rbind(df_data_mg,data_cis)
+  }
+  
+  # df_data_all <- data.frame(t=numeric(),
+  #                          tested=integer(),
+  #                          positive=numeric(),
+  #                          mean=numeric(),
+  #                          upper=numeric(),
+  #                          lower=numeric(),
+  #                          district=character())
+  
+  # for(i in start:(start+number-1)){
+  #   data_cis <- addCIs(prev_all[[i]],prev_all[[i]]$positive,prev_all[[i]]$tested)%>%
+  #     mutate(district=names(prev_all[i]),
+  #            month = dates_list[[country]])
+  #   df_data_all <- rbind(df_data_all,data_cis)
+  # }
+  
+  df_inc <- data.frame(time = integer(),
+                       median = numeric(),
+                       mean = numeric(),
+                       upper = numeric(),
+                       lower = numeric(),
+                       district = character(),
+                       month = character())
+  df_inc_sample <- data.frame(time = integer(),
+                              value = numeric(),
+                              variable = character(),
+                              district = character(),
+                              month = character())
+  for(i in start:(start+number-1)){
+    inc_history <- data.frame(t(results[[i]]$history['inc', 51:1000, -1]))
+    
+    long_inc_sum <- inc_history%>%
+      dplyr::mutate(t=c(1:nrow(inc_history)))%>%
+      melt(id='t')%>%
+      dplyr::rename(time=t)%>%
+      group_by(time)%>%
+      dplyr::summarise(median=median(value)*10000*30,
+                       mean=mean(value)*10000*30,
+                       upper=quantile(value,probs=0.975)*10000*30,
+                       lower=quantile(value,probs=0.025)*10000*30)%>%
+      dplyr::mutate(district = districts[[i-start+1]],
+                    month = dates_list[[country]])
+    df_inc <- rbind(df_inc,long_inc_sum)
+    
+    inc_sample <- inc_history[, sample(ncol(inc_history), 100)] %>%
+      mutate(t=c(1:nrow(inc_history)))%>%
+      melt(id='t')%>%
+      dplyr::rename(time=t)%>%
+      dplyr::mutate(value = value*10000*30,
+                    district = districts[[i-start+1]],
+                    month = rep(dates_list[[country]],100))
+    df_inc_sample <- rbind(df_inc_sample,inc_sample)
+  }
+  
+  # ratio <- 1.5 * max(df$upper)/max(df_eir$median)
+  annotations <- list(
+    BF = ggplot()+
+      annotate("rect", xmin = as.Date('2020-9-1'), xmax = as.Date('2020-10-1'), ymin = 0, ymax = Inf,alpha = .1,fill = "#999999")+
+      annotate("rect", xmin = as.Date('2021-6-1'), xmax = as.Date('2021-10-1'), ymin = 0, ymax = Inf,alpha = .1,fill = "#999999"),
+    MZ = ggplot()+
+      annotate("rect", xmin = as.Date('2021-1-1'), xmax = as.Date('2021-6-30'), ymin = 0, ymax = Inf,alpha = .1,fill = "#999999")+
+      annotate("rect", xmin = as.Date('2022-1-1'), xmax = as.Date('2022-6-30'), ymin = 0, ymax = Inf,alpha = .1,fill = "#999999"),
+    NG = ggplot()+
+      annotate("rect", xmin = as.Date('2021-7-1'), xmax = as.Date('2021-11-1'), ymin = 0, ymax = Inf,alpha = .1,fill = "#999999")
+  )
+  est_inc_plot <- annotations[[country]]+
+    geom_line(data=df_inc_sample,aes(x=month,y=value,color=district,group=variable),alpha=0.1)+
+    # geom_ribbon(aes(x=month,ymin=lower,ymax=upper,fill=district,group=district),alpha=0.2)+
+    geom_line(data=df_inc,aes(x=month,y=median,color=district,group=district),size=1)+
+    # geom_line(data=df_eir,aes(x=month,y=median,color=district,group=district),size=1,linetype='dashed')+
+    scale_color_manual(values=colors)+
+    scale_fill_manual(values=colors)+
+    scale_x_date(date_labels = "%b %Y")+
+    # coord_cartesian(ylim=c(0, 1000))+
+    coord_cartesian(ylim=c(0, ifelse(country=='NG',1000,max(incidence$inc)*2)))+
+    # scale_y_continuous(limits=c(0,500))+
+    # scale_y_log10(breaks=c(.001,0.01,.1,1,10,100,1000),labels=c(.001,0.01,.1,1,10,100,1000))+
+    # scale_y_continuous(sec.axis = sec_axis(~ . /ratio, name = "EIR"))+
+    # labs(x='Date',y='EIR')+
+    facet_grid(district~.,labeller = labeller(district = district_labels))+
+    labs(title = 'Estimated Incidence\nper 10,000 person-months')+
+    theme(legend.title = element_blank(),
+          legend.position = 'none',
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.x=element_text(angle=45, hjust=1, vjust=1),
+          axis.ticks.x = element_line(size = 0.5),
+          axis.ticks.length = unit(3, "pt")
+    )
+  # print('est_inc_plot')
+  obs_prev_plot_mg <- annotations[[country]]+
+    # geom_ribbon(aes(x=month,ymin=lower,ymax=upper,fill=district,group=district),alpha=0.2)+
+    # geom_line(aes(x=month,y=median,color=district,group=district),size=1)+
+    # geom_vline(xintercept = c(as.Date('2017-7-1'),as.Date('2021-5-1')),size=1,linetype='dashed') +
+    geom_point(data=cs_data,aes(x=month,y=mean,color=district,group=district),pch= 2, size=1.5,color="black")+
+    geom_errorbar(data=cs_data,aes(x=month,y=mean,ymax=upper,ymin=lower,width=0,color=district,group=district),color='black')+
+    geom_point(data=df_data_mg,aes(x=month,y=mean,color=district,group=district),pch = 19,position=position_dodge(width=10))+
+    geom_errorbar(data=df_data_mg,aes(x=month,ymin=lower,ymax=upper,color=district,group=district),width = 0,position=position_dodge(width=10))+
+    scale_color_manual(values=colors)+
+    scale_fill_manual(values=colors)+
+    scale_x_date(date_labels = "%b %Y")+
+    facet_grid(district~.,labeller = labeller(district = district_labels))+
+    scale_y_continuous(limits = c(0,1))+
+    coord_cartesian(ylim=c(0, 1),xlim = range(df_data_mg$month))+
+    labs(title = 'ANC Prevalence\nMultigrav')+
+    theme(legend.title = element_blank(),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.x=element_text(angle=45, hjust=1, vjust=1),
+          axis.ticks.x = element_line(linewidth = 0.5),
+          axis.ticks.length = unit(3, "pt"),
+          legend.position = 'none'
+    )
+  est_prev_plot_mg <- annotations[[country]]+
+    # geom_ribbon(aes(x=month,ymin=lower,ymax=upper,fill=district,group=district),alpha=0.2)+
+    # geom_line(aes(x=month,y=median,color=district,group=district),size=1)+
+    # geom_vline(xintercept = c(as.Date('2017-7-1'),as.Date('2021-5-1')),size=1,linetype='dashed') +
+    geom_point(data=cs_data,aes(x=month,y=mean,color=district,group=district),pch= 2, size=1.5,color="black")+
+    geom_errorbar(data=cs_data,aes(x=month,y=mean,ymax=upper,ymin=lower,width=0,color=district,group=district),color='black')+
+    geom_line(data=df_prev_sample,aes(x=month,y=prev_mg,color=district,group=variable),alpha=0.2)+
+    geom_line(data=df_prev,aes(x=month,y=median_mg,color=district,group=district),linewidth=1)+
+    geom_point(data=df_data_mg,aes(x=month,y=mean,color=district,group=district),pch = 19,position=position_dodge(width=10))+
+    geom_errorbar(data=df_data_mg,aes(x=month,ymin=lower,ymax=upper,color=district,group=district),width = 0,position=position_dodge(width=10))+
+    scale_color_manual(values=colors)+
+    scale_fill_manual(values=colors)+
+    scale_x_date(date_labels = "%b %Y")+
+    facet_grid(district~.,labeller = labeller(district = district_labels))+
+    scale_y_continuous(limits = c(0,1))+
+    coord_cartesian(ylim=c(0, 1),xlim = range(df_data_mg$month))+
+    labs(title = 'ANC Prevalence\nMultigrav')+
+    theme(legend.title = element_blank(),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.x=element_text(angle=45, hjust=1, vjust=1),
+          axis.ticks.x = element_line(linewidth = 0.5),
+          axis.ticks.length = unit(3, "pt"),
+          legend.position = 'none'
+    )
+  # print('obs_prev_plot_mg')
+  # # obs_prev_plot_all <- annotations[[country]]+
+  # #   # geom_ribbon(aes(x=month,ymin=lower,ymax=upper,fill=district,group=district),alpha=0.2)+
+  # #   # geom_line(aes(x=month,y=median,color=district,group=district),size=1)+
+  # #   # geom_vline(xintercept = c(as.Date('2017-7-1'),as.Date('2021-5-1')),size=1,linetype='dashed') +
+  # #   geom_point(data=df_data_all,aes(x=month,y=mean,color=district,group=district),pch = 19,position=position_dodge(width=10))+
+  # #   geom_errorbar(data=df_data_all,aes(x=month,ymin=lower,ymax=upper,color=district,group=district),width = 0,position=position_dodge(width=10))+
+  # #   scale_color_manual(values=colors)+
+  # #   scale_fill_manual(values=colors)+
+  # #   scale_x_date(date_labels = "%b %Y")+
+  # #   facet_grid(district~.)+
+  # #   scale_y_continuous(limits = c(0,1))+
+  # #   coord_cartesian(ylim=c(0, 1))+
+  # #   labs(title = 'ANC Prevalence\nAll gravidities')+
+  # #   theme(legend.title = element_blank(),
+  # #         axis.title.x = element_blank(),
+  # #         axis.title.y = element_blank(),
+  # #         axis.text.x=element_text(angle=45, hjust=1, vjust=1),
+  # #         axis.ticks.x = element_line(linewidth = 0.5),
+  # #         axis.ticks.length = unit(3, "pt"),
+  # #         legend.position = 'none'
+  # #   )
+  est_prev_plot_pg <- annotations[[country]]+
+    geom_point(data=cs_data,aes(x=month,y=mean,color=district,group=district),size=1.5,pch=2,color="black")+
+    geom_errorbar(data=cs_data,aes(x=month,y=mean,ymax=upper,ymin=lower,width=0,color=district,group=district),color="black")+
+    geom_line(data=df_prev_sample,aes(x=month,y=prev_pg,color=district,group=variable),alpha=0.2)+
+    # geom_ribbon(aes(x=month,ymin=lower,ymax=upper,fill=district,group=district),alpha=0.2)+
+    geom_line(data=df_prev,aes(x=month,y=median_pg,color=district,group=district),linewidth=1)+
+    # geom_vline(xintercept = c(as.Date('2017-7-1'),as.Date('2021-5-1')),size=1,linetype='dashed') +
+    geom_point(data=df_data_pg,aes(x=month,y=mean,color=district,group=district),pch = 19,position=position_dodge(width=10))+
+    geom_errorbar(data=df_data_pg,aes(x=month,ymin=lower,ymax=upper,color=district,group=district),width = 0,position=position_dodge(width=10))+
+    scale_color_manual(values=colors)+
+    scale_fill_manual(values=colors)+
+    scale_x_date(date_labels = "%b %Y")+
+    scale_y_continuous(limits=c(0,1))+
+    coord_cartesian(xlim = range(df_data_pg$month))+
+    facet_grid(district~.,labeller = labeller(district = district_labels))+
+    labs(title = 'ANC Prevalence\nPrimigrav')+
+    theme(legend.title = element_blank(),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.x=element_text(angle=45, hjust=1, vjust=1),
+          axis.ticks.x = element_line(linewidth = 0.5),
+          axis.ticks.length = unit(3, "pt"),
+          legend.position = 'none'
+    )
+  obs_prev_plot_pg <- annotations[[country]]+
+    geom_point(data=cs_data,aes(x=month,y=mean,color=district,group=district),size=1.5,pch=2,color="black")+
+    geom_errorbar(data=cs_data,aes(x=month,y=mean,ymax=upper,ymin=lower,width=0,color=district,group=district),color="black")+
+    geom_point(data=df_data_pg,aes(x=month,y=mean,color=district,group=district),pch = 19,position=position_dodge(width=10))+
+    geom_errorbar(data=df_data_pg,aes(x=month,ymin=lower,ymax=upper,color=district,group=district),width = 0,position=position_dodge(width=10))+
+    scale_color_manual(values=colors)+
+    scale_fill_manual(values=colors)+
+    scale_x_date(date_labels = "%b %Y")+
+    scale_y_continuous(limits=c(0,1))+
+    coord_cartesian(xlim = range(df_data_pg$month))+
+    facet_grid(district~.,labeller = labeller(district = district_labels))+
+    labs(title = 'ANC Prevalence\nPrimigrav')+
+    theme(legend.title = element_blank(),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.x=element_text(angle=45, hjust=1, vjust=1),
+          axis.ticks.x = element_line(linewidth = 0.5),
+          axis.ticks.length = unit(3, "pt"),
+          legend.position = 'none'
+    )
+  # print('est_prev_plot')
+  obs_inc_plot <- annotations[[country]]+
+    # geom_ribbon(aes(x=date_ex,ymin=lower,ymax=upper,fill=Distrist,group=Distrist),alpha=0.2)+
+    geom_line(data=incidence,aes(x=date_ex,y=inc,color=district,group=district),size=1)+
+    # geom_line(data=df_eir,aes(x=month,y=median,color=district,group=district),size=1,linetype='dashed')+
+    scale_color_manual(values=colors)+
+    scale_fill_manual(values=colors)+
+    scale_x_date(date_labels = "%b %Y")+
+    # scale_y_continuous(limits=c(0,500))+
+    # scale_y_log10(breaks=c(.001,0.01,.1,1,10,100,1000),labels=c(.001,0.01,.1,1,10,100,1000))+
+    # scale_y_continuous(sec.axis = sec_axis(~ . /ratio, name = "EIR"))+
+    facet_grid(district~.,labeller = labeller(district = district_labels))+
+    labs(title='Observed Incidence\nper 10,000 person-months')+
+    coord_cartesian(ylim=c(0, ifelse(country=='NG',1000,max(incidence$inc)*2)))+
+    # coord_cartesian(ylim=c(0, max(incidence$inc)*2))+
+    theme(legend.title = element_blank(),
+          legend.position = 'none',
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.x=element_text(angle=45, hjust=1, vjust=1),
+          axis.ticks.x = element_line(size = 0.5),
+          axis.ticks.length = unit(3, "pt"))
+  # print('obs_inc_plot')
+  obs_pos_plot <- annotations[[country]]+
+    # geom_ribbon(aes(x=date_ex,ymin=lower,ymax=upper,fill=Distrist,group=Distrist),alpha=0.2)+
+    geom_line(data=incidence,aes(x=date_ex,y=prop_pos,color=district,group=district),size=1)+
+    # geom_line(data=df_eir,aes(x=month,y=median,color=district,group=district),size=1,linetype='dashed')+
+    scale_color_manual(values=colors)+
+    scale_fill_manual(values=colors)+
+    scale_x_date(date_labels = "%b %Y")+
+    scale_y_continuous(limits=c(0,1))+
+    # scale_y_log10(breaks=c(.001,0.01,.1,1,10,100,1000),labels=c(.001,0.01,.1,1,10,100,1000))+
+    # scale_y_continuous(sec.axis = sec_axis(~ . /ratio, name = "EIR"))+
+    # labs(x='Date',y='EIR')+
+    labs(title = 'Test positivity\nproportion')+
+    facet_grid(district~.,labeller = labeller(district = district_labels))+
+    theme(legend.title = element_blank(),
+          legend.position = 'none',
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.x=element_text(angle=45, hjust=1, vjust=1),
+          axis.ticks.x = element_line(size = 0.5),
+          axis.ticks.length = unit(3, "pt"))
+  # print('obs_pos_plot')
+  # # obs_test_plot <- annotations[[country]]+
+  # #   # geom_ribbon(aes(x=date_ex,ymin=lower,ymax=upper,fill=Distrist,group=Distrist),alpha=0.2)+
+  # #   geom_line(aes(x=date_ex,y=inc,color=district,group=district),size=1)+
+  # #   # geom_line(data=df_eir,aes(x=month,y=median,color=district,group=district),size=1,linetype='dashed')+
+  # #   scale_color_manual(values=colors)+
+  # #   scale_fill_manual(values=colors)+
+  # #   scale_x_date(date_labels = "%b %Y")+
+  # #   # scale_y_continuous(limits=c(0,500))+
+  # #   # scale_y_log10(breaks=c(.001,0.01,.1,1,10,100,1000),labels=c(.001,0.01,.1,1,10,100,1000))+
+  # #   # scale_y_continuous(sec.axis = sec_axis(~ . /ratio, name = "EIR"))+
+  # #   labs(x='Date',y='Clinical Incidence\nper 10,000 person-months')+
+  # #   # labs(x='Date',y='EIR')+
+  # #   facet_grid(~district)+
+  # #   theme(legend.title = element_blank(),
+  # #         axis.title.x = element_blank(),
+  # #         axis.text.x=element_text(angle=45, hjust=1, vjust=1),
+  # #         axis.ticks.x = element_line(size = 0.5), 
+  # #         axis.ticks.length = unit(3, "pt"))
+  full_dash <- est_prev_plot_pg+est_prev_plot_mg+est_inc_plot+obs_inc_plot+obs_pos_plot+ plot_layout(guides = "collect",ncol=5)
+  obs_data_dash <- obs_prev_plot_pg+obs_prev_plot_mg+est_inc_plot+obs_inc_plot+ plot_layout(guides = "collect",ncol=4)
+  pres_dash <- est_prev_plot_pg+est_prev_plot_mg+est_inc_plot+obs_inc_plot+ plot_layout(guides = "collect",ncol=4)
+  return(list(full_dash = full_dash,
+              obs_data_dash = obs_data_dash,
+              pres_dash = pres_dash))
+  # obs_prev_plot_mg
+}
+
+
+windows(30,15)
+bf_pgmg_dash <- create_dashboard_pgmg_plots(results=nnp_mgcorr_bulk_std_results,
+                                  prev_pg=nnp_pg_list,
+                                  prev_mg=nnp_mg_list,
+                                  coefs_pg_df = coefs_pg_df,
+                                  coefs_mg_df = coefs_mg_df,
+                                  incidence=bf_hmis_forplot,
+                                  cs_data_list = cs_data_list,
+                                  country='BF')
+bf_pgmg_dash$full_dash
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_bf_pgmg_std_220223.pdf'),plot=bf_pgmg_dash$full_dash, width = 12, height = 6)
+bf_pgmg_dash$obs_data_dash
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_bf_pgmg_std_220223_obs.pdf'),plot=bf_pgmg_dash$obs_data_dash, width = 12, height = 6)
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_bf_pgmg_std_220223_pres.pdf'),plot=bf_pgmg_dash$pres_dash, width = 12, height = 6)
+
+mz_pgmg_dash <- create_dashboard_pgmg_plots(results=nnp_mgcorr_bulk_std_results,
+                                            prev_pg=nnp_pg_list,
+                                            prev_mg=nnp_mg_list,
+                                            coefs_pg_df = coefs_pg_df,
+                                            coefs_mg_df = coefs_mg_df,
+                                            cs_data_list = cs_data_list,
+                                            incidence=mz_hmis_forplot,
+                                            country='MZ')
+mz_pgmg_dash$full_dash
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_mz_pgmg_std_220223.pdf'),plot = mz_pgmg_dash$full_dash, width = 12, height = 6)
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_mz_pgmg_std_220223_obs.pdf'),plot = mz_pgmg_dash$obs_data_dash, width = 12, height = 6)
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_mz_pgmg_std_220223_pres.pdf'),plot = mz_pgmg_dash$pres_dash, width = 12, height = 6)
+
+ng_pgmg_dash <- create_dashboard_pgmg_plots(results=nnp_mgcorr_bulk_std_results,
+                                  prev_pg=nnp_pg_list,
+                                  prev_mg=nnp_mg_list,
+                                  coefs_pg_df = coefs_pg_df,
+                                  coefs_mg_df = coefs_mg_df,
+                                  cs_data_list = cs_data_list,
+                                  incidence=ng_hmis_forplot,
+                                  country='NG')
+ng_pgmg_dash$full_dash
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_ng_pgmg_std_220223.pdf'), plot = ng_pgmg_dash$full_dash, width = 12, height = 6)
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_ng_pgmg_std_220223_obs.pdf'), plot = ng_pgmg_dash$obs_data_dash, width = 12, height = 6)
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_ng_pgmg_std_220223_pres.pdf'), plot = ng_pgmg_dash$pres_dash, width = 12, height = 6)
