@@ -158,9 +158,9 @@ model_param_list_create <- function(
   betaL = 21.2,
 
   # intervention parameters - commented out to remove intervention components
-  # num_int = 1,
-  # itn_cov = 0,
-  # irs_cov = 0,
+  num_int = 1,
+  itn_cov = 0,
+  irs_cov = 0,
   # ITN_IRS_on = -1,
    DY = 365,
   # d_ITN0 = 0.41,
@@ -172,6 +172,8 @@ model_param_list_create <- function(
   # itn_half_life =   2.64 * DY,
   # IRS_interval =   1 * DY,
   # ITN_interval =   3 * DY,
+  country = NULL,
+  admin_unit = NULL,
   ...
 
 ){
@@ -280,6 +282,30 @@ model_param_list_create <- function(
   mp_list$lambda <- -0.5 * mp_list$b_lambda +
     sqrt(0.25 * mp_list$b_lambda^2 + gammaL * betaL * muLL * dEL/(2 * muEL * mu0 * dLL * (1 + dPL * muPL)))
 
+  ##Seasonality parameters
+  ## Handle parameters
+  # database for admin units is all in Latin-ASCII for CRAN reasons so must
+  # encode parameters accordingly
+  if(!is.null(country)) country <- stringi::stri_trans_general(country,"Latin-ASCII")
+  if(!is.null(admin_unit)) admin_unit <- stringi::stri_trans_general(admin_unit, "Latin-ASCII")
+
+  admin_units_seasonal <- load_file("admin_units_seasonal.rds")
+  admin_matches <- admin_match(admin_unit = admin_unit, country = country,
+                               admin_units_seasonal = admin_units_seasonal)
+  
+  if(admin_matches == 0){
+    mp_list$ssa0 <- mp_list$ssa1 <- mp_list$ssa2 <- mp_list$ssa3 <- mp_list$ssb1 <- mp_list$ssb2 <- mp_list$ssb3 <- mp_list$theta_c <- 0
+  } else {
+    mp_list$ssa0 <- admin_units_seasonal$a0[admin_matches]
+    mp_list$ssa1 <- admin_units_seasonal$a1[admin_matches]
+    mp_list$ssa2 <- admin_units_seasonal$a2[admin_matches]
+    mp_list$ssa3 <- admin_units_seasonal$a3[admin_matches]
+    mp_list$ssb1 <- admin_units_seasonal$b1[admin_matches]
+    mp_list$ssb2 <- admin_units_seasonal$b2[admin_matches]
+    mp_list$ssb3 <- admin_units_seasonal$b3[admin_matches]
+    mp_list$theta_c <- admin_units_seasonal$theta_c[admin_matches]
+  }
+  
   # # Fertility parameters
   # #Gravidity inputs
   # MZ_multi_rates <- readRDS('MiP-given/MZ_multi_rates.rds')

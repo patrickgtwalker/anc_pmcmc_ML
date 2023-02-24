@@ -169,6 +169,9 @@ IC0 <- user() # for probability of clinical disease
 kC <- user() # See supplementary materials 1.1.3
 dim(phi) <- c(na,nh)
 phi[1:na,1:nh] <- phi0*((1-phi1)/(1+(IC[i,j]/IC0)^kC) + phi1)
+dim(phi0to59) <- c(age59,nh)
+phi0to59[1:age59,] <- phi[i,j]*den[i]*het_wt[j]
+output(phi_out) <- sum(phi0to59[,])
 
 # IB - infection blocking immunity
 init_IB[,] <- user()
@@ -186,6 +189,9 @@ kB <- user() #
 IB0 <- user()
 dim(b) <- c(na,nh)
 b[1:na, 1:nh] <- b0 * ((1-b1)/(1+(IB[i,j]/IB0)^kB)+b1)
+dim(b0to59) <- c(age59,nh)
+b0to59[1:age59,] <- b[i,j]*den[i]*het_wt[j]
+output(b_out) <- sum(b0to59[,])
 
 # detection immunity
 init_ID[,] <- user()
@@ -212,7 +218,9 @@ fd[1:(na-1)] <- 1-(1-fD0)/(1+((age[i]+age[i+1])/2/aD)^gammaD)
 fd[na]<-1-(1-fD0)/(1+(age[i]/aD)^gammaD)
 dim(p_det) <- c(na,nh)
 p_det[,] <- d1 + (1-d1)/(1 + fd[i]*(ID[i,j]/ID0)^kD)
-
+dim(p_det0to59) <- c(age59,nh)
+p_det0to59[1:age59,] <- p_det[i,j]*den[i]*het_wt[j]
+output(p_det_out) <- sum(p_det0to59[,])
 # # Force of infection, depends on level of infection blocking immunity
 # dim(FOI) <- c(na,nh)
 # FOI[1:na, 1:nh] <- EIR[i,j] * (if(IB[i,j]==0) b0 else b[i,j])
@@ -237,7 +245,13 @@ deriv(FOI[,,2:lag_rates]) <- (lag_rates/dE)*FOI[i,j,k-1] - (lag_rates/dE)*FOI[i,
 
 # EIR -rate at which each age/het/int group is bitten
 # rate for age group * rate for biting category * FOI for age group * prop of
-# RANDOM WALK ON LOG EIR with SD hard coded
+tau1 <- user() # duration of host-seeking behaviour
+tau2 <- user() # duration of resting behaviour
+Q0 <- user() # proportion of anthropophagy
+
+fv <- 1/( tau1 + tau2 ) # mosquito feeding rate (zbar from intervention param.)
+av <- fv*Q0
+
 DY<-user()
 EIR_SD<-user()
 init_EIR <- user()
@@ -247,7 +261,7 @@ initial(log_EIR) <- log(init_EIR/DY)
 # update(log_EIR) <- min(log_EIR+rnorm(0,1)*EIR_SD,log(max_EIR/DY))
 eir_update <- if(state_check==0) min(log_EIR+rnorm(0,1)*EIR_SD,log(max_EIR/DY)) else log(init_EIR/DY)
 update(log_EIR) <- eir_update
-EIR[,] <- exp(log_EIR)*rel_foi[j] * foi_age[i]
+EIR[,] <- exp(log_EIR) * rel_foi[j] * foi_age[i] 
 output(EIR_out) <- exp(log_EIR)*DY
 
 #EIR_td<-interpolate(EIR_times, EIR_valsd, "constant")

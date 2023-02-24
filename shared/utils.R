@@ -98,7 +98,7 @@ load_file <- function(name) {
   }
   
   # get full file path
-  name_full <- system.file("extdata/", name, package="ICDMM", mustWork = TRUE)
+  name_full <- paste0(getwd(),"/shared/", name)
   
   # read in file
   if (ext == "rds") {
@@ -201,4 +201,86 @@ admin_match <- function(admin_unit = NULL, country = NULL,
   }
   
   return(admin_matches)
+}
+
+#------------------------------------------------
+#' transform final state of a seasonal model into the initial state of a stochastic model
+#'
+#' \code{transform_init} Transform final state of a seasonal model into the initial state of a stochastic model
+#'
+#' @param final_state Final time point of a seasonal model
+#'   Default = NULL
+#'
+#' @export
+
+transform_init <- function(final_state = NULL){
+  f <- final_state
+  last <- length(f$FOI_init[,1,1])
+  list(FOI_eq = f$FOI_init[last,,],
+       init_EIR = f$EIR_init[last,1,1],
+       init_S = f$S_init[last,,],
+       init_T = f$T_init[last,,],
+       init_D = f$D_init[last,,],
+       init_A = f$A_init[last,,],
+       init_U = f$U_init[last,,],
+       init_P = f$P_init[last,,],
+       init_IB = f$IB_init[last,,],
+       init_ID = f$ID_init[last,,],
+       init_ICA = f$ICA_init[last,,],
+       ICM_age = f$ICM_age_init[last,],
+       age_rate = f$age_rate_init[last,],
+       het_wt = f$het_wt_init[last,],
+       foi_age = f$foi_age_init[last,],
+       rel_foi = f$rel_foi_init[last,],
+       na = f$na_init[last],
+       nh = f$nh_init[last],
+       x_I = f$x_I_init[last,],
+       omega = f$omega_init[last],
+       den = f$den_init[last,],
+       age59 = f$age59_init[last],
+       age05 = f$age05_init[last],
+       age = f$age_init[last,],
+       ft = f$ft_init[last],
+       age20l = f$age20l_init[last],
+       age20u = f$age20u_init[last],
+       age_20_factor = f$age_20_factor_init[last],
+       eta = f$eta_init[last],
+       rA = f$rA_init[last],
+       rT = f$rT_init[last],
+       rD = f$rD_init[last],
+       rU = f$rU_init[last],
+       rP = f$rP_init[last],
+       uCA = f$uCA_init[last],
+       dCA = f$dCA_init[last],
+       dB = f$dB_init[last],
+       uB = f$uB_init[last],
+       dID = f$dID_init[last],
+       uD = f$uD_init[last],
+       PM = f$PM_init[last],
+       phi0 = f$phi0_init[last],
+       phi1 = f$phi1_init[last],
+       IC0 = f$IC0_init[last],
+       kC = f$kC_init[last],
+       b0 = f$b0_init[last],
+       b1 = f$b1_init[last],
+       kB = f$kB_init[last],
+       IB0 = f$IB0_init[last],
+       aD = f$aD_init[last],
+       fD0 = f$fD0_init[last],
+       gammaD = f$gammaD_init[last],
+       d1 = f$d1_init[last],
+       ID0 = f$ID0_init[last],
+       kD = f$kD_init[last],
+       dE = f$dE_init[last],
+       DY = f$DY_init[last],
+       EIR_SD = f$EIR_SD_init[last],
+       lag_rates = f$lag_rates_init[last],
+       max_EIR = f$max_EIR_init[last],
+       Q0 = f$Q0_init[last],
+       state_check = f$state_check_init[last],
+       tau1 = f$tau1_init[last],
+       tau2 = f$tau2_init[last],
+       prev = f$prev[last]
+       
+  )
 }
