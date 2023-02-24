@@ -45,6 +45,60 @@ nnp_pg_list <- list(data_raw_bf_pg_banfora,data_raw_bf_pg_gaoua,data_raw_bf_pg_o
                     data_raw_mz_pg_changara,data_raw_mz_pg_chemba,data_raw_mz_pg_guro,
                     data_raw_ng_pg_asa,data_raw_ng_pg_ejigbo,data_raw_ng_pg_ifenorth,data_raw_ng_pg_moro)
 
+##Multigrav
+data_raw_ng_mg_asa <- readRDS('nnp/data/data_raw_ng_mg_asa.RDS')
+data_raw_ng_mg_ifenorth <- readRDS('nnp/data/data_raw_ng_mg_ifenorth.RDS')
+data_raw_ng_mg_ejigbo <- readRDS('nnp/data/data_raw_ng_mg_ejigbo.RDS')
+data_raw_ng_mg_moro <- readRDS('nnp/data/data_raw_ng_mg_moro.RDS')
+
+data_raw_bf_mg_banfora <- readRDS('nnp/data/data_raw_bf_mg_banfora.RDS')
+data_raw_bf_mg_orodara <- readRDS('nnp/data/data_raw_bf_mg_orodara.RDS')
+data_raw_bf_mg_gaoua <- readRDS('nnp/data/data_raw_bf_mg_gaoua.RDS')
+
+data_raw_mz_mg_guro <- readRDS('nnp/data/data_raw_mz_mg_guro.RDS')
+data_raw_mz_mg_chemba <- readRDS('nnp/data/data_raw_mz_mg_chemba.RDS')
+data_raw_mz_mg_changara <- readRDS('nnp/data/data_raw_mz_mg_changara.RDS')
+
+nnp_mg_list <- list(data_raw_bf_mg_banfora,data_raw_bf_mg_gaoua,data_raw_bf_mg_orodara,
+                    data_raw_mz_mg_changara,data_raw_mz_mg_chemba,data_raw_mz_mg_guro,
+                    data_raw_ng_mg_asa,data_raw_ng_mg_ejigbo,data_raw_ng_mg_ifenorth,data_raw_ng_mg_moro)
+
+##Grav 2-3
+data_raw_ng_g23_asa <- readRDS('nnp/data/data_raw_ng_g23_asa.RDS')
+data_raw_ng_g23_ifenorth <- readRDS('nnp/data/data_raw_ng_g23_ifenorth.RDS')
+data_raw_ng_g23_ejigbo <- readRDS('nnp/data/data_raw_ng_g23_ejigbo.RDS')
+data_raw_ng_g23_moro <- readRDS('nnp/data/data_raw_ng_g23_moro.RDS')
+
+data_raw_bf_g23_banfora <- readRDS('nnp/data/data_raw_bf_g23_banfora.RDS')
+data_raw_bf_g23_orodara <- readRDS('nnp/data/data_raw_bf_g23_orodara.RDS')
+data_raw_bf_g23_gaoua <- readRDS('nnp/data/data_raw_bf_g23_gaoua.RDS')
+
+data_raw_mz_g23_guro <- readRDS('nnp/data/data_raw_mz_g23_guro.RDS')
+data_raw_mz_g23_chemba <- readRDS('nnp/data/data_raw_mz_g23_chemba.RDS')
+data_raw_mz_g23_changara <- readRDS('nnp/data/data_raw_mz_g23_changara.RDS')
+
+nnp_g23_list <- list(data_raw_bf_g23_banfora,data_raw_bf_g23_gaoua,data_raw_bf_g23_orodara,
+                    data_raw_mz_g23_changara,data_raw_mz_g23_chemba,data_raw_mz_g23_guro,
+                    data_raw_ng_g23_asa,data_raw_ng_g23_ejigbo,data_raw_ng_g23_ifenorth,data_raw_ng_g23_moro)
+
+##Grav 4+
+data_raw_ng_g4_asa <- readRDS('nnp/data/data_raw_ng_g4_asa.RDS')
+data_raw_ng_g4_ifenorth <- readRDS('nnp/data/data_raw_ng_g4_ifenorth.RDS')
+data_raw_ng_g4_ejigbo <- readRDS('nnp/data/data_raw_ng_g4_ejigbo.RDS')
+data_raw_ng_g4_moro <- readRDS('nnp/data/data_raw_ng_g4_moro.RDS')
+
+data_raw_bf_g4_banfora <- readRDS('nnp/data/data_raw_bf_g4_banfora.RDS')
+data_raw_bf_g4_orodara <- readRDS('nnp/data/data_raw_bf_g4_orodara.RDS')
+data_raw_bf_g4_gaoua <- readRDS('nnp/data/data_raw_bf_g4_gaoua.RDS')
+
+data_raw_mz_g4_guro <- readRDS('nnp/data/data_raw_mz_g4_guro.RDS')
+data_raw_mz_g4_chemba <- readRDS('nnp/data/data_raw_mz_g4_chemba.RDS')
+data_raw_mz_g4_changara <- readRDS('nnp/data/data_raw_mz_g4_changara.RDS')
+
+nnp_g4_list <- list(data_raw_bf_g4_banfora,data_raw_bf_g4_gaoua,data_raw_bf_g4_orodara,
+                     data_raw_mz_g4_changara,data_raw_mz_g4_chemba,data_raw_mz_g4_guro,
+                     data_raw_ng_g4_asa,data_raw_ng_g4_ejigbo,data_raw_ng_g4_ifenorth,data_raw_ng_g4_moro)
+
 country <- c('Burkina Faso','Burkina Faso','Burkina Faso',
              'Mozambique','Mozambique','Mozambique',
              'Nigeria','Nigeria','Nigeria','Nigeria')
@@ -298,9 +352,30 @@ nnp_pg_bulk_seas_ng <- obj$enqueue_bulk(7:10, function(i,data_site,country,admin
             state_check = 0)
 },data_site=nnp_pg_list,country=country,admin=admin)
 ##'somniphobic_peccary'
+obj$login()
+nnp_pg_bulk_seas_ng <- obj$task_bundle_get('somniphobic_peccary')
 nnp_pg_bulk_seas_ng$status()
 obj$cluster_load(TRUE)
 seas_ng_result_list <- lapply(1:4, function(id){
   nnp_pg_bulk_seas_ng$tasks[[id]]$result()
 })
 seas_all_result_list <- append(seas_mzbf_result_list,seas_ng_result_list)
+seas_all_result_list[[1]]$history[,,1]
+
+####Add multigravs to fitting
+##Test run_pmcmc function##
+test_run_std <- run_pmcmc_mg(data = data_raw_bf_pg_banfora,
+                          n_particles = 10,
+                          proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
+                          max_EIR=1000,
+                          max_steps = 1e7,
+                          atol = 1e-5,
+                          rtol = 1e-6,
+                          n_steps = 3,
+                          n_threads = 2,
+                          lag_rates = 10,
+                          country = 'Burkina Faso',
+                          admin_unit = 'Cascades',
+                          seasonality_on = 1,
+                          state_check = 0)
+plot_particle_filter(test_run_std$history,true_history=data_raw_bf_pg_banfora,times=data_raw_bf_pg_banfora$t)

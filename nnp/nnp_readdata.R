@@ -68,6 +68,7 @@ NG_CS_all_grouped_site <- NG_CS_all %>%
   dplyr::summarise(positive=sum(rdt),total=n())
 NG_CS_all_grouped_site <- addCIs(NG_CS_all_grouped_site,NG_CS_all_grouped_site$positive,NG_CS_all_grouped_site$total)
 saveRDS(NG_CS_all_grouped_site,'nnp/data/NG_CS_all_grouped_site.rds')
+NG_CS_all_grouped_site<-readRDS('nnp/data/NG_CS_all_grouped_site.rds')
 #Group by grav
 NG_ANC_mother_grouped_sitegrav <- NG_ANC_mother %>%
   dplyr::rename(site = lga) %>%
@@ -114,17 +115,18 @@ MZ_CS_rdt_mid <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College Lond
 MZ_CS_rdt_end <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl180123/Mozambique/Cross-sectional survey/Moz Endline CSS Datasets 2022.xlsx',
                               xl.sheet = 'RDT')%>%
   mutate(date_interview = as.Date(date_interview))%>%
-  rename(date = date_interview)
+  dplyr::rename(date = date_interview)
 MZ_CS_rdt <- rbind(MZ_CS_rdt_base,MZ_CS_rdt_mid,MZ_CS_rdt_end)
 
 #Group CS data by site and calculate prevalence and CI by month
 MZ_CS_all_grouped_site <- MZ_CS_rdt %>%
-  rename(site = district) %>%
+  dplyr::rename(site = district) %>%
   mutate(month=as.yearmon(date),
          rdt=as.numeric(ifelse(rdt=='Positive',1,ifelse(rdt=='Negative',0,NA)))
   )%>%
   filter(!is.na(rdt)) %>%
   filter(site %in% c('Changara','Chemba','Guro'))%>%
+  mutate(month=as.yearmon(ifelse(month=='Sep 2020',as.yearmon('Oct 2020'),as.yearmon(month))))%>% ##Group Sep and Oct 2020 together for the pre-intervention CX survey
   group_by(site,month,.drop=FALSE)%>%
   dplyr::summarise(positive=sum(rdt),total=n())
 MZ_CS_all_grouped_site <- addCIs(MZ_CS_all_grouped_site,MZ_CS_all_grouped_site$positive,MZ_CS_all_grouped_site$total)
@@ -385,6 +387,174 @@ MZ_pg_guro <- MZ_anc[MZ_anc$site=='Guro'&MZ_anc$grav_cat=='Gravidities 1',] %>%
             tested=sum(total),
             positive=sum(positive))
 saveRDS(MZ_pg_guro,'nnp/data/data_raw_MZ_pg_guro.RDS')
+
+##Grav 2-3 data sets
+##Nigeria
+NG_anc <- NG_ANC_mother_grouped_sitegrav
+#readRDS('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Analysis/nnp_explor/NG_ANC_mother_grouped_sitegrav.rds')
+
+NG_g23_asa <- NG_anc[NG_anc$site=='Asa'&NG_anc$grav_cat=='Gravidities 2-3',] %>%
+  group_by(month)%>%
+  summarise(t=cur_group_id()*30,
+            tested=sum(total),
+            positive=sum(positive))
+saveRDS(NG_g23_asa,'nnp/data/data_raw_NG_g23_asa.RDS')
+
+NG_g23_ejigbo <- NG_anc[NG_anc$site=='Ejigbo'&NG_anc$grav_cat=='Gravidities 2-3',] %>%
+  group_by(month)%>%
+  summarise(t=cur_group_id()*30,
+            tested=sum(total),
+            positive=sum(positive))
+saveRDS(NG_g23_ejigbo,'nnp/data/data_raw_NG_g23_ejigbo.RDS')
+
+NG_g23_ifenorth <- NG_anc[NG_anc$site=='Ife North'&NG_anc$grav_cat=='Gravidities 2-3',] %>%
+  group_by(month)%>%
+  summarise(t=cur_group_id()*30,
+            tested=sum(total),
+            positive=sum(positive))
+saveRDS(NG_g23_ifenorth,'nnp/data/data_raw_NG_g23_ifenorth.RDS')
+
+NG_g23_moro <- NG_anc[NG_anc$site=='Moro'&NG_anc$grav_cat=='Gravidities 2-3',] %>%
+  group_by(month)%>%
+  summarise(t=cur_group_id()*30,
+            tested=sum(total),
+            positive=sum(positive))
+saveRDS(NG_g23_moro,'nnp/data/data_raw_NG_g23_moro.RDS')
+
+##Burkina Faso
+BF_anc <- BF_ANC_mother_grouped_sitegrav
+#readRDS('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Analysis/nnp_explor/BF_ANC_mother_grouped_sitegrav.rds')
+
+BF_g23_banfora <- BF_anc[BF_anc$site=='Banfora'&BF_anc$grav_cat=='Gravidities 2-3',] %>%
+  group_by(month)%>%
+  summarise(t=cur_group_id()*30,
+            tested=sum(total),
+            positive=sum(positive))
+saveRDS(BF_g23_banfora,'nnp/data/data_raw_BF_g23_banfora.RDS')
+
+
+BF_g23_gaoua <- BF_anc[BF_anc$site=='Gaoua'&BF_anc$grav_cat=='Gravidities 2-3',] %>%
+  group_by(month)%>%
+  summarise(t=cur_group_id()*30,
+            tested=sum(total),
+            positive=sum(positive))
+saveRDS(BF_g23_gaoua,'nnp/data/data_raw_BF_g23_gaoua.RDS')
+
+BF_g23_orodara <- BF_anc[BF_anc$site=='Orodara'&BF_anc$grav_cat=='Gravidities 2-3',] %>%
+  group_by(month)%>%
+  summarise(t=cur_group_id()*30,
+            tested=sum(total),
+            positive=sum(positive))
+saveRDS(BF_g23_orodara,'nnp/data/data_raw_BF_g23_orodara.RDS')
+
+##Mozambique
+MZ_anc <- MZ_ANC_mother_grouped_sitegrav
+#readRDS('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Analysis/nnp_explor/MZ_ANC_mother_grouped_sitegrav.rds')
+
+MZ_g23_changara <- MZ_anc[MZ_anc$site=='Changara'&MZ_anc$grav_cat=='Gravidities 2-3',] %>%
+  group_by(month)%>%
+  summarise(t=cur_group_id()*30,
+            tested=sum(total),
+            positive=sum(positive))
+saveRDS(MZ_g23_changara,'nnp/data/data_raw_MZ_g23_changara.RDS')
+
+MZ_g23_chemba <- MZ_anc[MZ_anc$site=='Chemba'&MZ_anc$grav_cat=='Gravidities 2-3',] %>%
+  group_by(month)%>%
+  summarise(t=cur_group_id()*30,
+            tested=sum(total),
+            positive=sum(positive))
+saveRDS(MZ_g23_chemba,'nnp/data/data_raw_MZ_g23_chemba.RDS')
+
+MZ_g23_guro <- MZ_anc[MZ_anc$site=='Guro'&MZ_anc$grav_cat=='Gravidities 2-3',] %>%
+  group_by(month)%>%
+  summarise(t=cur_group_id()*30,
+            tested=sum(total),
+            positive=sum(positive))
+saveRDS(MZ_g23_guro,'nnp/data/data_raw_MZ_g23_guro.RDS')
+
+##Grav 4+ data sets
+##Nigeria
+NG_anc <- NG_ANC_mother_grouped_sitegrav
+#readRDS('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Analysis/nnp_explor/NG_ANC_mother_grouped_sitegrav.rds')
+
+NG_g4_asa <- NG_anc[NG_anc$site=='Asa'&NG_anc$grav_cat=='Gravidities 4+',] %>%
+  group_by(month)%>%
+  summarise(t=cur_group_id()*30,
+            tested=sum(total),
+            positive=sum(positive))
+saveRDS(NG_g4_asa,'nnp/data/data_raw_NG_g4_asa.RDS')
+
+NG_g4_ejigbo <- NG_anc[NG_anc$site=='Ejigbo'&NG_anc$grav_cat=='Gravidities 4+',] %>%
+  group_by(month)%>%
+  summarise(t=cur_group_id()*30,
+            tested=sum(total),
+            positive=sum(positive))
+saveRDS(NG_g4_ejigbo,'nnp/data/data_raw_NG_g4_ejigbo.RDS')
+
+NG_g4_ifenorth <- NG_anc[NG_anc$site=='Ife North'&NG_anc$grav_cat=='Gravidities 4+',] %>%
+  group_by(month)%>%
+  summarise(t=cur_group_id()*30,
+            tested=sum(total),
+            positive=sum(positive))
+saveRDS(NG_g4_ifenorth,'nnp/data/data_raw_NG_g4_ifenorth.RDS')
+
+NG_g4_moro <- NG_anc[NG_anc$site=='Moro'&NG_anc$grav_cat=='Gravidities 4+',] %>%
+  group_by(month)%>%
+  summarise(t=cur_group_id()*30,
+            tested=sum(total),
+            positive=sum(positive))
+saveRDS(NG_g4_moro,'nnp/data/data_raw_NG_g4_moro.RDS')
+
+##Burkina Faso
+BF_anc <- BF_ANC_mother_grouped_sitegrav
+#readRDS('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Analysis/nnp_explor/BF_ANC_mother_grouped_sitegrav.rds')
+
+BF_g4_banfora <- BF_anc[BF_anc$site=='Banfora'&BF_anc$grav_cat=='Gravidities 4+',] %>%
+  group_by(month)%>%
+  summarise(t=cur_group_id()*30,
+            tested=sum(total),
+            positive=sum(positive))
+saveRDS(BF_g4_banfora,'nnp/data/data_raw_BF_g4_banfora.RDS')
+
+
+BF_g4_gaoua <- BF_anc[BF_anc$site=='Gaoua'&BF_anc$grav_cat=='Gravidities 4+',] %>%
+  group_by(month)%>%
+  summarise(t=cur_group_id()*30,
+            tested=sum(total),
+            positive=sum(positive))
+saveRDS(BF_g4_gaoua,'nnp/data/data_raw_BF_g4_gaoua.RDS')
+
+BF_g4_orodara <- BF_anc[BF_anc$site=='Orodara'&BF_anc$grav_cat=='Gravidities 4+',] %>%
+  group_by(month)%>%
+  summarise(t=cur_group_id()*30,
+            tested=sum(total),
+            positive=sum(positive))
+saveRDS(BF_g4_orodara,'nnp/data/data_raw_BF_g4_orodara.RDS')
+
+##Mozambique
+MZ_anc <- MZ_ANC_mother_grouped_sitegrav
+#readRDS('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Analysis/nnp_explor/MZ_ANC_mother_grouped_sitegrav.rds')
+
+MZ_g4_changara <- MZ_anc[MZ_anc$site=='Changara'&MZ_anc$grav_cat=='Gravidities 4+',] %>%
+  group_by(month)%>%
+  summarise(t=cur_group_id()*30,
+            tested=sum(total),
+            positive=sum(positive))
+saveRDS(MZ_g4_changara,'nnp/data/data_raw_MZ_g4_changara.RDS')
+
+MZ_g4_chemba <- MZ_anc[MZ_anc$site=='Chemba'&MZ_anc$grav_cat=='Gravidities 4+',] %>%
+  group_by(month)%>%
+  summarise(t=cur_group_id()*30,
+            tested=sum(total),
+            positive=sum(positive))
+saveRDS(MZ_g4_chemba,'nnp/data/data_raw_MZ_g4_chemba.RDS')
+
+MZ_g4_guro <- MZ_anc[MZ_anc$site=='Guro'&MZ_anc$grav_cat=='Gravidities 4+',] %>%
+  group_by(month)%>%
+  summarise(t=cur_group_id()*30,
+            tested=sum(total),
+            positive=sum(positive))
+saveRDS(MZ_g4_guro,'nnp/data/data_raw_MZ_g4_guro.RDS')
 
 ##Multigrav
 NG_mg_asa <- NG_anc[NG_anc$site=='Asa'&NG_anc$grav_cat!='Gravidities 1',] %>%
