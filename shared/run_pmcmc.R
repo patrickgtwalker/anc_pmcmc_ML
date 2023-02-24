@@ -23,14 +23,13 @@ run_pmcmc <- function(data_raw,
                       seasonality_check = 0 ##If 1, saves values of seasonality equilibrium
                       ){
   ## Modify dates from data
-  start_obs <- min(as.Date(data_raw$month)) #Month of first observation (in Date format)
-  time_origin <- as.Date(paste0(year(start_obs),'-01-01')) #January 1 of the first year of observation (in Date format)
+  start_obs <- min(as.Date(data_raw$month))#Month of first observation (in Date format)
+  time_origin <- as.Date(ifelse(month(start_obs)!=1,paste0(year(start_obs),'-01-01'),paste0(year(start_obs)-1,'-01-01'))) #January 1 of the first year of observation (in Date format)
   start_stoch <- as.Date(as.yearmon(start_obs)) #Start of stochastic schedule (First day of the month of first observation)
   data_raw_time <- data_raw %>%
     mutate(date = as.Date(as.yearmon(month), frac = 0.5))%>% #Convert dates to middle of month
     mutate(t = as.integer(difftime(date,time_origin,units="days"))) #Calculate date as number of days since January 1 of first year of observation
   initial_time <- min(data_raw_time$t) - 30 #Start particle_filter_data one month before first ime in data
-  
   data <- mcstate::particle_filter_data(data_raw_time, time = "t", rate = NULL, initial_time = initial_time) #Declares data to be used for particle filter fitting
   
   # Compare function to calculate likelihood
@@ -244,14 +243,19 @@ run_pmcmc <- function(data_raw,
       mod <- season_model$new(user = state_use, use_dde = TRUE)
       
       # tt <- c(0, preyears*365+as.integer(difftime(mpl$start_stoch,mpl$time_origin,units="days")))
-      tt <- seq(0, preyears*365+as.integer(difftime(mpl$start_stoch,mpl$time_origin,units="days")),length.out=500)
+      tt <- seq(0, preyears*365+as.integer(difftime(mpl$start_stoch,mpl$time_origin,units="days")),length.out=100)
       
       # run seasonality model
       mod_run <- mod$run(tt, verbose=FALSE,step_size_max=9)
       
       # shape output
       out <- mod$transform_variables(mod_run)
-      return(out)
+      out.df <- data.frame(t=out$t,
+                           prev = out$prev,
+                           prev_all = out$prev_all,
+                           inc05 = out$inc05,
+                           inc = out$inc)
+      return(out.df)
     }
       
     seas_pretime <- lapply(1:nrow(pars), function(x) check_seasonality(theta=pars[x,],mpl_pf=mpl_pf,season_model=season_model))
