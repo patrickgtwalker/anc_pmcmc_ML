@@ -20,98 +20,130 @@ source('shared/model_parameters.R')
 source('shared/equilibrium-init-create-stripped.R')
 source('shared/utils.R')
 
+gen_seasonal_sim <- function(model_path = "shared/odin_model_stripped_seasonal.R",
+                             init_age = c(0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 3.5, 5, 7.5, 10, 15, 20, 30, 40, 50, 60, 70, 80),
+                             prop_treated = 0.4,
+                             het_brackets = 5,
+                             country = 'Burkina Faso',
+                             admin_unit = 'Cascades',
+                             init_EIR = 50,
+                             EIR_SD = 1,
+                             max_EIR = 1000,
+                             state_check = 0,
+                             lag_rates = 10,
+                             start_stoch = 1,
+                             time_origin = 1,
+                             seasonality_on = 1,
+                             time_length = 10,
+                             start_date = '2010-01-01',
+                             length_out = 5){
+  season_model <- odin::odin(model_path)
+  #Provide age categories, proportion treated, and number of heterogeneity brackets
+  #Create model parameter list. Also loads seasonality profile data file to match to desired admin_unit and country
 
-season_model <- odin::odin("shared/odin_model_stripped_seasonal.R")
-#Provide age categories, proportion treated, and number of heterogeneity brackets
-init_age <- c(0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 3.5, 5, 7.5, 10, 15, 20, 30, 40, 50, 60, 70, 80)
-prop_treated <- 0.4
-het_brackets <- 5
-country <- 'Burkina Faso'
-admin_unit <- 'Cascades'
-init_EIR <- 50
-EIR_SD <- 1
+  mpl <- model_param_list_create(init_age = init_age,
+                                    pro_treated = prop_treated,
+                                    het_brackets = het_brackets,
+                                    country = country,
+                                    admin_unit = admin_unit,
+                                 max_EIR = max_EIR,
+                                 state_check = state_check,
+                                 lag_rates = lag_rates,
+                                 start_stoch = start_stoch,
+                                 time_origin = time_origin,
+                                 seasonality_on = seasonality_on)
+  
+  mpl <- append(mpl,list(EIR_SD = EIR_SD))#Only need this because it's expected as output
+  ## Run equilibrium function
+  state <- equilibrium_init_create_stripped(age_vector = mpl$init_age,
+                                            init_EIR = init_EIR,
+                                            ft = prop_treated,
+                                            model_param_list = mpl,
+                                            het_brackets = het_brackets)
+  ##run seasonality model
+  state_use <- state[names(state) %in% coef(season_model)$name]
+  
+  # create model with initial values
+  mod <- season_model$new(user = state_use, use_dde = TRUE)
+  
+  # tt <- c(0, preyears*365+as.integer(difftime(mpl$start_stoch,mpl$time_origin,units="days")))
+  tt <- c(0:(time_length*365))
+  
+  # run seasonality model
+  mod_run <- mod$run(tt, verbose=FALSE,step_size_max=9)
+  
+  # shape output
+  out <- mod$transform_variables(mod_run)
+  true_val <- data.frame(t=out$t,
+             prev=out$prev,
+             prev_all = out$prev_all,
+             inc05=out$inc05,
+             inc=out$inc)%>%
+    mutate(date = as.character(as.Date(start_date)+t),
+           month = as.yearmon(date))
+  ##Simulate 5 years of data from this true run
+  
+  out_start <- as.Date(paste0(year(max(true_val$date))-length_out+1,'-01-01'))
+  # print(out_start)
+  obs_times <- data.frame(date=as.character(as.Date(as.yearmon(seq(out_start,by='month',length.out = 12*length_out)),frac=0.5)))
+  # print('obs_times')
+  # print(class(obs_times$date))
+  # print(obs_times)
+  # print('true_val')
+  # print(class(true_val$date))
+  # print(true_val)
+  # sim_obs <- merge(true_val,obs_times,by='date')
+  sim_obs <- left_join(obs_times, true_val, by="date")%>%
+    mutate(date = as.Date(date))
+  # print(sim_obs)
+  sim_obs$tested <- round(rnorm(nrow(sim_obs),1000,10))
+  sim_obs$positive <- rbinom(nrow(sim_obs),sim_obs$tested,sim_obs$prev)
 
-max_EIR <- 1000
-state_check <- 0
-lag_rates <- 10
-start_stoch <- 1
-time_origin <- 1
-seasonality_on <- 1
-
-#Create model parameter list. Also loads seasonality profile data file to match to desired admin_unit and country
-mpl <- model_param_list_create(init_age = init_age,
-                                  pro_treated = prop_treated,
-                                  het_brackets = het_brackets,
-                                  country = country,
-                                  admin_unit = admin_unit,
-                               max_EIR = max_EIR,
-                               state_check = state_check,
-                               lag_rates = lag_rates,
-                               start_stoch = start_stoch,
-                               time_origin = time_origin,
-                               seasonality_on = seasonality_on)
-
-mpl <- append(mpl,list(EIR_SD = EIR_SD))#Only need this because it's expected as output
-## Run equilibrium function
-state <- equilibrium_init_create_stripped(age_vector = mpl$init_age,
-                                          init_EIR = init_EIR,
-                                          ft = prop_treated,
-                                          model_param_list = mpl,
-                                          het_brackets = het_brackets)
-##run seasonality model
-state_use <- state[names(state) %in% coef(season_model)$name]
-
-# create model with initial values
-mod <- season_model$new(user = state_use, use_dde = TRUE)
-
-# tt <- c(0, preyears*365+as.integer(difftime(mpl$start_stoch,mpl$time_origin,units="days")))
-tt <- c(0:(10*365))
-
-# run seasonality model
-mod_run <- mod$run(tt, verbose=FALSE,step_size_max=9)
-
-# shape output
-out <- mod$transform_variables(mod_run)
-# windows(10,8)
-
+  # Find the first peak and trough during the first year of interest
+  first_peak <- true_val[true_val$inc==max(true_val[(365*(time_length-length_out)):(365*(time_length-length_out+1)),]$inc),]$month
+  first_trough <- true_val[true_val$inc==min(true_val[(365*(time_length-length_out)):(365*(time_length-length_out+1)),]$inc),]$month
+  sim_obs_peak <- sim_obs[sim_obs$month>=as.yearmon(first_peak),]
+  sim_obs_trough <- sim_obs[sim_obs$month>=as.yearmon(first_trough),]
+  sim_obs_peakplus3 <- sim_obs[sim_obs$month>=as.yearmon(first_peak)+3/12,]
+  sim_obs_troughplus3 <- sim_obs[sim_obs$month>=as.yearmon(first_trough)+3/12,]
+  return(list(true_val = true_val,
+              sim_obs = sim_obs,
+              sim_obs_peak = sim_obs_peak,
+              sim_obs_peakplus3 = sim_obs_peakplus3,
+              sim_obs_trough = sim_obs_trough,
+              sim_obs_troughplus3 = sim_obs_troughplus3))
+}
 plot(out$t,out$prev,type='l')
 plot(out$prev ~ out$t, t = "l", ylim = c(0, 0.8), xlab = "Year", ylab = "Prevalence")
 
-true_val <- data.frame(t=out$t,
-                       prev=out$prev,
-                       inc05=out$inc05,
-                       inc=out$inc)%>%
-  mutate(date = as.Date('2010-01-01')+t,
-         month = as.yearmon(date))
-saveRDS(true_val,'sim/true_val.rds')
-avg_true_prev <- true_val %>%
-  group_by(month)%>%
-  summarise(prev=mean(prev))%>%
-  mutate(date = as.Date(as.yearmon(month), frac = 0.5))
-saveRDS(avg_true_prev,'sim/avg_true_prev.rds')
-plot(avg_true_prev$prev ~ avg_true_prev$date, t = "l", ylim = c(0, 0.8), xlab = "Year", ylab = "Prevalence")
+sim_casc_med <- gen_seasonal_sim(init_EIR = 10)
+sim_casc_hi <- gen_seasonal_sim(init_EIR = 100)
+sim_casc_low <- gen_seasonal_sim(init_EIR = 1)
+sim_nord_med <- gen_seasonal_sim(admin_unit = 'Nord',init_EIR = 10)
+sim_nord_hi <- gen_seasonal_sim(admin_unit = 'Nord',init_EIR = 100)
+sim_nord_low <- gen_seasonal_sim(admin_unit = 'Nord',init_EIR = 1)
+addCIs()
+test_peak <- addCIs(sim_casc_med$sim_obs_peak,sim_casc_med$sim_obs_peak$positive,sim_casc_med$sim_obs_peak$tested)
+ggplot(test_peak)+
+  geom_point(aes(x=t,y=mean))+
+  geom_errorbar(aes(x=t,ymin=lower,ymax=upper),width=0)+
+  scale_y_continuous(limits=c(0,1))
+saveRDS(sim_casc_med,'sim/sim_datasets/sim_casc_med.rds')
+saveRDS(sim_casc_hi,'sim/sim_datasets/sim_casc_hi.rds')
+saveRDS(sim_casc_low,'sim/sim_datasets/sim_casc_low.rds')
+saveRDS(sim_nord_med,'sim/sim_datasets/sim_nord_med.rds')
+saveRDS(sim_nord_hi,'sim/sim_datasets/sim_nord_hi.rds')
+saveRDS(sim_nord_low,'sim/sim_datasets/sim_nord_low.rds')
 
-##Simulate 5 years of data from this true run
-obs_times <- data.frame(month=as.yearmon(seq(as.Date('2015-01-01'),by='month',length.out = 12*5)))
+sim_casc_med <- readRDS('sim/sim_datasets/sim_casc_med.rds')
+sim_casc_hi <- readRDS('sim/sim_datasets/sim_casc_hi.rds')
+sim_casc_low <- readRDS('sim/sim_datasets/sim_casc_low.rds')
+sim_nord_med <- readRDS('sim/sim_datasets/sim_nord_med.rds')
+sim_nord_hi <- readRDS('sim/sim_datasets/sim_nord_hi.rds')
+sim_nord_low <- readRDS('sim/sim_datasets/sim_nord_low.rds')
 
-sim_obs <- merge(avg_true_prev[,c('month','date','prev')],obs_times,by='month')
-
-sim_obs$tested <- round(rnorm(nrow(sim_obs),50,10))
-sim_obs$positive <- rbinom(nrow(sim_obs),sim_obs$tested,sim_obs$prev)
-saveRDS(sim_obs,'sim/sim_obs.rds')
-
-plot(true_val$prev ~ true_val$date, t = "l", ylim = c(0, 0.8), xlab = "Year", ylab = "Prevalence")
-points(sim_obs$date, sim_obs$positive/sim_obs$tested, pch = 19, col = "darkred")
-
-sim_obs_peak <- sim_obs[sim_obs$month>=as.yearmon('Oct 2015'),]
-saveRDS(sim_obs_peak,'sim/sim_obs_peak.rds')
-plot(true_val$prev ~ true_val$date, t = "l", ylim = c(0, 0.8), xlab = "Year", ylab = "Prevalence")
-points(sim_obs_peak$date, sim_obs_peak$positive/sim_obs_peak$tested, pch = 19, col = "darkred")
-
-sim_obs_trough <- sim_obs[sim_obs$month>=as.yearmon('Apr 2015'),]
-saveRDS(sim_obs_trough,'sim/sim_obs_trough.rds')
-plot(true_val$prev ~ true_val$date, t = "l", ylim = c(0, 0.8), xlab = "Year", ylab = "Prevalence")
-points(sim_obs_trough$date, sim_obs_trough$positive/sim_obs_trough$tested, pch = 19, col = "darkred")
+sim_seas_list <- list(sim_casc_low,sim_casc_med,sim_casc_hi,
+                      sim_nord_low,sim_nord_med,sim_nord_hi)
 
 source('shared/run_pmcmc.R')
 test_run_peak_std <- run_pmcmc(data = sim_obs_peak,
@@ -178,8 +210,10 @@ sources <- c("shared/run_pmcmc.R",
 ctx <- context::context_save("T:/jth/contexts.temp", sources = sources,
                              packages = c('dplyr','statmod','coda','zoo','lubridate','stringi','dde'),
                              package_sources = conan::conan_sources(c('mrc-ide/mode','mrc-ide/dust',"mrc-ide/odin.dust@8aef08d",'mrc-ide/mcstate')))
-config_1 <- didehpc::didehpc_config(template = "32Core",cores =8, parallel = TRUE,wholenode = FALSE, cluster = 'fi--didemrchnb')
+config_1 <- didehpc::didehpc_config(template = "32Core",cores =4, parallel = TRUE,wholenode = FALSE, cluster = 'fi--didemrchnb')
+config_dide <- didehpc::didehpc_config(template = "8Core",cores =1, parallel = TRUE,wholenode = FALSE, cluster = 'fi--dideclusthn')
 obj <- didehpc::queue_didehpc(ctx,config = config_1)
+obj <- didehpc::queue_didehpc(ctx,config = config_dide)
 obj$cluster_load(TRUE)
 obj$login()
 obj$config
@@ -635,3 +669,341 @@ est_inc_plot_trough_seas <- ggplot(true_val)+
   )
 est_inc_plot_trough_seas
 
+##Bulk submission
+sim_seas_list
+obj$login()
+obj$cluster_load(TRUE)
+obj$config
+admin_list <- c(rep('Cascades',3),rep('Nord',3))
+sim_seas_peak_bulk <- obj$enqueue_bulk(1:6, function(x,obs_list,admin_list) {run_pmcmc(data = obs_list[[x]]$sim_obs_peak,
+                                         n_particles = 200,
+                                         proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
+                                         max_EIR=1000,
+                                         max_steps = 1e7,
+                                         atol = 1e-5,
+                                         rtol = 1e-6,
+                                         n_steps = 1000,
+                                         n_threads = 4,
+                                         lag_rates = 10,
+                                         country = 'Burkina Faso',
+                                         admin_unit = admin_list[x],
+                                         preyears = 5,
+                                         seasonality_on = 1,
+                                         state_check = 0,
+                                         seasonality_check = 1)},obs_list=sim_seas_list,admin_list=admin_list)
+sim_seas_peak_bulk$status()#'adamantium_slothbear'
+sim_seas_peak_bulk <- obj$task_bundle_get('adamantium_slothbear')
+obj$unsubmit(sim_seas_peak_bulk$ids)
+sim_seas_peak_bulk$tasks$`468ee673981b4ddba8c66bf293f845ad`$log()
+sim_seas_peak_result_list <- lapply(1:6, function(id){
+  sim_seas_peak_bulk$tasks[[id]]$result()
+})
+windows(10,7)
+create_diag_figs(sim_seas_peak_result_list[[3]],'Seasonal','Peak')
+ggsave('')
+plot(sim_seas_list[[1]]$sim_obs_trough$month,sim_seas_list[[1]]$sim_obs_trough$prev)
+plot(sim_seas_list[[2]]$sim_obs_trough$month,sim_seas_list[[2]]$sim_obs_trough$prev)
+plot(sim_seas_list[[3]]$sim_obs_trough$month,sim_seas_list[[3]]$sim_obs_trough$prev)
+sim_seas_trough_bulk <- obj$enqueue_bulk(1:6, 
+                                       function(x,obs_list,admin_list) {
+                                         run_pmcmc(data = obs_list[[x]]$sim_obs_trough,
+                                                   n_particles = 200,
+                                                   proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
+                                                   max_EIR=1000,
+                                                   max_steps = 1e7,
+                                                   atol = 1e-5,
+                                                   rtol = 1e-6,
+                                                   n_steps = 1000,
+                                                   n_threads = 4,
+                                                   lag_rates = 10,
+                                                   country = 'Burkina Faso',
+                                                   admin_unit = admin_list[x],
+                                                   preyears = 5,
+                                                   seasonality_on = 1,
+                                                   state_check = 0,
+                                                   seasonality_check = 1)},obs_list=sim_seas_list,admin_list=admin_list)
+sim_seas_trough_bulk$status()#'loath_crustacean'
+sim_seas_trough_bulk <- obj$task_bundle_get('loath_crustacean')
+sim_seas_trough_bulk$tasks$e06d1ff3f15075dd10f5245f15fb7e35$log()
+sim_seas_trough_result_list <- lapply(1:6, function(id){
+  sim_seas_trough_bulk$tasks[[id]]$result()
+})
+View(sim_seas_trough_result_list[[2]]$history)
+windows(10,7)
+create_diag_figs(sim_seas_trough_result_list[[6]],'Seasonal','Trough')
+sim_seas_peakplus3_bulk <- obj$enqueue_bulk(1:6, 
+                                              function(x,obs_list,admin_list) {
+                                                run_pmcmc(data = obs_list[[x]]$sim_obs_peakplus3,
+                                                          n_particles = 200,
+                                                          proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
+                                                          max_EIR=1000,
+                                                          max_steps = 1e7,
+                                                          atol = 1e-5,
+                                                          rtol = 1e-6,
+                                                          n_steps = 1000,
+                                                          n_threads = 4,
+                                                          lag_rates = 10,
+                                                          country = 'Burkina Faso',
+                                                          admin_unit = admin_list[x],
+                                                          preyears = 5,
+                                                          seasonality_on = 1,
+                                                          state_check = 0,
+                                                          seasonality_check = 1)},obs_list=sim_seas_list,admin_list=admin_list)
+sim_seas_peakplus3_bulk$status()#'wrinkly_triceratops'
+sim_seas_peakplus3_bulk$tasks$`063aedf125e654e028b75380d511a62f`$log()
+sim_seas_peakplus3_result_list <- lapply(2:6, function(id){
+  sim_seas_peakplus3_bulk$tasks[[id]]$result()
+})
+
+sim_seas_troughplus3_bulk <- obj$enqueue_bulk(1:6, 
+                                         function(x,obs_list,admin_list) {
+                                           run_pmcmc(data = obs_list[[x]]$sim_obs_troughplus3,
+                                                     n_particles = 200,
+                                                     proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
+                                                     max_EIR=1000,
+                                                     max_steps = 1e7,
+                                                     atol = 1e-5,
+                                                     rtol = 1e-6,
+                                                     n_steps = 1000,
+                                                     n_threads = 4,
+                                                     lag_rates = 10,
+                                                     country = 'Burkina Faso',
+                                                     admin_unit = admin_list[x],
+                                                     preyears = 5,
+                                                     seasonality_on = 1,
+                                                     state_check = 0,
+                                                     seasonality_check = 1)},obs_list=sim_seas_list,admin_list=admin_list)
+#'prosaic_herring'
+sim_seas_troughplus3_bulk$status()
+obj$login()
+sim_seas_troughplus3_bulk <- obj$task_bundle_get('prosaic_herring')
+sim_seas_peakplus3_result_list <- lapply(1:6, function(id){
+  sim_seas_troughplus3_bulk$tasks[[id]]$result()
+})
+
+
+###Standard runs on same data as above
+obj$login()
+obj$cluster_load(TRUE)
+obj$config
+sim_std_peak_bulk <- obj$enqueue_bulk(1:6, function(x,obs_list,admin_list) 
+{run_pmcmc(data = obs_list[[x]]$sim_obs_peak,
+           n_particles = 200,
+           proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
+           max_EIR=1000,
+           max_steps = 1e7,
+           atol = 1e-5,
+           rtol = 1e-6,
+           n_steps = 1000,
+           n_threads = 4,
+           lag_rates = 10,
+           country = 'Burkina Faso',
+           admin_unit = admin_list[x],
+           preyears = 5,
+           seasonality_on = 0,
+           state_check = 0,
+           seasonality_check = 0)},obs_list=sim_seas_list,admin_list=admin_list)
+sim_std_peak_bulk$status()#'fatherly_weevil'
+sim_std_peak_bulk <- obj$task_bundle_get('fatherly_weevil')
+sim_std_peak_result_list <- lapply(1:6, function(id){
+  sim_std_peak_bulk$tasks[[id]]$result()
+})
+
+sim_std_trough_bulk <- obj$enqueue_bulk(1:6, 
+                                         function(x,obs_list,admin_list) {
+                                           run_pmcmc(data = obs_list[[x]]$sim_obs_trough,
+                                                     n_particles = 200,
+                                                     proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
+                                                     max_EIR=1000,
+                                                     max_steps = 1e7,
+                                                     atol = 1e-5,
+                                                     rtol = 1e-6,
+                                                     n_steps = 1000,
+                                                     n_threads = 4,
+                                                     lag_rates = 10,
+                                                     country = 'Burkina Faso',
+                                                     admin_unit = admin_list[x],
+                                                     preyears = 5,
+                                                     seasonality_on = 0,
+                                                     state_check = 0,
+                                                     seasonality_check = 0)},obs_list=sim_seas_list,admin_list=admin_list)
+##'susceptible_noctilio'
+sim_std_trough_bulk$status()
+sim_std_trough_bulk <- obj$task_bundle_get('susceptible_noctilio')
+sim_std_trough_result_list <- lapply(1:6, function(id){
+  sim_std_trough_bulk$tasks[[id]]$result()
+})
+
+sim_std_peakplus3_bulk <- obj$enqueue_bulk(1:6, 
+                                            function(x,obs_list,admin_list) {
+                                              run_pmcmc(data = obs_list[[x]]$sim_obs_peakplus3,
+                                                        n_particles = 200,
+                                                        proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
+                                                        max_EIR=1000,
+                                                        max_steps = 1e7,
+                                                        atol = 1e-5,
+                                                        rtol = 1e-6,
+                                                        n_steps = 1000,
+                                                        n_threads = 4,
+                                                        lag_rates = 10,
+                                                        country = 'Burkina Faso',
+                                                        admin_unit = admin_list[x],
+                                                        preyears = 5,
+                                                        seasonality_on = 0,
+                                                        state_check = 0,
+                                                        seasonality_check = 0)},obs_list=sim_seas_list,admin_list=admin_list)
+sim_std_peakplus3_bulk$status() #'contradictious_serval'
+sim_std_peakplus3_result_list <- lapply(1:6, function(id){
+  sim_std_peakplus3_bulk$tasks[[id]]$result()
+})
+
+sim_std_troughplus3_bulk <- obj$enqueue_bulk(1:6, 
+                                              function(x,obs_list,admin_list) {
+                                                run_pmcmc(data = obs_list[[x]]$sim_obs_troughplus3,
+                                                          n_particles = 200,
+                                                          proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
+                                                          max_EIR=1000,
+                                                          max_steps = 1e7,
+                                                          atol = 1e-5,
+                                                          rtol = 1e-6,
+                                                          n_steps = 1000,
+                                                          n_threads = 4,
+                                                          lag_rates = 10,
+                                                          country = 'Burkina Faso',
+                                                          admin_unit = admin_list[x],
+                                                          preyears = 5,
+                                                          seasonality_on = 0,
+                                                          state_check = 0,
+                                                          seasonality_check = 0)},obs_list=sim_seas_list,admin_list=admin_list)
+sim_std_troughplus3_bulk$status() #'underterrestrial_buckeyebutterfly'
+sim_std_troughplus3_result_list <- lapply(1:6, function(id){
+  sim_std_troughplus3_bulk$tasks[[id]]$result()
+})
+
+##Summarize simulation runs
+windows(10,7)
+create_diag_figs(sim_seas_peak_result_list[[6]],'Seasonal','Peak')
+create_diag_figs(sim_seas_trough_result_list[[6]],'Seasonal','Trough')
+create_diag_figs(sim_seas_peakplus3_result_list[[5]],'Seasonal','Peak')
+create_diag_figs(sim_seas_troughplus3_result_list[[6]],'Seasonal','Trough')
+
+create_diag_figs(sim_std_peak_result_list[[6]],'Standard','Peak')
+create_diag_figs(sim_std_trough_result_list[[6]],'Standard','Trough')
+create_diag_figs(sim_std_peakplus3_result_list[[6]],'Standard','Peak')
+create_diag_figs(sim_std_troughplus3_result_list[[6]],'Standard','Trough')
+
+
+##Summarize diagnostics
+create_diag_figs_bulk <- function(results){
+  ar.df <- data.frame(sites = names(results),
+                      acceptance_rate = sapply(1:length(results), function(x){
+                        1 - coda::rejectionRate(as.mcmc(results[[x]]$mcmc))[[1]]})
+  )
+  
+  ess.df <- bind_rows(lapply(1:length(results), 
+                             function(x){
+                               data.frame(sites = names(results[x]),
+                                          t(coda::effectiveSize(as.mcmc(results[[x]]$mcmc))))
+                             }))%>%
+    melt(id.vars = 'sites')
+  
+  mcmc.df <- bind_rows(lapply(1:length(results), 
+                              function(x){
+                                df <- results[[x]]$mcmc
+                                df$sites <- names(results[x])
+                                df$step <- 1:nrow(df)
+                                return(df)
+                              }))
+  
+  ar.plot <- ggplot(ar.df,aes(x=sites,y=acceptance_rate))+
+    geom_col()+
+    labs(title='Acceptance Rate by Site',x='Site',y='Acceptance Rate')+
+    geom_text(aes(label = round(acceptance_rate,digits=2)), vjust = -0.5)+
+    theme(axis.text.x = element_text(angle = 45, hjust=1))
+  
+  ess.plot <- ggplot(ess.df,aes(x=variable,y=value))+
+    geom_col()+
+    facet_wrap(vars(sites))+
+    labs(title='ESS Values by Parameter and Site',x='Parameter',y='Effective Size')+
+    theme(axis.text.x = element_text(angle = 45, hjust=1))
+  
+  prior.trace <- ggplot(mcmc.df)+
+    geom_line(aes(x=step,y=log_prior))+
+    facet_wrap(vars(sites),scales='free_y')+
+    labs(title='Log Prior Trace by Site',y='Log Prior')+
+    theme(axis.title.x = element_blank())
+  
+  posterior.trace <- ggplot(mcmc.df)+
+    geom_line(aes(x=step,y=log_posterior))+
+    facet_wrap(vars(sites),scales='free_y')+
+    labs(title='Log Posterior Trace by Site',y='Log Posterior')+
+    theme(axis.title.x = element_blank())
+  
+  likelihood.trace <- ggplot(mcmc.df)+
+    geom_line(aes(x=step,y=log_likelihood))+
+    facet_wrap(vars(sites),scales='free_y')+
+    labs(title='Log Likelihood Trace by Site',y='Log Likelihood')+
+    theme(axis.title.x = element_blank())
+  
+  EIR_SD.trace <- ggplot(mcmc.df)+
+    geom_line(aes(x=step,y=EIR_SD))+
+    facet_wrap(vars(sites),scales='free_y')+
+    labs(title='EIR_SD Trace by Site',y='EIR_SD')+
+    theme(axis.title.x = element_blank())
+  
+  init_EIR.trace <- ggplot(mcmc.df)+
+    geom_line(aes(x=step,y=log_init_EIR))+
+    facet_wrap(vars(sites),scales='free_y')+
+    labs(title='Log init_EIR Trace by Site',y='Log init_EIR')+
+    theme(axis.title.x = element_blank())
+  
+  EIR_SD.density <- ggplot(mcmc.df)+
+    geom_violin(aes(x=sites,y=EIR_SD),fill='darkgray')+
+    theme(axis.text.x = element_text(angle = 45, hjust=1))+
+    labs(title='EIR_SD density by Site',x='Site',y='EIR_SD')
+  
+  log_init_EIR.density <- ggplot(mcmc.df)+
+    geom_violin(aes(x=sites,y=log_init_EIR),fill='darkgray')+
+    theme(axis.text.x = element_text(angle = 45, hjust=1))+
+    labs(title='Log init_EIR density by Site',x='Site',y='Log init_EIR')
+  
+  init_EIR.density <- ggplot(mcmc.df)+
+    geom_violin(aes(x=sites,y=exp(log_init_EIR)),fill='darkgray')+
+    scale_y_log10()+
+    theme(axis.text.x = element_text(angle = 45, hjust=1))+
+    labs(title='init_EIR density by Site',x='Site',y='init_EIR')
+  
+  diags <- list(ar.plot = ar.plot, ess.plot = ess.plot, 
+                prior.trace = prior.trace, posterior.trace = posterior.trace, 
+                likelihood.trace = likelihood.trace, EIR_SD.trace =EIR_SD.trace,
+                init_EIR.trace = init_EIR.trace, EIR_SD.density = EIR_SD.density,
+                log_init_EIR.density = log_init_EIR.density, init_EIR.density = init_EIR.density)
+  
+  
+  return(diags)
+}
+
+sim_casc_med <- readRDS('sim/sim_datasets/sim_casc_med.rds')
+sim_casc_hi <- readRDS('sim/sim_datasets/sim_casc_hi.rds')
+sim_casc_low <- readRDS('sim/sim_datasets/sim_casc_low.rds')
+sim_nord_med <- readRDS('sim/sim_datasets/sim_nord_med.rds')
+sim_nord_hi <- readRDS('sim/sim_datasets/sim_nord_hi.rds')
+sim_nord_low <- readRDS('sim/sim_datasets/sim_nord_low.rds')
+
+sim_seas_list <- list(casc_low = sim_casc_low, casc_med = sim_casc_med, casc_hi = sim_casc_hi,
+                      nord_low = sim_nord_low, nord_med = sim_nord_med, nord_hi = sim_nord_hi)
+
+names(sim_seas_peak_result_list) <- names(sim_seas_list)
+names(sim_seas_trough_result_list) <- names(sim_seas_list)
+names(sim_std_peak_result_list) <- names(sim_seas_list)
+names(sim_std_trough_result_list) <- names(sim_seas_list)
+
+sim_seas_result_list <- list(peak = sim_seas_peak_result_list,
+                             trough = sim_seas_trough_result_list)
+sim_std_result_list <- list(peak = sim_std_peak_result_list,
+                             trough = sim_std_trough_result_list)
+sim_all_result_list <- list(standard = sim_std_result_list, seasonal = sim_seas_result_list)
+##Show prevalence trajectories, comparing with seasonal deterministic model and simulated data
+
+##Show posterior distributions of init_EIR and EIR_SD
+  
