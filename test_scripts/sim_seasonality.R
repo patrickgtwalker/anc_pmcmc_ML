@@ -750,6 +750,7 @@ sim_seas_peakplus3_bulk <- obj$enqueue_bulk(1:6,
                                                           state_check = 0,
                                                           seasonality_check = 1)},obs_list=sim_seas_list,admin_list=admin_list)
 sim_seas_peakplus3_bulk$status()#'wrinkly_triceratops'
+sim_seas_peakplus3_bulk <- obj$task_bundle_get('wrinkly_triceratops')
 sim_seas_peakplus3_bulk$tasks$`063aedf125e654e028b75380d511a62f`$log()
 sim_seas_peakplus3_result_list <- lapply(2:6, function(id){
   sim_seas_peakplus3_bulk$tasks[[id]]$result()
@@ -777,7 +778,7 @@ sim_seas_troughplus3_bulk <- obj$enqueue_bulk(1:6,
 sim_seas_troughplus3_bulk$status()
 obj$login()
 sim_seas_troughplus3_bulk <- obj$task_bundle_get('prosaic_herring')
-sim_seas_peakplus3_result_list <- lapply(1:6, function(id){
+sim_seas_troughplus3_result_list <- lapply(1:6, function(id){
   sim_seas_troughplus3_bulk$tasks[[id]]$result()
 })
 
@@ -853,7 +854,9 @@ sim_std_peakplus3_bulk <- obj$enqueue_bulk(1:6,
                                                         state_check = 0,
                                                         seasonality_check = 0)},obs_list=sim_seas_list,admin_list=admin_list)
 sim_std_peakplus3_bulk$status() #'contradictious_serval'
-sim_std_peakplus3_result_list <- lapply(1:6, function(id){
+sim_std_peakplus3_bulk$tasks[[1]]$log()
+sim_std_peakplus3_bulk <- obj$task_bundle_get('contradictious_serval')
+sim_std_peakplus3_result_list <- lapply(2:6, function(id){
   sim_std_peakplus3_bulk$tasks[[id]]$result()
 })
 
@@ -876,6 +879,7 @@ sim_std_troughplus3_bulk <- obj$enqueue_bulk(1:6,
                                                           state_check = 0,
                                                           seasonality_check = 0)},obs_list=sim_seas_list,admin_list=admin_list)
 sim_std_troughplus3_bulk$status() #'underterrestrial_buckeyebutterfly'
+sim_std_troughplus3_bulk <- obj$task_bundle_get('underterrestrial_buckeyebutterfly')
 sim_std_troughplus3_result_list <- lapply(1:6, function(id){
   sim_std_troughplus3_bulk$tasks[[id]]$result()
 })
@@ -997,12 +1001,21 @@ names(sim_seas_peak_result_list) <- names(sim_seas_list)
 names(sim_seas_trough_result_list) <- names(sim_seas_list)
 names(sim_std_peak_result_list) <- names(sim_seas_list)
 names(sim_std_trough_result_list) <- names(sim_seas_list)
+names(sim_seas_peakplus3_result_list) <- names(sim_seas_list)[2:6]
+names(sim_seas_troughplus3_result_list) <- names(sim_seas_list)
+names(sim_std_peakplus3_result_list) <- names(sim_seas_list)[2:6]
+names(sim_std_troughplus3_result_list) <- names(sim_seas_list)
 
 sim_seas_result_list <- list(peak = sim_seas_peak_result_list,
-                             trough = sim_seas_trough_result_list)
+                             peakplus3 = sim_seas_peakplus3_result_list,
+                             trough = sim_seas_trough_result_list,
+                             troughplus3 = sim_seas_troughplus3_result_list)
 sim_std_result_list <- list(peak = sim_std_peak_result_list,
-                             trough = sim_std_trough_result_list)
+                            peakplus3 = sim_std_peakplus3_result_list,
+                            trough = sim_std_trough_result_list,
+                            troughplus3 = sim_std_troughplus3_result_list)
 sim_all_result_list <- list(standard = sim_std_result_list, seasonal = sim_seas_result_list)
+
 ##Show prevalence trajectories, comparing with seasonal deterministic model and simulated data
 
 ##Show posterior distributions of init_EIR and EIR_SD
