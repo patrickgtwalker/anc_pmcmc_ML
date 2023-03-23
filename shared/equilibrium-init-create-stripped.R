@@ -282,6 +282,11 @@ equilibrium_init_create_stripped <- function(age_vector, het_brackets,
   b <- mpl$b0 * ((1-mpl$b1)/(1+(IB_eq/mpl$IB0)^mpl$kB)+mpl$b1)
   phi <- mpl$phi0*((1-mpl$phi1)/(1+((ICM_eq+ICA_eq)/mpl$IC0)^mpl$kC) + mpl$phi1)
   phi <- array(phi, c(na, nh))
+  clin_inc <- phi*FOI_eq*Y_eq
+  clin_inc <- array(clin_inc, c(na, nh))
+  
+  inc <- sum(clin_inc)
+  inc05 <- sum(clin_inc[1:age05,])/sum(den[1:age59])
   
 
   ## collate init
@@ -298,7 +303,7 @@ equilibrium_init_create_stripped <- function(age_vector, het_brackets,
               den = den, age59 = age59, age05 = age05,
               # ssa0 = mpl$ssa0, ssa1 = mpl$ssa1,ssa2 = mpl$ssa2, ssa3 = mpl$ssa3, ssb1 = mpl$ssb1, ssb2 = mpl$ssb2, ssb3 = mpl$ssb3,theta_c = mpl$theta_c,
               pi = pi,
-              prev = prev,
+              prev = prev,inc = inc, inc05=inc05,
               age = age_vector*mpl$DY, ft = ft,
               betaS = betaS, betaA = betaA, betaU = betaU, FOIvij_eq=FOIvij_eq,
               age_mid_point = age_mid_point, het_bounds = het_bounds,
