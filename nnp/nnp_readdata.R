@@ -14,23 +14,22 @@ source('shared/addCIs.R')
 ########NIGERIA########
 #######################
 #Read in Nigeria data and rename most used variables
-NG_ANC_mother <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl180123/Nigeria/ANC-based surveillance/data_anc_mother_nigeria.xlsx')%>%
+NG_ANC_mother <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl020323/Nigeria/ANC-based surveillance/data_anc_mother_nigeria.xlsx')%>%
   dplyr::rename(primigrav = q1_preg,
          prev_pregs = q2_preg,
          mal_symp = q1_mal,
-         rdt = q2_mal,
-         month = date) %>%
+         rdt = q2_mal) %>%
   dplyr::mutate(month = as.yearmon(month),
          grav = prev_pregs+1,
          ward = toupper(ward))
 #Read in Nigeria data and rename most used variables
-NG_CS_child_2020 <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl180123/Nigeria/Cross-sectional survey/data_nnp_survey_child_nigeria_2020.xlsx')%>%
+NG_CS_child_2020 <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl020323/Nigeria/Cross-sectional survey/data_nnp_survey_child_nigeria_2020.xlsx')%>%
   dplyr::rename(rdt = q85c_result,
          mal_symp = q86a_symptoms) %>%
   mutate(age = ifelse(age==0,age_months/12,age))
 
-NG_CS_hh_2020 <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl180123/Nigeria/Cross-sectional survey/data_nnp_survey_hh_nigeria_2020.xlsx')%>%
-  rename(individual_id = hh_id,
+NG_CS_hh_2020 <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl020323/Nigeria/Cross-sectional survey/data_nnp_survey_hh_nigeria_2020.xlsx')%>%
+  dplyr::rename(individual_id = hh_id,
          date = start) %>%
   mutate(date = as.Date(date))
 
@@ -38,27 +37,41 @@ NG_CS_hh_2020 <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College Lond
 NG_CS_2020 <- merge(NG_CS_child_2020,NG_CS_hh_2020,by='submission_id',all.x=TRUE,suffixes=c('.child','.hh'))
 
 ##Read in 2021 data
-NG_CS_child_2021 <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl180123/Nigeria/Cross-sectional survey/data_nnp_survey_child_nigeria_2021.xlsx')%>%
-  rename(rdt = q90c_result_6to59months,
+NG_CS_child_2021 <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl020323/Nigeria/Cross-sectional survey/data_nnp_survey_child_nigeria_2021.xlsx')%>%
+  dplyr::rename(rdt = q90c_result_6to59months,
          mal_symp = q91_a_symptoms) %>%
   mutate(age = ifelse(age==0,age_months/12,age))
 
-NG_CS_hh_2021 <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl180123/Nigeria/Cross-sectional survey/data_nnp_survey_hh_nigeria_2021.xlsx')%>%
-  rename(individual_id = hh_id,
+NG_CS_hh_2021 <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl020323/Nigeria/Cross-sectional survey/data_nnp_survey_hh_nigeria_2021.xlsx')%>%
+  dplyr::rename(individual_id = hh_id,
          date = start) %>%
   mutate(date = as.Date(date))
 
 #Merge child to hh to get date of survey
 NG_CS_2021 <- merge(NG_CS_child_2021,NG_CS_hh_2021,by='submission_id',all.x=TRUE,suffixes=c('.child','.hh'))
 
-#Combine 2 years of data
-NG_CS_all <- plyr::rbind.fill(NG_CS_2020,NG_CS_2021)
+##Read in 2022 data
+NG_CS_child_2022 <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl020323/Nigeria/Cross-sectional survey/data_nnp_survey_child_nigeria_2022.xlsx')%>%
+  dplyr::rename(rdt = q90c_result_6to59months,
+         mal_symp = q91a_symptoms) %>%
+  mutate(age = ifelse(age==0,age_months/12,age))
+
+NG_CS_hh_2022 <- xl.read.file('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl020323/Nigeria/Cross-sectional survey/data_nnp_survey_hh_nigeria_2022.xlsx')%>%
+  dplyr::rename(individual_id = hh_id,
+         date = start) %>%
+  mutate(date = as.Date(date))
+
+#Merge child to hh to get date of survey
+NG_CS_2022 <- merge(NG_CS_child_2022,NG_CS_hh_2022,by='submission_id',all.x=TRUE,suffixes=c('.child','.hh'))
+
+#Combine 3 years of data
+NG_CS_all <- plyr::rbind.fill(NG_CS_2020,NG_CS_2021,NG_CS_2022)
 NG_CS_all$district_code <- as.integer(substr(NG_CS_all$cluster_n,1,1))
 NG_CS_all$district_n <- unlist(lapply(NG_CS_all$district_code, FUN = function(x) switch(x,'Ejigbo','Ife North','Asa','Moro')))
 
 #By site and gravidity#
 NG_CS_all_grouped_site <- NG_CS_all %>%
-  rename(site=district_n)%>%
+  dplyr::rename(site=district_n)%>%
   mutate(month=as.yearmon(date),
          rdt=as.numeric(ifelse(rdt=='Positive',1,ifelse(rdt=='Negative',0,NA)))
   )%>%
@@ -201,7 +214,7 @@ BF_CS_all_grouped_site <-readRDS('nnp/data/BF_CS_all_grouped_site_0822.rds')
 #Group ANC data by site
 #Group by grav
 BF_ANC_mother_grouped_sitegrav <- BF_ANC_mother %>%
-  rename(site = District) %>%
+  dplyr::rename(site = District) %>%
   mutate(grav_cat=cut(grav,breaks=c(0,1,3,Inf),labels=c("Gravidities 1","Gravidities 2-3","Gravidities 4+")),
          rdt=as.numeric(ifelse(rdt=='Positif',1,0)))%>%
   filter(!is.na(rdt)) %>%
@@ -311,28 +324,28 @@ NG_anc <- NG_ANC_mother_grouped_sitegrav
 
 NG_pg_asa <- NG_anc[NG_anc$site=='Asa'&NG_anc$grav_cat=='Gravidities 1',] %>%
   group_by(month)%>%
-  summarise(t=cur_group_id()*30,
+  dplyr::summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
 saveRDS(NG_pg_asa,'nnp/data/data_raw_NG_pg_asa.RDS')
 
 NG_pg_ejigbo <- NG_anc[NG_anc$site=='Ejigbo'&NG_anc$grav_cat=='Gravidities 1',] %>%
   group_by(month)%>%
-  summarise(t=cur_group_id()*30,
+  dplyr::summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
 saveRDS(NG_pg_ejigbo,'nnp/data/data_raw_NG_pg_ejigbo.RDS')
 
 NG_pg_ifenorth <- NG_anc[NG_anc$site=='Ife North'&NG_anc$grav_cat=='Gravidities 1',] %>%
   group_by(month)%>%
-  summarise(t=cur_group_id()*30,
+  dplyr::summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
 saveRDS(NG_pg_ifenorth,'nnp/data/data_raw_NG_pg_ifenorth.RDS')
 
 NG_pg_moro <- NG_anc[NG_anc$site=='Moro'&NG_anc$grav_cat=='Gravidities 1',] %>%
   group_by(month)%>%
-  summarise(t=cur_group_id()*30,
+  dplyr::summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
 saveRDS(NG_pg_moro,'nnp/data/data_raw_NG_pg_moro.RDS')
@@ -395,28 +408,28 @@ NG_anc <- NG_ANC_mother_grouped_sitegrav
 
 NG_g23_asa <- NG_anc[NG_anc$site=='Asa'&NG_anc$grav_cat=='Gravidities 2-3',] %>%
   group_by(month)%>%
-  summarise(t=cur_group_id()*30,
+  dplyr::summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
 saveRDS(NG_g23_asa,'nnp/data/data_raw_NG_g23_asa.RDS')
 
 NG_g23_ejigbo <- NG_anc[NG_anc$site=='Ejigbo'&NG_anc$grav_cat=='Gravidities 2-3',] %>%
   group_by(month)%>%
-  summarise(t=cur_group_id()*30,
+  dplyr::summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
 saveRDS(NG_g23_ejigbo,'nnp/data/data_raw_NG_g23_ejigbo.RDS')
 
 NG_g23_ifenorth <- NG_anc[NG_anc$site=='Ife North'&NG_anc$grav_cat=='Gravidities 2-3',] %>%
   group_by(month)%>%
-  summarise(t=cur_group_id()*30,
+  dplyr::summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
 saveRDS(NG_g23_ifenorth,'nnp/data/data_raw_NG_g23_ifenorth.RDS')
 
 NG_g23_moro <- NG_anc[NG_anc$site=='Moro'&NG_anc$grav_cat=='Gravidities 2-3',] %>%
   group_by(month)%>%
-  summarise(t=cur_group_id()*30,
+  dplyr::summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
 saveRDS(NG_g23_moro,'nnp/data/data_raw_NG_g23_moro.RDS')
@@ -479,28 +492,28 @@ NG_anc <- NG_ANC_mother_grouped_sitegrav
 
 NG_g4_asa <- NG_anc[NG_anc$site=='Asa'&NG_anc$grav_cat=='Gravidities 4+',] %>%
   group_by(month)%>%
-  summarise(t=cur_group_id()*30,
+  dplyr::summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
 saveRDS(NG_g4_asa,'nnp/data/data_raw_NG_g4_asa.RDS')
 
 NG_g4_ejigbo <- NG_anc[NG_anc$site=='Ejigbo'&NG_anc$grav_cat=='Gravidities 4+',] %>%
   group_by(month)%>%
-  summarise(t=cur_group_id()*30,
+  dplyr::summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
 saveRDS(NG_g4_ejigbo,'nnp/data/data_raw_NG_g4_ejigbo.RDS')
 
 NG_g4_ifenorth <- NG_anc[NG_anc$site=='Ife North'&NG_anc$grav_cat=='Gravidities 4+',] %>%
   group_by(month)%>%
-  summarise(t=cur_group_id()*30,
+  dplyr::summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
 saveRDS(NG_g4_ifenorth,'nnp/data/data_raw_NG_g4_ifenorth.RDS')
 
 NG_g4_moro <- NG_anc[NG_anc$site=='Moro'&NG_anc$grav_cat=='Gravidities 4+',] %>%
   group_by(month)%>%
-  summarise(t=cur_group_id()*30,
+  dplyr::summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
 saveRDS(NG_g4_moro,'nnp/data/data_raw_NG_g4_moro.RDS')
@@ -559,28 +572,28 @@ saveRDS(MZ_g4_guro,'nnp/data/data_raw_MZ_g4_guro.RDS')
 ##Multigrav
 NG_mg_asa <- NG_anc[NG_anc$site=='Asa'&NG_anc$grav_cat!='Gravidities 1',] %>%
   group_by(month)%>%
-  summarise(t=cur_group_id()*30,
+  dplyr::summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
 saveRDS(NG_mg_asa,'nnp/data/data_raw_NG_mg_asa.RDS')
 
 NG_mg_ejigbo <- NG_anc[NG_anc$site=='Ejigbo'&NG_anc$grav_cat!='Gravidities 1',] %>%
   group_by(month)%>%
-  summarise(t=cur_group_id()*30,
+  dplyr::summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
 saveRDS(NG_mg_ejigbo,'nnp/data/data_raw_NG_mg_ejigbo.RDS')
 
 NG_mg_ifenorth <- NG_anc[NG_anc$site=='Ife North'&NG_anc$grav_cat!='Gravidities 1',] %>%
   group_by(month)%>%
-  summarise(t=cur_group_id()*30,
+  dplyr::summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
 saveRDS(NG_mg_ifenorth,'nnp/data/data_raw_NG_mg_ifenorth.RDS')
 
 NG_mg_moro <- NG_anc[NG_anc$site=='Moro'&NG_anc$grav_cat!='Gravidities 1',] %>%
   group_by(month)%>%
-  summarise(t=cur_group_id()*30,
+  dplyr::summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
 saveRDS(NG_mg_moro,'nnp/data/data_raw_NG_mg_moro.RDS')
@@ -632,28 +645,28 @@ saveRDS(MZ_mg_guro,'nnp/data/data_raw_MZ_mg_guro.RDS')
 ##MAll gravidities
 NG_all_asa <- NG_anc[NG_anc$site=='Asa',] %>%
   group_by(month)%>%
-  summarise(t=cur_group_id()*30,
+  dplyr::summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
 saveRDS(NG_all_asa,'nnp/data/data_raw_NG_all_asa.RDS')
 
 NG_all_ejigbo <- NG_anc[NG_anc$site=='Ejigbo',] %>%
   group_by(month)%>%
-  summarise(t=cur_group_id()*30,
+  dplyr::summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
 saveRDS(NG_all_ejigbo,'nnp/data/data_raw_NG_all_ejigbo.RDS')
 
 NG_all_ifenorth <- NG_anc[NG_anc$site=='Ife North',] %>%
   group_by(month)%>%
-  summarise(t=cur_group_id()*30,
+  dplyr::summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
 saveRDS(NG_all_ifenorth,'nnp/data/data_raw_NG_all_ifenorth.RDS')
 
 NG_all_moro <- NG_anc[NG_anc$site=='Moro',] %>%
   group_by(month)%>%
-  summarise(t=cur_group_id()*30,
+  dplyr::summarise(t=cur_group_id()*30,
             tested=sum(total),
             positive=sum(positive))
 saveRDS(NG_all_moro,'nnp/data/data_raw_NG_all_moro.RDS')
@@ -702,3 +715,17 @@ MZ_all_guro <- MZ_anc[MZ_anc$site=='Guro',] %>%
             positive=sum(positive))
 saveRDS(MZ_all_guro,'nnp/data/data_raw_MZ_all_guro.RDS')
 
+table(MZ_ANC_mother$month,MZ_ANC_mother$mal_symp,MZ_ANC_mother$district_n)
+table(NG_ANC_mother$month,NG_ANC_mother$mal_symp,NG_ANC_mother$lga)
+prop.table(table(NG_ANC_mother$mal_symp))
+table(BF_ANC_mother$month,BF_ANC_mother$mal_symp,BF_ANC_mother$District)
+prop.table(table(BF_ANC_mother$mal_symp))
+
+
+##Summary table
+all_ANC_mother_grouped_sitegrav <- bind_rows(BF_ANC_mother_grouped_sitegrav,MZ_ANC_mother_grouped_sitegrav,NG_ANC_mother_grouped_sitegrav)
+total_prev <- all_ANC_mother_grouped_sitegrav%>%
+  group_by()%>%
+  dplyr::summarise(positive = sum(positive),
+                   total = sum(total))
+total_prev_cis <- addCIs(total_prev,total_prev$positive,total_prev$total)

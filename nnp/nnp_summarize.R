@@ -1,4 +1,5 @@
 ##summarize results##
+library(tidyverse)
 library(ggplot2)
 library(reshape2)
 library(ggpubr)
@@ -8,10 +9,11 @@ library(RColorBrewer)
 library(bayesplot)
 library(binom)
 source('shared/addCIs.R')
-library(plyr)
-library(dplyr)
 library(lubridate)
 library(matrixStats)
+library(epitools)
+library(coda)
+
 theme_set(theme_minimal()+
             theme(panel.grid.major = element_blank(),
                   panel.grid.minor = element_blank(),
@@ -41,6 +43,10 @@ create_diag_figs <- function(result,country,district){
 diag_std_mzbf_plots <- lapply(1:6,function(i) create_diag_figs(std_mzbf_result_list[[i]],country = country[i],district = district_list[i]))
 diag_seas_mzbf_plots <- lapply(1:6,function(i) create_diag_figs(seas_mzbf_result_list[[i]],country = country[i],district = district_list[i]))
 diag_std_pgmg_plots <- lapply(1:10,function(i) create_diag_figs(nnp_mgcorr_bulk_std_results[[i]],country = country[i],district = district_list[i]))
+diag_seas_pg_plots <- lapply(1:10,function(i) create_diag_figs(nnp_pgcorr_bulk_seas_results[[i]],country = country[i],district = district_list[i]))
+diag_std_pg_plots <- lapply(1:10,function(i) create_diag_figs(nnp_pgcorr_bulk_std_results[[i]],country = country[i],district = district_list[i]))
+diag_seas_pgmg_plots <- lapply(1:10,function(i) create_diag_figs(nnp_mgcorr_bulk_seas_results_update[[i]],country = country[i],district = district_list[i]))
+
 country <- c('Burkina Faso','Burkina Faso','Burkina Faso',
              'Mozambique','Mozambique','Mozambique',
              'Nigeria','Nigeria','Nigeria','Nigeria')
@@ -67,8 +73,25 @@ for(i in c(1:10)){
   print(diag_std_pgmg_plots[i])
   ggsave(paste0('Q:/anc_pmcmc/nnp/figures/diag/',district_list[i],'_pgmg_std_220223.pdf'), width = 10, height = 7)
 }
-
-
+for(i in c(1:10)){
+  windows(10,7)
+  print(diag_seas_pg_plots[i])
+  ggsave(paste0('Q:/anc_pmcmc/nnp/figures/diag/',district_list[i],'_pg_seas_270223.pdf'), width = 10, height = 7)
+}
+for(i in c(1:10)){
+  windows(10,7)
+  print(diag_std_pg_plots[i])
+  ggsave(paste0('Q:/anc_pmcmc/nnp/figures/diag/',district_list[i],'_pg_std_280223.pdf'), width = 10, height = 7)
+}
+for(i in c(1:10)){
+  windows(10,7)
+  print(diag_seas_pgmg_plots[i])
+  ggsave(paste0('Q:/anc_pmcmc/nnp/figures/diag/',district_list[i],'_pgmg_seas_020323.pdf'), width = 10, height = 7)
+}
+nnp_mgcorr_bulk_seas_results_update
+summary_init_EIR <- bind_rows(lapply(1:10,function(x,result){
+  exp(quantile(result[[x]]$mcmc[501:1000,'log_init_EIR'], probs = c(0.025,0.5,0.975)))
+},result=nnp_mgcorr_bulk_seas_results_update))
 nnp_pg_list <- list(Banfora = data_raw_bf_pg_banfora,Gaoua = data_raw_bf_pg_gaoua,Orodara = data_raw_bf_pg_orodara,
                  Changara = data_raw_mz_pg_changara, Chemba = data_raw_mz_pg_chemba,Guro = data_raw_mz_pg_guro,
                  Asa = data_raw_ng_pg_asa,Ejigbo = data_raw_ng_pg_ejigbo,`Ife North` = data_raw_ng_pg_ifenorth, Moro = data_raw_ng_pg_moro)
@@ -85,7 +108,7 @@ create_prev_plots <- function(results,data_list=nnp_list,country=c('BF','MZ','NG
                  NG = c('Asa','Ejigbo','Ife North','Moro'))
   dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-6-1'),by='months'),
                      MZ = seq(as.Date('2020-12-1'),as.Date('2022-9-1'),by='months'),
-                     NG = seq(as.Date('2020-11-1'),as.Date('2021-12-1'),by='months'))
+                     NG = seq(as.Date('2020-11-1'),as.Date('2022-12-1'),by='months'))
   colors_list <- list(BF = c(Banfora = "#1B9E77", Gaoua = "#999999", Orodara = "#D95F02"),
                       MZ = c(Changara = "#D95F02", Chemba = "#999999", Guro = "#1B9E77"),
                       NG = c(Asa = "#1B9E77", Ejigbo = "#999999", `Ife North` = "#D95F02", Moro = "#377EB8"))
@@ -143,8 +166,8 @@ create_prev_plots <- function(results,data_list=nnp_list,country=c('BF','MZ','NG
       annotate("rect", xmin = as.Date('2021-1-1'), xmax = as.Date('2021-6-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")+
       annotate("rect", xmin = as.Date('2022-1-1'), xmax = as.Date('2022-6-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999"),
     NG = ggplot(df)+
-      annotate("rect", xmin = as.Date('2021-7-1'), xmax = as.Date('2021-11-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")
-      
+      annotate("rect", xmin = as.Date('2021-7-1'), xmax = as.Date('2021-11-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")+
+      annotate("rect", xmin = as.Date('2022-7-1'), xmax = as.Date('2022-11-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")
   )
   prev_plot <- annotations[[country]]+
     geom_ribbon(aes(x=month,ymin=lower,ymax=upper,fill=district,group=district),alpha=0.2)+
@@ -182,7 +205,7 @@ create_inc_plots <- function(results,country=c('BF','MZ','NG')){
                         NG = c('Asa','Ejigbo','Ife North','Moro'))
   dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-6-1'),by='months'),
                      MZ = seq(as.Date('2020-12-1'),as.Date('2022-9-1'),by='months'),
-                     NG = seq(as.Date('2020-11-1'),as.Date('2021-12-1'),by='months'))
+                     NG = seq(as.Date('2020-11-1'),as.Date('2022-12-1'),by='months'))
   colors_list <- list(BF = c(Banfora = "#1B9E77", Gaoua = "#999999", Orodara = "#D95F02"),
                       MZ = c(Changara = "#D95F02", Chemba = "#999999", Guro = "#1B9E77"),
                       NG = c(Asa = "#1B9E77", Ejigbo = "#999999", `Ife North` = "#D95F02", Moro = "#377EB8"))
@@ -251,6 +274,7 @@ create_inc_plots <- function(results,country=c('BF','MZ','NG')){
     scale_y_continuous(limits=c(0,400)),
     NG = ggplot(df)+
       annotate("rect", xmin = as.Date('2021-7-1'), xmax = as.Date('2021-11-1'), ymin = 0, ymax = 3750,alpha = .1,fill = "#999999")+
+      annotate("rect", xmin = as.Date('2022-7-1'), xmax = as.Date('2022-11-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")+
       scale_y_continuous(limits=c(0,3750))
 
   )
@@ -293,7 +317,7 @@ create_relinc_plots <- function(results,country=c('BF','MZ','NG')){
                         NG = c('Asa','Ejigbo','Ife North','Moro'))
   dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-5-1'),by='months'),
                      MZ = seq(as.Date('2020-12-1'),as.Date('2021-9-1'),by='months'),
-                     NG = seq(as.Date('2020-11-1'),as.Date('2021-12-1'),by='months'))
+                     NG = seq(as.Date('2020-11-1'),as.Date('2022-12-1'),by='months'))
   colors_list <- list(BF = c(Banfora = "#1B9E77", Gaoua = "#999999", Orodara = "#D95F02"),
                       MZ = c(Changara = "#D95F02", Chemba = "#999999", Guro = "#1B9E77"),
                       NG = c(Asa = "#1B9E77", Ejigbo = "#999999", `Ife North` = "#D95F02", Moro = "#377EB8"))
@@ -341,8 +365,8 @@ create_relinc_plots <- function(results,country=c('BF','MZ','NG')){
     MZ = ggplot(df)+
       annotate("rect", xmin = as.Date('2021-1-1'), xmax = as.Date('2021-6-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999"),
     NG = ggplot(df)+
-      annotate("rect", xmin = as.Date('2021-7-1'), xmax = as.Date('2021-11-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")
-    
+      annotate("rect", xmin = as.Date('2021-7-1'), xmax = as.Date('2021-11-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")+
+      annotate("rect", xmin = as.Date('2022-7-1'), xmax = as.Date('2022-11-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")
   )
   inc_plot <- annotations[[country]]+
     # geom_ribbon(aes(x=month,ymin=lower,ymax=upper,fill=district,group=district),alpha=0.2)+
@@ -375,7 +399,7 @@ create_eir_plots <- function(results,country=c('BF','MZ','NG')){
                         NG = c('Asa','Ejigbo','Ife North','Moro'))
   dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-6-1'),by='months'),
                      MZ = seq(as.Date('2020-12-1'),as.Date('2022-9-1'),by='months'),
-                     NG = seq(as.Date('2020-11-1'),as.Date('2021-12-1'),by='months'))
+                     NG = seq(as.Date('2020-11-1'),as.Date('2022-12-1'),by='months'))
   colors_list <- list(BF = c(Banfora = "#1B9E77", Gaoua = "#999999", Orodara = "#D95F02"),
                       MZ = c(Changara = "#D95F02", Chemba = "#999999", Guro = "#1B9E77"),
                       NG = c(Asa = "#1B9E77", Ejigbo = "#999999", `Ife North` = "#D95F02", Moro = "#377EB8"))
@@ -466,7 +490,7 @@ ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/esteir_mz_seas_310223.pdf'), wi
 #                         NG = c('Asa','Ejigbo','Ife North','Moro'))
 #   dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-5-1'),by='months'),
 #                      MZ = seq(as.Date('2020-12-1'),as.Date('2021-9-1'),by='months'),
-#                      NG = seq(as.Date('2020-11-1'),as.Date('2021-12-1'),by='months'))
+#                      NG = seq(as.Date('2020-11-1'),as.Date('2022-12-1'),by='months'))
 #   colors <- c(`All ages` = "#1B9E77", `Under 5 years old` = "#999999", `Primigrav` = "#D95F02", `Primigrav Correlation` = "#377EB8")
 #   
 #   start_list <- c(BF = 1, MZ = 4, NG = 7)
@@ -572,7 +596,7 @@ create_obsprev_plots <- function(results,data_list=nnp_list,country=c('BF','MZ',
                         NG = c('Asa','Ejigbo','Ife North','Moro'))
   dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-6-1'),by='months'),
                      MZ = seq(as.Date('2020-12-1'),as.Date('2022-9-1'),by='months'),
-                     NG = seq(as.Date('2020-11-1'),as.Date('2021-12-1'),by='months'))
+                     NG = seq(as.Date('2020-11-1'),as.Date('2022-12-1'),by='months'))
   colors_list <- list(BF = c(Banfora = "#1B9E77", Gaoua = "#999999", Orodara = "#D95F02"),
                       MZ = c(Changara = "#D95F02", Chemba = "#999999", Guro = "#1B9E77"),
                       NG = c(Asa = "#1B9E77", Ejigbo = "#999999", `Ife North` = "#D95F02", Moro = "#377EB8"))
@@ -630,7 +654,8 @@ create_obsprev_plots <- function(results,data_list=nnp_list,country=c('BF','MZ',
       annotate("rect", xmin = as.Date('2021-1-1'), xmax = as.Date('2021-6-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")+
       annotate("rect", xmin = as.Date('2022-1-1'), xmax = as.Date('2022-6-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999"),
     NG = ggplot(df)+
-      annotate("rect", xmin = as.Date('2021-7-1'), xmax = as.Date('2021-11-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")
+      annotate("rect", xmin = as.Date('2021-7-1'), xmax = as.Date('2021-11-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")+
+      annotate("rect", xmin = as.Date('2022-7-1'), xmax = as.Date('2022-11-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")
     
   )
   prev_plot <- annotations[[country]]+
@@ -672,7 +697,7 @@ create_estprev_plots <- function(results,data_list=nnp_list,country=c('BF','MZ',
                         NG = c('Asa','Ejigbo','Ife North','Moro'))
   dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-6-1'),by='months'),
                      MZ = seq(as.Date('2020-12-1'),as.Date('2022-9-1'),by='months'),
-                     NG = seq(as.Date('2020-11-1'),as.Date('2021-12-1'),by='months'))
+                     NG = seq(as.Date('2020-11-1'),as.Date('2022-12-1'),by='months'))
   colors_list <- list(BF = c(Banfora = "#1B9E77", Gaoua = "#999999", Orodara = "#D95F02"),
                       MZ = c(Changara = "#D95F02", Chemba = "#999999", Guro = "#1B9E77"),
                       NG = c(Asa = "#1B9E77", Ejigbo = "#999999", `Ife North` = "#D95F02", Moro = "#377EB8"))
@@ -748,8 +773,8 @@ create_estprev_plots <- function(results,data_list=nnp_list,country=c('BF','MZ',
       annotate("rect", xmin = as.Date('2021-1-1'), xmax = as.Date('2021-6-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")+
       annotate("rect", xmin = as.Date('2022-1-1'), xmax = as.Date('2022-6-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999"),
     NG = ggplot(df)+
-      annotate("rect", xmin = as.Date('2021-7-1'), xmax = as.Date('2021-11-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")
-    
+      annotate("rect", xmin = as.Date('2021-7-1'), xmax = as.Date('2021-11-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")+
+      annotate("rect", xmin = as.Date('2022-7-1'), xmax = as.Date('2022-11-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")
   )
   prev_plot <- annotations[[country]]+
     geom_line(data=df_sample,aes(x=month,y=value,color=district,group=variable),alpha=0.2)+
@@ -795,17 +820,16 @@ MZ_estprev_pg/MZ_inc_pg
 NG_estprev_pg/NG_inc_pg
 
 ##Create plots for BF and NG HMIS data
-bf_hmis <- readxl::read_excel('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl180123/Burkina Faso/Routine HMIS/BF_Routine_Mar2022.xlsx')
-mz_hmis <- readxl::read_excel('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl180123/Mozambique/Routine HMIS/Mozambique_Routine_Sept2022.xlsx')
-ng_hmis <- readxl::read_excel('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl180123/Nigeria/Routine data/NNP Nigeria HMIS Data 2019-2022 - LGA.xlsx')
-bf_hmis$inc <- bf_hmis$Confirmed/bf_hmis$Population*10000
+bf_hmis <- readxl::read_excel('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl020323/Burkina Faso/Routine HMIS/Routine Data All Ages.xlsx')
+mz_hmis <- readxl::read_excel('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl020323/Mozambique/Routine HMIS/Mozambique_Routine_Sept2022.xlsx')
+ng_hmis <- readxl::read_excel('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl020323/Nigeria/Routine data/NNP Nigeria HMIS Data 2019-2022 - LGA rev 2023.03.02.xlsx')
 
 bf_hmis_sum <- bf_hmis %>%
-  group_by(Month,Year,`Net type`)%>%
-  summarise(confirmed = sum(Confirmed),
+  group_by(Month,Year,`Net type`,Distrist)%>%
+  dplyr::summarise(confirmed = sum(Confirmed),
             population = sum(Population))%>%
   mutate(inc = confirmed*10000/population)%>%
-  rename(district = Distrist)
+  dplyr::rename(district = Distrist)
 
 bf_hmis_sum$date = as.yearmon(paste(bf_hmis_sum$Year, bf_hmis_sum$Month), "%Y %b")
 
@@ -822,7 +846,7 @@ create_inc_plots_threads <- function(results,country=c('BF','MZ','NG')){
                         NG = c('Asa','Ejigbo','Ife North','Moro'))
   dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-6-1'),by='months'),
                      MZ = seq(as.Date('2020-12-1'),as.Date('2022-9-1'),by='months'),
-                     NG = seq(as.Date('2020-11-1'),as.Date('2021-12-1'),by='months'))
+                     NG = seq(as.Date('2020-11-1'),as.Date('2022-12-1'),by='months'))
   colors_list <- list(BF = c(Banfora = "#1B9E77", Gaoua = "#999999", Orodara = "#D95F02"),
                       MZ = c(Changara = "#D95F02", Chemba = "#999999", Guro = "#1B9E77"),
                       NG = c(Asa = "#1B9E77", Ejigbo = "#999999", `Ife North` = "#D95F02", Moro = "#377EB8"))
@@ -886,6 +910,7 @@ create_inc_plots_threads <- function(results,country=c('BF','MZ','NG')){
       coord_cartesian(ylim=c(0, 4000)),
     NG = ggplot(df)+
       annotate("rect", xmin = as.Date('2021-7-1'), xmax = as.Date('2021-11-1'), ymin = 0, ymax = 3750,alpha = .1,fill = "#999999")+
+      annotate("rect", xmin = as.Date('2022-7-1'), xmax = as.Date('2022-11-30'), ymin = 0, ymax = 1,alpha = .1,fill = "#999999")+
       scale_y_continuous(limits=c(0,3750))+
       coord_cartesian(ylim=c(0, 1000))
     
@@ -936,7 +961,7 @@ create_obsinc_plots <- function(results,country=c('BF','MZ','NG')){
                         NG = c('Asa','Ejigbo','Ife North','Moro'))
   dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-6-1'),by='months'),
                      MZ = seq(as.Date('2020-12-1'),as.Date('2022-9-1'),by='months'),
-                     NG = seq(as.Date('2020-11-1'),as.Date('2021-12-1'),by='months'))
+                     NG = seq(as.Date('2020-11-1'),as.Date('2022-12-1'),by='months'))
   colors_list <- list(BF = c(Banfora = "#1B9E77", Gaoua = "#999999", Orodara = "#D95F02"),
                       MZ = c(Changara = "#D95F02", Chemba = "#999999", Guro = "#1B9E77"),
                       NG = c(Asa = "#1B9E77", Ejigbo = "#999999", `Ife North` = "#D95F02", Moro = "#377EB8"))
@@ -986,7 +1011,6 @@ create_obsinc_plots <- function(results,country=c('BF','MZ','NG')){
           axis.ticks.length = unit(3, "pt"))
   inc_plot
 }
-library(epitools)
 source('shared/addCIs_inc.R')
 bf_hmis$date = as.yearmon(paste(bf_hmis$Year, bf_hmis$Month), "%Y %b")
 bf_hmis_forplot <- bf_hmis[bf_hmis$Distrist %in% c('Banfora','Gaoua','Orodara')&bf_hmis$date>=as.yearmon('Sep 2020')&
@@ -995,30 +1019,34 @@ bf_hmis_forplot <- addCIs_inc(bf_hmis_forplot,bf_hmis_forplot$Confirmed,bf_hmis_
 bf_hmis_forplot <- bf_hmis_forplot %>%
   mutate(date_ex = as.Date(date, frac = 0),
          prop_pos = Confirmed/Tested)%>%
-  rename(district = Distrist,
+  dplyr::rename(district = Distrist,
          inc = mean)
 BF_obsinc_plot <- create_obsinc_plots(bf_hmis_forplot,'BF')
 ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/obsinc_bf_std_310223.pdf'), width = 7, height = 5)
 
-mz_hmis_filtered <- mz_hmis[mz_hmis$District %in% c('Changara','Chemba','Guro')&!is.na(mz_hmis$Positive)&mz_hmis$`Age group`=='u5',]
-mz_hmis_forplot <- addCIs_inc(mz_hmis_filtered,mz_hmis_filtered$Positive,mz_hmis_filtered$u5.Population)%>%
+mz_hmis_filtered <- mz_hmis[mz_hmis$District %in% c('Changara','Chemba','Guro')&!is.na(mz_hmis$Positive),]%>%
+  group_by(District, Month, Year, `Net type`)%>%
+  dplyr::summarise(Tested=sum(Tested),
+                   Positive=sum(Positive),
+                   Population=sum(u5.Population))
+mz_hmis_forplot <- addCIs_inc(mz_hmis_filtered,mz_hmis_filtered$Positive,mz_hmis_filtered$Population)%>%
   mutate(date_ex=as.Date(as.yearmon(paste(Year, Month), "%Y %b")),
          prop_pos = Positive/Tested)%>%
   filter(date_ex>=as.Date('2020-12-1')&date_ex<=as.Date('2022-09-1'))%>%
-  rename(district = District,
+  dplyr::rename(district = District,
          inc = mean)
 
 MZ_obsinc_plot <- create_obsinc_plots(mz_hmis_forplot,'MZ')
 ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/obsinc_mz_std_310223.pdf'), width = 7, height = 5)
 
-
-ng_hmis_forplot <- ng_hmis%>%
+ng_hmis_filtered <- ng_hmis[!is.na(ng_hmis$year),]
+ng_hmis_forplot <- addCIs_inc(ng_hmis_filtered,ng_hmis_filtered$rdt_positive,ng_hmis_filtered$pop_est_micro)%>%
   mutate(date=as.Date(period),
          prop_pos = rdt_positive/rdt_tested)%>%
-  filter(date>=as.Date('2020-11-1')&date<=as.Date('2021-12-1'))%>%
-  rename(date_ex = date,
+  filter(date>=as.Date('2020-11-1')&date<=as.Date('2022-12-1'))%>%
+  dplyr::rename(date_ex = date,
          district = lga,
-         inc = incidence)
+         inc = mean)
 
 NG_obsinc_plot <- create_obsinc_plots(ng_hmis_forplot,'NG')
 ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/obsinc_ng_std_310223.pdf'), width = 7, height = 5)
@@ -1040,7 +1068,7 @@ create_dashboard_plots <- function(results,prev_pg,prev_mg,prev_all=NULL,inciden
   names(district_labels) <- unlist(district_list)
   dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-6-1'),by='months'),
                      MZ = seq(as.Date('2020-12-1'),as.Date('2022-9-1'),by='months'),
-                     NG = seq(as.Date('2020-11-1'),as.Date('2021-12-1'),by='months'))
+                     NG = seq(as.Date('2020-11-1'),as.Date('2022-12-1'),by='months'))
   colors_list <- list(BF = c(Banfora = "#1B9E77", Gaoua = "#999999", Orodara = "#D95F02"),
                       MZ = c(Changara = "#D95F02", Chemba = "#999999", Guro = "#1B9E77"),
                       NG = c(Asa = "#1B9E77", Ejigbo = "#999999", `Ife North` = "#D95F02", Moro = "#377EB8"))
@@ -1379,9 +1407,10 @@ ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_ng_seas_060223.pdf'), plot
 
 ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_mz_seas_310223.pdf'), width = 7, height = 5)
 results <- nnp_mgcorr_bulk_std_results
+results <- nnp_pgcorr_bulk_seas_results
 coefs_pg_df <- as.data.frame(readRDS('./nnp/Corr/pg_corr_sample.RDS'))
 coefs_mg_df <- as.data.frame(readRDS('./nnp/Corr/mg_corr_sample.RDS'))
-
+country <- 'NG'
 create_dashboard_pgmg_plots <- function(results,prev_pg,prev_mg,prev_all=NULL,coefs_pg_df,coefs_mg_df,incidence,cs_data_list,country=c('BF','MZ','NG')){
   ## fn to return prevalence from log_odds
   get_prev_from_log_odds<-function(log_odds){
@@ -1401,7 +1430,7 @@ create_dashboard_pgmg_plots <- function(results,prev_pg,prev_mg,prev_all=NULL,co
   names(district_labels) <- unlist(district_list)
   dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-6-1'),by='months'),
                      MZ = seq(as.Date('2020-12-1'),as.Date('2022-9-1'),by='months'),
-                     NG = seq(as.Date('2020-11-1'),as.Date('2021-12-1'),by='months'))
+                     NG = seq(as.Date('2020-11-1'),as.Date('2022-12-1'),by='months'))
   colors_list <- list(BF = c(Banfora = "#1B9E77", Gaoua = "#999999", Orodara = "#D95F02"),
                       MZ = c(Changara = "#D95F02", Chemba = "#999999", Guro = "#1B9E77"),
                       NG = c(Asa = "#1B9E77", Ejigbo = "#999999", `Ife North` = "#D95F02", Moro = "#377EB8"))
@@ -1430,7 +1459,7 @@ create_dashboard_pgmg_plots <- function(results,prev_pg,prev_mg,prev_all=NULL,co
                                district = character(),
                                month = character())
  for(i in start:(start+number-1)){
-    prev_history <- data.frame(t(results[[i]]$history['prev', 51:1000, -1]))
+    prev_history <- data.frame(t(results[[i]]$history['prev', 501:1000, -1]))
     
     
     long_prev_sum <- prev_history%>%
@@ -1533,7 +1562,7 @@ create_dashboard_pgmg_plots <- function(results,prev_pg,prev_mg,prev_all=NULL,co
                               district = character(),
                               month = character())
   for(i in start:(start+number-1)){
-    inc_history <- data.frame(t(results[[i]]$history['inc', 51:1000, -1]))
+    inc_history <- data.frame(t(results[[i]]$history['inc', 501:1000, -1]))
     
     long_inc_sum <- inc_history%>%
       dplyr::mutate(t=c(1:nrow(inc_history)))%>%
@@ -1557,7 +1586,45 @@ create_dashboard_pgmg_plots <- function(results,prev_pg,prev_mg,prev_all=NULL,co
                     month = rep(dates_list[[country]],100))
     df_inc_sample <- rbind(df_inc_sample,inc_sample)
   }
-  
+
+  df_eir <- data.frame(time = integer(),
+                       median = numeric(),
+                       mean = numeric(),
+                       upper = numeric(),
+                       lower = numeric(),
+                       district = character(),
+                       month = character())
+  df_eir_sample <- data.frame(time = integer(),
+                              value = numeric(),
+                              variable = character(),
+                              district = character(),
+                              month = character())
+  for(i in start:(start+number-1)){
+    eir_history <- data.frame(t(results[[i]]$history['EIR', 501:1000, -1]))
+
+    long_eir_sum <- eir_history%>%
+      dplyr::mutate(t=c(1:nrow(eir_history)))%>%
+      melt(id='t')%>%
+      dplyr::rename(time=t)%>%
+      group_by(time)%>%
+      dplyr::summarise(median=median(value),
+                       mean=mean(value),
+                       upper=quantile(value,probs=0.975),
+                       lower=quantile(value,probs=0.025))%>%
+      dplyr::mutate(district = districts[[i-start+1]],
+                    month = dates_list[[country]])
+    df_eir <- rbind(df_eir,long_eir_sum)
+
+    eir_sample <- eir_history[, sample(ncol(eir_history), 100)] %>%
+      mutate(t=c(1:nrow(eir_history)))%>%
+      melt(id='t')%>%
+      dplyr::rename(time=t)%>%
+      dplyr::mutate(value = value,
+                    district = districts[[i-start+1]],
+                    month = rep(dates_list[[country]],100))
+    df_eir_sample <- rbind(df_eir_sample,eir_sample)
+  }
+
   # ratio <- 1.5 * max(df$upper)/max(df_eir$median)
   annotations <- list(
     BF = ggplot()+
@@ -1567,7 +1634,8 @@ create_dashboard_pgmg_plots <- function(results,prev_pg,prev_mg,prev_all=NULL,co
       annotate("rect", xmin = as.Date('2021-1-1'), xmax = as.Date('2021-6-30'), ymin = 0, ymax = Inf,alpha = .1,fill = "#999999")+
       annotate("rect", xmin = as.Date('2022-1-1'), xmax = as.Date('2022-6-30'), ymin = 0, ymax = Inf,alpha = .1,fill = "#999999"),
     NG = ggplot()+
-      annotate("rect", xmin = as.Date('2021-7-1'), xmax = as.Date('2021-11-1'), ymin = 0, ymax = Inf,alpha = .1,fill = "#999999")
+      annotate("rect", xmin = as.Date('2021-7-1'), xmax = as.Date('2021-11-1'), ymin = 0, ymax = Inf,alpha = .1,fill = "#999999")+
+      annotate("rect", xmin = as.Date('2022-7-1'), xmax = as.Date('2022-11-1'), ymin = 0, ymax = Inf,alpha = .1,fill = "#999999")
   )
   est_inc_plot <- annotations[[country]]+
     geom_line(data=df_inc_sample,aes(x=month,y=value,color=district,group=variable),alpha=0.1)+
@@ -1778,6 +1846,8 @@ create_dashboard_pgmg_plots <- function(results,prev_pg,prev_mg,prev_all=NULL,co
               pres_dash = pres_dash))
   # obs_prev_plot_mg
 }
+coefs_pg_df <- as.data.frame(readRDS('./nnp/Corr/pg_corr_sample.RDS'))
+coefs_mg_df <- as.data.frame(readRDS('./nnp/Corr/mg_corr_sample.RDS'))
 
 
 windows(30,15)
@@ -1820,3 +1890,117 @@ ng_pgmg_dash$full_dash
 ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_ng_pgmg_std_220223.pdf'), plot = ng_pgmg_dash$full_dash, width = 12, height = 6)
 ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_ng_pgmg_std_220223_obs.pdf'), plot = ng_pgmg_dash$obs_data_dash, width = 12, height = 6)
 ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_ng_pgmg_std_220223_pres.pdf'), plot = ng_pgmg_dash$pres_dash, width = 12, height = 6)
+
+##PG only - Seasonal model
+
+windows(30,15)
+bf_pg_seas_dash <- create_dashboard_pgmg_plots(results=nnp_pgcorr_bulk_seas_results,
+                                            prev_pg=nnp_pg_list,
+                                            prev_mg=nnp_mg_list,
+                                            coefs_pg_df = coefs_pg_df,
+                                            coefs_mg_df = coefs_mg_df,
+                                            incidence=bf_hmis_forplot,
+                                            cs_data_list = cs_data_list,
+                                            country='BF')
+bf_pg_seas_dash$full_dash
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_bf_pg_seas_270223.pdf'),plot=bf_pg_seas_dash$full_dash, width = 12, height = 6)
+
+mz_pg_seas_dash <- create_dashboard_pgmg_plots(results=nnp_pgcorr_bulk_seas_results,
+                                            prev_pg=nnp_pg_list,
+                                            prev_mg=nnp_mg_list,
+                                            coefs_pg_df = coefs_pg_df,
+                                            coefs_mg_df = coefs_mg_df,
+                                            cs_data_list = cs_data_list,
+                                            incidence=mz_hmis_forplot,
+                                            country='MZ')
+mz_pg_seas_dash$full_dash
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_mz_pg_seas_270223.pdf'),plot = mz_pg_seas_dash$full_dash, width = 12, height = 6)
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_mz_pg_seas_270223_obs.pdf'),plot = mz_pg_seas_dash$obs_data_dash, width = 12, height = 6)
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_mz_pg_seas_270223_pres.pdf'),plot = mz_pg_seas_dash$pres_dash, width = 12, height = 6)
+
+ng_pg_seas_dash <- create_dashboard_pgmg_plots(results=nnp_pgcorr_bulk_seas_results_update,
+                                            prev_pg=nnp_pg_list,
+                                            prev_mg=nnp_mg_list,
+                                            coefs_pg_df = coefs_pg_df,
+                                            coefs_mg_df = coefs_mg_df,
+                                            cs_data_list = cs_data_list,
+                                            incidence=ng_hmis_forplot,
+                                            country='NG')
+ng_pg_seas_dash$full_dash
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_ng_pg_seas_270223.pdf'), plot = ng_pg_seas_dash$full_dash, width = 12, height = 6)
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_ng_pg_seas_270223_obs.pdf'), plot = ng_pg_seas_dash$obs_data_dash, width = 12, height = 6)
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_ng_pg_seas_270223_pres.pdf'), plot = ng_pg_seas_dash$pres_dash, width = 12, height = 6)
+
+##PG only - Standard model
+
+windows(30,15)
+bf_pg_std_dash <- create_dashboard_pgmg_plots(results=nnp_pgcorr_bulk_std_results,
+                                               prev_pg=nnp_pg_list,
+                                               prev_mg=nnp_mg_list,
+                                               coefs_pg_df = coefs_pg_df,
+                                               coefs_mg_df = coefs_mg_df,
+                                               incidence=bf_hmis_forplot,
+                                               cs_data_list = cs_data_list,
+                                               country='BF')
+bf_pg_std_dash$full_dash
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_bf_pg_std_280223.pdf'),plot=bf_pg_std_dash$full_dash, width = 12, height = 6)
+
+mz_pg_std_dash <- create_dashboard_pgmg_plots(results=nnp_pgcorr_bulk_std_results,
+                                               prev_pg=nnp_pg_list,
+                                               prev_mg=nnp_mg_list,
+                                               coefs_pg_df = coefs_pg_df,
+                                               coefs_mg_df = coefs_mg_df,
+                                               cs_data_list = cs_data_list,
+                                               incidence=mz_hmis_forplot,
+                                               country='MZ')
+mz_pg_std_dash$full_dash
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_mz_pg_std_280223.pdf'),plot = mz_pg_std_dash$full_dash, width = 12, height = 6)
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_mz_pg_std_280223_obs.pdf'),plot = mz_pg_std_dash$obs_data_dash, width = 12, height = 6)
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_mz_pg_std_280223_pres.pdf'),plot = mz_pg_std_dash$pres_dash, width = 12, height = 6)
+
+ng_pg_std_dash <- create_dashboard_pgmg_plots(results=nnp_pgcorr_bulk_std_results,
+                                               prev_pg=nnp_pg_list,
+                                               prev_mg=nnp_mg_list,
+                                               coefs_pg_df = coefs_pg_df,
+                                               coefs_mg_df = coefs_mg_df,
+                                               cs_data_list = cs_data_list,
+                                               incidence=ng_hmis_forplot,
+                                               country='NG')
+ng_pg_std_dash$full_dash
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_ng_pg_std_280223.pdf'), plot = ng_pg_std_dash$full_dash, width = 12, height = 6)
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_ng_pg_std_280223_obs.pdf'), plot = ng_pg_std_dash$obs_data_dash, width = 12, height = 6)
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_ng_pg_std_280223_pres.pdf'), plot = ng_pg_std_dash$pres_dash, width = 12, height = 6)
+
+windows(30,15)
+bf_pgmg_seas_dash <- create_dashboard_pgmg_plots(results=nnp_mgcorr_bulk_seas_results_update,
+                                               prev_pg=nnp_pg_list,
+                                               prev_mg=nnp_mg_list,
+                                               coefs_pg_df = coefs_pg_df,
+                                               coefs_mg_df = coefs_mg_df,
+                                               incidence=bf_hmis_forplot,
+                                               cs_data_list = cs_data_list,
+                                               country='BF')
+bf_pgmg_seas_dash$full_dash
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_bf_pgmg_seas_080323.pdf'),plot=bf_pgmg_seas_dash$full_dash, width = 12, height = 6)
+
+mz_pgmg_seas_dash <- create_dashboard_pgmg_plots(results=nnp_mgcorr_bulk_seas_results_update,
+                                               prev_pg=nnp_pg_list,
+                                               prev_mg=nnp_mg_list,
+                                               coefs_pg_df = coefs_pg_df,
+                                               coefs_mg_df = coefs_mg_df,
+                                               cs_data_list = cs_data_list,
+                                               incidence=mz_hmis_forplot,
+                                               country='MZ')
+mz_pgmg_seas_dash$full_dash
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_mz_pgmg_seas_080323.pdf'),plot = mz_pgmg_seas_dash$full_dash, width = 12, height = 6)
+
+ng_pgmg_seas_dash <- create_dashboard_pgmg_plots(results=nnp_mgcorr_bulk_seas_results_update,
+                                              prev_pg=nnp_pg_list,
+                                              prev_mg=nnp_mg_list,
+                                              coefs_pg_df = coefs_pg_df,
+                                              coefs_mg_df = coefs_mg_df,
+                                              cs_data_list = cs_data_list,
+                                              incidence=ng_hmis_forplot,
+                                              country='NG')
+ng_pgmg_seas_dash$full_dash
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_ng_pgmg_seas_080323.pdf'), plot = ng_pgmg_seas_dash$full_dash, width = 12, height = 6)

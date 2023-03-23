@@ -116,21 +116,43 @@ nnp_pgcorr_bulk_std <- obj$enqueue_bulk(1:10, function(i,data_site){
                atol = 1e-5,
                rtol = 1e-6,
                n_steps = 1000,
-               n_threads = 8,
+               n_threads = 4,
                lag_rates = 10,
                seasonality_on = 0,
                state_check = 0)
 },data_site=nnp_pg_list)
-nnp_pgcorr_bulk_std$status() #'slimline_siamesecat'
+nnp_pgcorr_bulk_std$status() #'falconiform_amurstarfish'
+nnp_pgcorr_bulk_std <- obj$task_bundle_get('falconiform_amurstarfish')
 nnp_pgcorr_bulk_std$tasks[[1]]$log()
 obj$unsubmit(nnp_pgcorr_bulk_std$ids)
 nnp_pgcorr_bulk_std_short <- obj$task_bundle_get('patriarchical_africanparadiseflycatcher')
-nnp_pgcorr_bulk_std_short$tasks
+nnp_pgcorr_bulk_std_short$status()
 plot_particle_filter(nnp_pgcorr_bulk_std_short$tasks[[1]]$result()$history,true_history=nnp_pg_list[[1]],times=nnp_pg_list[[1]]$t)
 nnp_pgcorr_bulk_std_results <- lapply(1:10, function(id){
   nnp_pgcorr_bulk_std$tasks[[id]]$result()
 })
 
+nnp_ng_pgcorr_bulk_std <- obj$enqueue_bulk(7:10, function(i,data_site){
+  run_pmcmc_pg(data = data_site[[i]],
+               n_particles = 200,
+               proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
+               max_EIR=1000,
+               max_steps = 1e7,
+               atol = 1e-5,
+               rtol = 1e-6,
+               n_steps = 1000,
+               n_threads = 1,
+               lag_rates = 10,
+               seasonality_on = 0,
+               state_check = 0)
+},data_site=nnp_pg_list)
+nnp_ng_pgcorr_bulk_std$status()#'pseudoregal_katydid' submitted 2 Mar 10:50am
+nnp_ng_pgcorr_bulk_std_results <- lapply(1:4, function(id){
+  nnp_ng_pgcorr_bulk_std$tasks[[id]]$result()
+})
+nnp_pgcorr_bulk_std_results_update <- append(nnp_pgcorr_bulk_std_results[1:6],nnp_ng_pgcorr_bulk_std_results)
+
+nnp_ng_pgcorr_bulk_std$times()
 obj$login() 
 obj$cluster_load(TRUE)
 
@@ -151,6 +173,7 @@ nnp_pgcorr_bulk_seas_test <- obj$enqueue_bulk(1, function(i,data_site,country,ad
                state_check = 0)
 },data_site=nnp_pg_list,country=country,admin=admin)
 nnp_pgcorr_bulk_seas_test$status() #'slimline_siamesecat'
+
 nnp_pgcorr_bulk_seas_test$tasks[[1]]$log()
 obj$unsubmit(nnp_pgcorr_bulk_seas_test$ids)
 
@@ -174,3 +197,29 @@ obj$login()
 nnp_pgcorr_bulk_seas <- obj$task_bundle_get('nonhistoric_dwarfmongoose')
 nnp_pgcorr_bulk_seas$status() #'nonhistoric_dwarfmongoose'
 nnp_pgcorr_bulk_seas$times()
+nnp_pgcorr_bulk_seas_results <- lapply(1:10, function(id){
+  nnp_pgcorr_bulk_seas$tasks[[id]]$result()
+})
+nnp_ng_pgcorr_bulk_seas <- obj$enqueue_bulk(7:10, function(i,data_site,country,admin){
+  run_pmcmc_pg(data = data_site[[i]],
+               n_particles = 200,
+               proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
+               max_EIR=1000,
+               max_steps = 1e7,
+               atol = 1e-5,
+               rtol = 1e-6,
+               n_steps = 1000,
+               n_threads = 1,
+               lag_rates = 10,
+               seasonality_on = 1,
+               country = country[i],
+               admin_unit = admin[i],
+               state_check = 0)
+},data_site=nnp_pg_list,country=country,admin=admin)
+nnp_ng_pgcorr_bulk_seas$status() #'jesting_zanzibardaygecko' submitted 2 Mar 10:48am
+nnp_ng_pgcorr_bulk_seas_results <- lapply(1:4, function(id){
+  nnp_ng_pgcorr_bulk_seas$tasks[[id]]$result()
+})
+obj$unsubmit(nnp_ng_pgcorr_bulk_seas$ids)
+nnp_pgcorr_bulk_seas_results_update <- append(nnp_pgcorr_bulk_seas_results[1:6],nnp_ng_pgcorr_bulk_seas_results)
+View(nnp_pgcorr_bulk_seas_results_update)
