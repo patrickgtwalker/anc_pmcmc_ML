@@ -22,7 +22,7 @@ sources <- c("shared/run_pmcmc.R",
 ctx <- context::context_save("T:/jth/contexts.temp", sources = sources,
                              packages = c('dplyr','statmod','coda','zoo','lubridate','stringi','dde'),
                              package_sources = conan::conan_sources(c('mrc-ide/mode','mrc-ide/dust',"mrc-ide/odin.dust@8aef08d",'mrc-ide/mcstate')))
-config_1 <- didehpc::didehpc_config(template = "32Core",cores =4, parallel = TRUE,wholenode = FALSE, cluster = 'fi--didemrchnb')
+config_1 <- didehpc::didehpc_config(template = "24Core",cores =4, parallel = TRUE,wholenode = FALSE, cluster = 'fi--didemrchnb')
 # config_dide <- didehpc::didehpc_config(template = "8Core",cores =1, parallel = TRUE,wholenode = FALSE, cluster = 'fi--dideclusthn')
 obj <- didehpc::queue_didehpc(ctx,config = config_1)
 obj$login()
@@ -127,6 +127,8 @@ obj$task_bundle_list()
 bundle_info <- obj$task_bundle_info()
 tanz_lakemal_lt20_2015to2017_submit_2$status()
 tanz_lakemal_lt20_2015to2017_submit_2 <- obj$task_bundle_get('spiritless_germanshepherd')
+tanz_lakemal_lt20_2015to2017_submit_2$status()
+tanz_lakemal_lt20_2015to2017_submit_2$tasks[[2]]$log()
 tanz_lakemal_lt20_2015to2017_submit$tasks[[8]] <- tanz_lakemal_lt20_2015to2017_submit_2$tasks[[1]]
 tanz_lakemal_lt20_2015to2017_submit$tasks[[8]]$log()
 tanz_lakemal_lt20_2015to2017_submit$tasks[[11]] <- tanz_lakemal_lt20_2015to2017_submit_2$tasks[[2]]
@@ -137,3 +139,61 @@ tanz_lakemal_lt20_2015to2017_results <- lapply(1:14, function(id){
 names(tanz_lakemal_lt20_2015to2017_results) <- names(tanz_lakemal_list_15to17$lt20)
 
 tanz_lakemal_lt20_2015to2017_results$`Ludewa District Council`$mcmc$log_prior
+
+##Songea District Investigation
+songeadist_test <- run_pmcmc(data = tanz_lakemal_list_15to17$lt20[[11]],
+          n_particles = 200,
+          proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
+          max_EIR=1000,
+          max_steps = 1e7,
+          atol = 1e-5,
+          rtol = 1e-6,
+          n_steps = 100,
+          n_threads = 4,
+          lag_rates = 10,
+          preyears = 5,
+          seasonality_on = 0,
+          state_check = 0,
+          seasonality_check = 0)
+tanz_lakemal_lt20_2015to2017_songeadsit_24 <- obj$enqueue_bulk(c(11), function(x,obs_list) {
+  print(names(obs_list$lt20[x]))
+  run_pmcmc(data = obs_list$lt20[[x]],
+            n_particles = 200,
+            proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
+            max_EIR=1000,
+            max_steps = 1e7,
+            atol = 1e-5,
+            rtol = 1e-6,
+            n_steps = 1000,
+            n_threads = 4,
+            lag_rates = 10,
+            preyears = 5,
+            seasonality_on = 0,
+            state_check = 0,
+            seasonality_check = 0)},obs_list=tanz_lakemal_list_15to17)
+#'waterbreathing_tadpole'
+tanz_lakemal_lt20_2015to2017_songeadsit$status()
+tanz_lakemal_lt20_2015to2017_songeadsit_24$status() #"cultivable_betafish"
+
+tanz_lakemal_lt20_2015to2017_songeadsit_single <- obj$enqueue_bulk(c(11), function(x,obs_list) {
+  print(names(obs_list$lt20[x]))
+  run_pmcmc(data = obs_list$lt20[[x]],
+            n_particles = 200,
+            proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
+            max_EIR=1000,
+            max_steps = 1e7,
+            atol = 1e-5,
+            rtol = 1e-6,
+            n_steps = 1000,
+            n_threads = 4,
+            lag_rates = 10,
+            preyears = 5,
+            seasonality_on = 0,
+            state_check = 0,
+            seasonality_check = 0,
+            seed=2L)},obs_list=tanz_lakemal_list_15to17)
+tanz_lakemal_lt20_2015to2017_songeadsit_single$status()#'megamalophilic_harborseal'
+#'restful_okapi'
+tanz_lakemal_lt20_2015to2017_songeadsit_single$tasks[[1]]$log()
+obj$login()
+

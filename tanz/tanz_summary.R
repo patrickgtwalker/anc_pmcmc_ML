@@ -12,6 +12,11 @@ source('shared/addCIs.R')
 library(lubridate)
 library(zoo)
 library(geofacet)
+library(sf)
+library(terra)
+library(spData)
+library(spDataLarge)
+library(tmap)
 
 theme_set(theme_minimal()+
             theme(panel.grid.major = element_blank(),
@@ -118,6 +123,8 @@ diagnostic_plots$init_EIR.density
 data_list <- tanz_data_list_15to17$lt20
 level
 rainfall <- tanz_rainfall
+results <- tanz_lt20_2015to2017_results
+level <- 'Region'
 create_summary_plots <- function(results,data_list,rainfall,level=c('Region','Council')){
   mcmc.df <- bind_rows(lapply(1:length(results), 
                               function(x){
@@ -172,15 +179,15 @@ create_summary_plots <- function(results,data_list,rainfall,level=c('Region','Co
                                  melt(id='t')%>%
                                  dplyr::rename(time=t)%>%
                                  group_by(time)%>%
-                                 dplyr::summarise(median=median(value),
-                                                  mean=mean(value),
-                                                  upper=quantile(value,probs=0.975),
-                                                  lower=quantile(value,probs=0.025))%>%
+                                 dplyr::summarise(inc.median=median(value),
+                                                  inc.mean=mean(value),
+                                                  inc.upper=quantile(value,probs=0.975),
+                                                  inc.lower=quantile(value,probs=0.025))%>%
                                  mutate(sites = names(results[x]),
                                         month = as.Date(data_list[[x]]$month))
                                inc_plus_rainfall <- left_join(inc_history,rainfall,by=c('month','sites'))%>%
                                  mutate(rainfall_norm = Rainfall/max(Rainfall),
-                                        rainfall_maxinc = Rainfall * (max(median)/max(Rainfall)))
+                                        rainfall_maxinc = Rainfall * (max(inc.median)/max(Rainfall)))
                                history.df.prev <- as.data.frame(t(results[[x]]$history['prev', 101:1000, -1]))
                                prev_history <- history.df.prev%>%
                                  mutate(t=c(1:nrow(history.df.prev)))%>%
@@ -194,9 +201,9 @@ create_summary_plots <- function(results,data_list,rainfall,level=c('Region','Co
                                  mutate(sites = names(results[x]),
                                         month = as.Date(data_list[[x]]$month))
                                all <- left_join(inc_plus_rainfall,prev_history,by=c('month','sites'))%>%
-                                 mutate(prev_maxinc = prev.median * (max(median)),
-                                        upper_maxinc = prev.upper *max(median),
-                                        lower_maxinc = prev.lower *max(median),
+                                 mutate(prev_maxinc = prev.median * (max(inc.median)),
+                                        upper_maxinc = prev.upper *max(inc.median),
+                                        lower_maxinc = prev.lower *max(inc.median),
                                         rainfall_maxprev = Rainfall * (max(prev.median)/max(Rainfall)))
                                return(all)
                              }))
@@ -244,7 +251,7 @@ create_summary_plots <- function(results,data_list,rainfall,level=c('Region','Co
     province_grid <- province_grid[province_grid$name != 'Songea District Council',]
     scaler <- max(inc.rainfall.df$median)
   }
-  
+  windows(10,10)
   obs_prev_plot <- ggplot(inc.rainfall.df)+
     geom_line(aes(x=month,y=rainfall_norm*0.3),col="#2A788EFF",size=0.8)+
     # geom_ribbon(aes(x=month,ymin=lower,ymax=upper),alpha=0.2)+
@@ -284,11 +291,29 @@ create_summary_plots <- function(results,data_list,rainfall,level=c('Region','Co
     scale_x_date(date_labels = "'%y")+
     labs(x='Date',y='Incidence')
     
-                        
+  corr_plot <- ggplot(inc.rainfall.df)+
+    geom_point(aes(x=Rainfall,y=inc.median))+
+    # geom_vline(xintercept = c(as.Date('2017-7-1'),as.Date('2021-5-1')),size=1,linetype='dashed') +
+    # geom_point(data=inc.rainfall.df,aes(x=month,y=mean),pch = 19)+
+    # geom_errorbar(data=inc.rainfall.df,aes(x=month,ymin=lower,ymax=upper),width = 0)+
+    # scale_color_manual(values=colors)+
+    # scale_fill_manual(values=colors)+
+    facet_geo(~ sites, grid = province_grid%>%
+                select(row,col,code,name), scale = 'free')+
+    labs(x='rainfall',y='Incidence')+
+    theme(axis.text.x = element_blank(),
+          axis.text.y = element_blank())
+  
+  inc_rf_corr <- inc.rainfall.df%>%
+    group_by(sites)%>%
+    dplyr::summarise(corr=cor(inc.median,Rainfall))
+  
+  # corr_map <- tm_shape(tz) +
+  #   tm_borders()
   inc.rainfall <- ggplot(inc.rainfall.df)+
     geom_line(aes(x=month,y=rainfall_norm*scaler),col="#2A788EFF",size=0.8)+
-    # geom_ribbon(aes(x=month,ymin=lower,ymax=upper),alpha=0.4,fill="#5DC863FF")+
-    geom_line(aes(x=month,y=median),size=0.8,col="#5DC863FF")+
+    geom_ribbon(aes(x=month,ymin=inc.lower,ymax=inc.upper),alpha=0.4,fill="#5DC863FF")+
+    geom_line(aes(x=month,y=inc.median),size=0.8,col="#5DC863FF")+
     scale_x_date(date_labels = "'%y")+
     facet_geo(~ sites, grid = province_grid%>%
                                select(row,col,code,name))+
@@ -297,11 +322,11 @@ create_summary_plots <- function(results,data_list,rainfall,level=c('Region','Co
 
   inc.rainfall.3 <- ggplot(inc.rainfall.df)+
     geom_line(aes(x=month,y=rainfall_maxinc),col="#2A788EFF",size=0.8)+
-    # geom_ribbon(aes(x=month,ymin=lower,ymax=upper),alpha=0.4,fill="#5DC863FF")+
-    geom_line(aes(x=month,y=median),size=0.8,col="#5DC863FF")+
+    geom_ribbon(aes(x=month,ymin=inc.lower,ymax=inc.upper),alpha=0.4,fill="#5DC863FF")+
+    geom_line(aes(x=month,y=inc.median),size=0.8,col="#5DC863FF")+
     facet_geo(~ sites, grid = province_grid%>%
                                select(row,col,code,name),scale = 'free_y')+
-    geom_ribbon(aes(x=month,ymin=lower_maxinc,ymax=prev.upper_maxinc),alpha=0.2,fill="#414487FF")+
+    geom_ribbon(aes(x=month,ymin=lower_maxinc,ymax=upper_maxinc),alpha=0.2,fill="#414487FF")+
     geom_line(aes(x=month,y=prev_maxinc),size=1,color="#414487FF")+
     scale_x_date(date_labels = "'%y")+
     ylab("Normalised measures")+xlab("Year")+
@@ -323,7 +348,8 @@ create_summary_plots <- function(results,data_list,rainfall,level=c('Region','Co
               inc_plot = inc_plot,
               inc.rainfall = inc.rainfall,
               inc.rainfall.3 = inc.rainfall.3,
-              inc.rainfall.2 = inc.rainfall.2
+              inc.rainfall.2 = inc.rainfall.2,
+              inc_rf_corr = inc_rf_corr
               ))
 }
 ANC_rainfall_region<-read_csv("./tanz/processed_inputs/ANC_data_Rainfall_ad1.csv")%>%
@@ -343,7 +369,7 @@ prev <- tanzania_summary_plots$est_prev_plot
 ggsave('tanz/figures/est_prev_tanz_230222.pdf',plot = prev,width = 8,height=8)
 
 inc <- tanzania_summary_plots$inc.rainfall
-ggsave('tanz/figures/est_inc_tanz_230222.pdf',plot = inc,width = 8,height=8)
+ggsave('tanz/figures/est_inc_tanz_280222.pdf',plot = inc,width = 8,height=8)
 tanzania_summary_plots$inc.rainfall.3
 
 ## Lake Malawi
@@ -362,7 +388,15 @@ lakemalawi_summary_plots <- create_summary_plots(results = tanz_lakemal_lt20_201
                                                  rainfall = lake_malawi_raw,
                                                  level = 'Council')
 lake_obs <- lakemalawi_summary_plots$obs_prev_plot
+lake_corr <- lakemalawi_summary_plots$inc_rf_corr
+windows(10,10)
+tz_regions <- read_sf("./tanz/tza_admbnda_adm1_20181019/tza_admbnda_adm1_20181019.shp")%>%
+  mutate(sites=ifelse(ADM1_EN=='Dar-es-salaam','Dar Es Salaam',ADM1_EN))
+tz_corr <- merge(tz_regions,inc_rf_corr,by='sites')
+tm_shape(tz_corr) + tm_borders() + tm_fill(col='corr') + tmap_options(check.and.fix = TRUE)
+library(sf)
 ggsave('tanz/figures/obs_prev_lake_230222.pdf',plot = obs,width = 8,height=8)
+
 lakemalawi_summary_plots$inc.rainfall
 windows(10,10)
 lakemalawi_summary_plots$inc.rainfall.2
