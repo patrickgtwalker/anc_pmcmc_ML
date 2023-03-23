@@ -20,8 +20,8 @@ run_pmcmc <- function(data_raw,
                       preyears = 2, #Length of time in years the deterministic seasonal model should run before Jan 1 of the year observations began
                       seasonality_on = 1,  ## state_check = 1 runs a deterministic seasonal model before running the stochastic model to get more realistic immunity levels
                       ## If seasonality_on = 0, runs the stochastic model based on the standard equilibrium solution
-                      seasonality_check = 0 ##If 1, saves values of seasonality equilibrium
-                      ){
+                      seasonality_check = 0,##If 1, saves values of seasonality equilibrium
+                      seed = 1L){
   ## Modify dates from data
   start_obs <- min(as.Date(data_raw$month))#Month of first observation (in Date format)
   time_origin <- as.Date(ifelse(month(start_obs)!=1,paste0(year(start_obs),'-01-01'),paste0(year(start_obs)-1,'-01-01'))) #January 1 of the first year of observation (in Date format)
@@ -31,6 +31,7 @@ run_pmcmc <- function(data_raw,
     mutate(t = as.integer(difftime(date,time_origin,units="days"))) #Calculate date as number of days since January 1 of first year of observation
   initial_time <- min(data_raw_time$t) - 30 #Start particle_filter_data one month before first ime in data
   data <- mcstate::particle_filter_data(data_raw_time, time = "t", rate = NULL, initial_time = initial_time) #Declares data to be used for particle filter fitting
+  # print('Data processed')
   
   # Compare function to calculate likelihood
   compare <- function(state, observed, pars = NULL) {
@@ -63,7 +64,7 @@ run_pmcmc <- function(data_raw,
   ## Provide schedule for changes in stochastic process (in this case EIR)
   ## Converts a sequence of dates (from start_stoch to 1 month after last observation point) to days since January 1 of the first year of observation
   stochastic_schedule <- as.integer(difftime(seq.Date(start_stoch,max(as.Date(data_raw_time$date+30)),by='month'),time_origin,units="days"))#[-1]
-  # print(stochastic_schedule)
+  # print('stochastic_schedule assigned')
   
   #Provide age categories, proportion treated, and number of heterogeneity brackets
   init_age <- c(0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 3.5, 5, 7.5, 10, 15, 20, 30, 40, 50, 60, 70, 80)
@@ -82,8 +83,10 @@ run_pmcmc <- function(data_raw,
                                     start_stoch = start_stoch,
                                     time_origin = time_origin,
                                     seasonality_on = seasonality_on)
-  # print(mpl_pf$state_check)
+  # print('model parameter list created')
+   # print(mpl_pf$state_check)
   # print(mpl_pf$ssa0)
+
   ## If a deterministic seasonal model is needed prior to the stochastic model, this loads the deterministic odin model
   if(seasonality_on == 1){
     season_model <- odin::odin("shared/odin_model_stripped_seasonal.R")
@@ -105,9 +108,11 @@ run_pmcmc <- function(data_raw,
                                        model_param_list = mpl,
                                        het_brackets = het_brackets,
                                        state_check = mpl$state_check)
+      # print('equilibrium state calculated')
       # print(state)
       ##run seasonality model first if seasonality_on == 1
       if(seasonality_on==1){
+        # print('creating seasonality equilirium')
         state_use <- state[names(state) %in% coef(season_model)$name]
 
         # create model with initial values
@@ -133,6 +138,7 @@ run_pmcmc <- function(data_raw,
         
         #Print some equilibrium checks if state_check==1
         if(state_check==1){
+          # print('running equilibrium checks')
           H <- sum(init4pmcmc$init_S) + sum(init4pmcmc$init_T) + sum(init4pmcmc$init_D) + sum(init4pmcmc$init_A) + sum(init4pmcmc$init_U) + sum(init4pmcmc$init_P)
 
           deriv_S11 <- -init4pmcmc$FOI_eq[1,1]*init4pmcmc$init_S[1,1] + init4pmcmc$rP*init4pmcmc$init_P[1,1] + init4pmcmc$rU*init4pmcmc$init_U[1,1] +
@@ -175,17 +181,18 @@ run_pmcmc <- function(data_raw,
   model <- odin.dust::odin_dust("shared/odinmodelmatchedstoch.R")
   # print('loaded stochastic model')
   
-  set.seed(1) #To reproduce pMCMC results
+  set.seed(seed) #To reproduce pMCMC results
   
   ### Set particle filter
   # print('about to set up particle filter')
   pf <- mcstate::particle_filter$new(data, model, n_particles, compare,
-                                     index = index, seed = 1L,
+                                     index = index, seed = seed,
                                      stochastic_schedule = stochastic_schedule,
                                      ode_control = mode::mode_control(max_steps = max_steps, atol = atol, rtol = rtol),
                                      n_threads = n_threads)
   # print('set up particle filter')
   
+  # print('about to set up pmcmc control')
   ### Set pmcmc control
   control <- mcstate::pmcmc_control(
     n_steps,
@@ -197,6 +204,7 @@ run_pmcmc <- function(data_raw,
     n_threads_total = n_threads,
     rerun_every = 50,
     rerun_random = TRUE)
+  # print('set up pmcmc control')
   
   ### Set pmcmc parameters
   EIR_SD <- mcstate::pmcmc_parameter("EIR_SD", 0.3, min = 0,max=2.5,
