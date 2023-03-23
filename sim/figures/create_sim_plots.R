@@ -4,11 +4,16 @@ data_list <- sim_seas_list
 create_sim_plots <- function(results,data_list,rainfall){
     mcmc.df <- bind_rows(lapply(1:length(results), 
                                 function(x){
+                                  print(names(results[x]))
                                   df <- bind_rows(lapply(1:length(results[[x]]), 
                                                          function(y,subresults=results[[x]]){
+                                                           print(names(subresults[y]))
                                                            df <- bind_rows(lapply(1:length(subresults[[y]]), 
                                                                                   function(z,subsubresults=subresults[[y]]){
-                                                                                    df <- subsubresults[[z]]$mcmc[500:1000,]
+                                                                                    print('We made it!')
+                                                                                    print(names(subsubresults[z]))
+                                                                                    df <- subsubresults[[z]]$mcmc[251:1000,]
+                                                                                    nrow(df)
                                                                                     df$site <- names(subsubresults[z])
                                                                                     df$step <- 1:nrow(df)
                                                                                     
@@ -21,6 +26,8 @@ create_sim_plots <- function(results,data_list,rainfall){
                                   df$model <- names(results[x])
                                   return(df)
                                 }))
+    mcmc.df <- mcmc.df %>% 
+      separate_wider_delim(site, "_", names = c("site", "transmission"))
     
     get_history <- function(measure){
       bind_rows(lapply(1:length(results), 
@@ -29,7 +36,7 @@ create_sim_plots <- function(results,data_list,rainfall){
                                                 function(y,subresults=results[[x]]){
                                                   df <- bind_rows(lapply(1:length(subresults[[y]]), 
                                                                          function(z,subsubresults=subresults[[y]],start=names(subresults[y])){
-                                                                           history.df <- as.data.frame(t(subsubresults[[z]]$history[measure, 500:1000, -length(data_list[[z]]$sim_obs_peak$month)]))
+                                                                           history.df <- as.data.frame(t(subsubresults[[z]]$history[measure, 251:1000, -length(data_list[[z]]$sim_obs_peak$month)]))
                                                                            prev_history <- history.df%>%
                                                                              mutate(t=c(1:nrow(history.df)))%>%
                                                                              melt(id='t')%>%
@@ -44,8 +51,16 @@ create_sim_plots <- function(results,data_list,rainfall){
                                                                              prev_history$month <- as.Date(data_list[[z]]$sim_obs_peak$month)
                                                                              
                                                                            }
-                                                                           else{
+                                                                           if(start=='peakplus3'){
+                                                                             prev_history$month <- as.Date(data_list[[z]]$sim_obs_peakplus3$month)
+                                                                             
+                                                                           }
+                                                                           if(start=='trough'){
                                                                              prev_history$month <- as.Date(data_list[[z]]$sim_obs_trough$month)
+                                                                             
+                                                                           }
+                                                                           else{
+                                                                             prev_history$month <- as.Date(data_list[[z]]$sim_obs_troughplus3$month)
                                                                            }
                                                                            return(prev_history)
                                                                          }))
@@ -300,3 +315,20 @@ est_inc_plot_casc_hi <- ggplot(true_val[true_val$site=='casc_hi',])+
 
 windows(10,5)
 both_final <- est_prev_plot_casc_hi + est_inc_plot_casc_hi + plot_layout(guides='collect')
+
+table(is.na(mcmc.df$site))
+table(is.na(mcmc.df$transmission))
+df.na <- mcmc.df[is.na(mcmc.df$site)|is.na(mcmc.df$transmission),]
+init_eir_comparison <- ggplot(mcmc.df)+
+  geom_violin(aes(x=start,y=exp(log_init_EIR),fill=model))+
+  facet_grid(factor(transmission,levels=c('low','med','hi'))~site)+
+  scale_y_log10()
+vol_eir_comparison <- ggplot(mcmc.df)+
+  geom_violin(aes(x=start,y=EIR_SD,fill=model))+
+  facet_grid(factor(transmission,levels=c('low','med','hi'))~site)
+post_comparison <- ggplot(mcmc.df)+
+  geom_violin(aes(x=start,y=log_posterior,fill=model))+
+  facet_grid(factor(transmission,levels=c('low','med','hi'))~site)
+likelihood_comparison <- ggplot(mcmc.df)+
+  geom_violin(aes(x=start,y=log_likelihood,fill=model))+
+  facet_grid(factor(transmission,levels=c('low','med','hi'))~site)

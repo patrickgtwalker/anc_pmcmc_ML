@@ -149,3 +149,42 @@ original_matched$A[2,,,]-matched_equilibrium$init_A[,,1]
 original_matched$U[2,,,]-matched_equilibrium$init_U[,,1]
 original_matched$P[2,,,]-matched_equilibrium$init_P[,,1]
 original_matched$FOI[2,,,]-matched_equilibrium$init_P[,,1]
+
+##Compare prevalence and incidence relationship with EIR
+theme_set(theme_minimal()+
+            theme(panel.grid.major = element_blank(),
+                  panel.grid.minor = element_blank(),
+                  strip.background = element_blank(),
+                  panel.border = element_rect(colour = "black",fill=NA),
+                  legend.position = 'bottom'))
+init_EIR_vector <- seq(1,999,2)
+state_list <- bind_rows(lapply(1:length(init_EIR_vector), function(x){
+  eq <- equilibrium_init_create_stripped(age_vector = mpl$init_age,
+                                         init_EIR = init_EIR_vector[x],
+                                         ft = prop_treated,
+                                         model_param_list = mpl,
+                                         het_brackets = het_brackets,
+                                         state_check = 0)
+  eq$init_EIR <- 
+  return(eq[c('init_EIR','prev','inc','inc05')])
+  }))
+
+windows(7,7)
+eir_prev_eq <- ggplot(state_list)+
+  geom_line(aes(x=init_EIR,y=prev))
+eir_inc_eq <- ggplot(state_list)+
+  geom_line(aes(x=init_EIR,y=inc))
+eir_inc05_eq <- ggplot(state_list)+
+  geom_line(aes(x=init_EIR,y=inc05))
+eir_prev_eq_log <- ggplot(state_list)+
+  geom_line(aes(x=init_EIR,y=prev))+
+  scale_x_log10()
+eir_inc_eq_log <- ggplot(state_list)+
+  geom_line(aes(x=init_EIR,y=inc))+
+  scale_x_log10()
+eir_inc05_eq_log <- ggplot(state_list)+
+  geom_line(aes(x=init_EIR,y=inc05))+
+  scale_x_log10()
+windows(21,7)
+eir_prev_eq + eir_inc05_eq + eir_inc_eq
+eir_prev_eq_log + eir_inc05_eq_log + eir_inc_eq_log

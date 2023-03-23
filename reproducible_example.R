@@ -1,5 +1,7 @@
+remotes::install_github("mrc-ide/odin.dust", upgrade = TRUE)
+
 library("odin.dust")
-library("odin")
+# library("odin")
 library("patchwork")
 library('mcstate')
 library(didehpc)
@@ -37,10 +39,10 @@ sources <- c("shared/run_pmcmc.R",
              "shared/model_parameters.R",
              "shared/equilibrium-init-create-stripped.R",
              'shared/utils.R')
-ctx <- context::context_save("T:/jth/contexts.new", sources = sources,
+ctx <- context::context_save("T:/jth/contexts.test", sources = sources,
                              packages = c('dplyr','statmod','coda','zoo','lubridate','stringi'),
                              package_sources = conan::conan_sources(c('mrc-ide/mode','mrc-ide/dust',"mrc-ide/odin.dust",'mrc-ide/mcstate')))
-config_1 <- didehpc::didehpc_config(template = "8Core",cores = 2, parallel = TRUE,wholenode = FALSE, cluster = 'fi--dideclusthn')
+config_1 <- didehpc::didehpc_config(template = "20Core",cores = 1, parallel = TRUE,wholenode = FALSE, cluster = 'fi--didemrchnb')
 obj <- didehpc::queue_didehpc(ctx,config = config_1)
 
 sim_cluster_test <- obj$enqueue(run_pmcmc(data = data_sim_comptest3,

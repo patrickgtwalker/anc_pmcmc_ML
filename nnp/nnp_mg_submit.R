@@ -103,8 +103,10 @@ ctx <- context::context_save("T:/jth/contexts.temp", sources = sources,
                              packages = c('dplyr','statmod','coda','zoo','lubridate','stringi','dde'),
                              package_sources = conan::conan_sources(c('mrc-ide/mode','mrc-ide/dust',"mrc-ide/odin.dust@8aef08d",'mrc-ide/mcstate')))
 config_1 <- didehpc::didehpc_config(template = "32Core",cores =4, parallel = TRUE,wholenode = FALSE, cluster = 'fi--didemrchnb')
+config_single <- didehpc::didehpc_config(template = "GeneralNodes",cores =1, parallel = FALSE,wholenode = FALSE, cluster = 'fi--didemrchnb')
 config_dide <- didehpc::didehpc_config(template = "8Core",cores =4, parallel = TRUE,wholenode = FALSE, cluster = 'fi--dideclusthn')
-obj <- didehpc::queue_didehpc(ctx,config = config_dide)
+obj <- didehpc::queue_didehpc(ctx,config = config_1)
+obj <- didehpc::queue_didehpc(ctx,config = config_single)
 obj$login()
 obj$cluster_load(TRUE)
 
@@ -144,10 +146,27 @@ nnp_mgcorr_bulk_std <- obj$enqueue_bulk(1:10, function(i,data_pg,data_mg){
                state_check = 0)
 },data_pg=nnp_pg_list,data_mg=nnp_mg_list)
 nnp_mgcorr_bulk_std$status() #'trifling_bongo'
+nnp_mgcorr_bulk_std <- obj$task_bundle_get('trifling_bongo')
 nnp_mgcorr_bulk_std_results <- lapply(1:10, function(id){
   nnp_mgcorr_bulk_std$tasks[[id]]$result()
 })
 
+nnp_ng_mgcorr_bulk_std <- obj$enqueue_bulk(7:10, function(i,data_pg,data_mg){
+  run_pmcmc_mg(data_raw_pg = data_pg[[i]],
+               data_raw_mg = data_mg[[i]],
+               n_particles = 200,
+               proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
+               max_EIR=1000,
+               max_steps = 1e7,
+               atol = 1e-5,
+               rtol = 1e-6,
+               n_steps = 1000,
+               n_threads = 1,
+               lag_rates = 10,
+               seasonality_on = 0,
+               state_check = 0)
+},data_pg=nnp_pg_list,data_mg=nnp_mg_list)
+nnp_ng_mgcorr_bulk_std$status() #'flannel_easternglasslizard' submitted 2 Mar 10:48am
 
 nnp_mgcorr_bulk_seas <- obj$enqueue_bulk(1:10, function(i,data_pg,data_mg,country,admin){
   run_pmcmc_mg(data_raw_pg = data_pg[[i]],
@@ -166,11 +185,62 @@ nnp_mgcorr_bulk_seas <- obj$enqueue_bulk(1:10, function(i,data_pg,data_mg,countr
                admin_unit = admin[i],
                state_check = 0)
 },data_pg=nnp_pg_list,data_mg=nnp_mg_list,country=country,admin=admin)
-nnp_mgcorr_bulk_seas$status() #'epicardial_nerka'
-nnp_mgcorr_bulk_bf_seas <- obj$task_bundle_get('chemophobic_macaque')
+nnp_mgcorr_bulk_seas$status() #ittybitty_atlanticblackgoby - submitted 28 Feb 9:27am
+#'amateurish_elver' - submitted 27 Feb 10:25am - [1] completed
+nnp_mgcorr_bulk_seas$tasks[[1]]$log()
+nnp_mgcorr_bulk_seas_270223 <- obj$task_bundle_get('amateurish_elver')
+nnp_mgcorr_bulk_seas_270223$times()
 nnp_mgcorr_bulk_bf_seas$status() #'chemophobic_macaque'
 obj$unsubmit(nnp_mgcorr_bulk_seas$ids)
 obj$login()
 obj$cluster_load(TRUE)
 nnp_mgcorr_bulk_bf_seas$tasks[[1]]$log()
 obj$config
+
+nnp_mgcorr_bulk_seas_single <- obj$enqueue_bulk(1:10, function(i,data_pg,data_mg,country,admin){
+  run_pmcmc_mg(data_raw_pg = data_pg[[i]],
+               data_raw_mg = data_mg[[i]],
+               n_particles = 200,
+               proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
+               max_EIR=1000,
+               max_steps = 1e7,
+               atol = 1e-5,
+               rtol = 1e-6,
+               n_steps = 1000,
+               n_threads = 1,
+               lag_rates = 10,
+               seasonality_on = 1,
+               country = country[i],
+               admin_unit = admin[i],
+               state_check = 0)
+},data_pg=nnp_pg_list,data_mg=nnp_mg_list,country=country,admin=admin)
+nnp_mgcorr_bulk_seas_single$status() #'monotonous_betafish' - submitted 1 Mar 9:35am
+nnp_mgcorr_bulk_seas_single$times()
+nnp_mgcorr_bulk_seas_results <- lapply(1:6, function(id){
+  nnp_mgcorr_bulk_seas_single$tasks[[id]]$result()
+})
+obj$unsubmit(nnp_mgcorr_bulk_seas_single$ids[7:10])
+
+nnp_ng_mgcorr_bulk_seas_single <- obj$enqueue_bulk(7:10, function(i,data_pg,data_mg,country,admin){
+  run_pmcmc_mg(data_raw_pg = data_pg[[i]],
+               data_raw_mg = data_mg[[i]],
+               n_particles = 200,
+               proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
+               max_EIR=1000,
+               max_steps = 1e7,
+               atol = 1e-5,
+               rtol = 1e-6,
+               n_steps = 1000,
+               n_threads = 1,
+               lag_rates = 10,
+               seasonality_on = 1,
+               country = country[i],
+               admin_unit = admin[i],
+               state_check = 0)
+},data_pg=nnp_pg_list,data_mg=nnp_mg_list,country=country,admin=admin)
+nnp_ng_mgcorr_bulk_seas_single$status() #'antimonarchal_flee' submitted 2 Mar 10:40am
+nnp_ng_mgcorr_bulk_seas_results <- lapply(1:4, function(id){
+  nnp_ng_mgcorr_bulk_seas_single$tasks[[id]]$result()
+})
+
+nnp_mgcorr_bulk_seas_results_update <- append(nnp_mgcorr_bulk_seas_results,nnp_ng_mgcorr_bulk_seas_results)
