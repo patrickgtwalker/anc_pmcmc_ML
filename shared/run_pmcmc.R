@@ -188,7 +188,7 @@ run_pmcmc <- function(data_raw,
   pf <- mcstate::particle_filter$new(data, model, n_particles, compare,
                                      index = index, seed = seed,
                                      stochastic_schedule = stochastic_schedule,
-                                     ode_control = mode::mode_control(max_steps = max_steps, atol = atol, rtol = rtol),
+                                     ode_control = dust::dust_ode_control(max_steps = max_steps, atol = atol, rtol = rtol),
                                      n_threads = n_threads)
   # print('set up particle filter')
   
