@@ -21,7 +21,11 @@ sources <- c("shared/run_pmcmc.R",
              'shared/utils.R')
 ctx <- context::context_save("T:/jth/contexts.temp", sources = sources,
                              packages = c('dplyr','statmod','coda','zoo','lubridate','stringi','dde'),
-                             package_sources = conan::conan_sources(c('mrc-ide/mode','mrc-ide/dust',"mrc-ide/odin.dust@8aef08d",'mrc-ide/mcstate')))
+                             package_sources = conan::conan_sources(c('mrc-ide/mode','mrc-ide/dust',"mrc-ide/odin.dust",'mrc-ide/mcstate')))
+ctx <- context::context_save("T:/jth/contexts.190423", sources = sources,
+                             packages = c('dplyr','statmod','coda','zoo','lubridate','stringi','dde'),
+                             package_sources = conan::conan_sources(c('mrc-ide/mode','mrc-ide/dust',"mrc-ide/odin.dust",'mrc-ide/mcstate')))
+
 config_1 <- didehpc::didehpc_config(template = "24Core",cores =4, parallel = TRUE,wholenode = FALSE, cluster = 'fi--didemrchnb')
 # config_dide <- didehpc::didehpc_config(template = "8Core",cores =1, parallel = TRUE,wholenode = FALSE, cluster = 'fi--dideclusthn')
 obj <- didehpc::queue_didehpc(ctx,config = config_1)
@@ -197,3 +201,120 @@ tanz_lakemal_lt20_2015to2017_songeadsit_single$status()#'megamalophilic_harborse
 tanz_lakemal_lt20_2015to2017_songeadsit_single$tasks[[1]]$log()
 obj$login()
 
+##Submit new data
+tanz_all_2015to2022_submit <- obj$enqueue_bulk(1:25, function(x,obs_list) {
+  print(names(obs_list[x]))
+  run_pmcmc(data = obs_list[[x]],
+            n_particles = 200,
+            proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
+            max_EIR=1000,
+            max_steps = 1e7,
+            atol = 1e-5,
+            rtol = 1e-6,
+            n_steps = 1000,
+            n_threads = 4,
+            lag_rates = 10,
+            preyears = 5,
+            seasonality_on = 0,
+            state_check = 0,
+            seasonality_check = 0)},obs_list=tanz_data_list_15to22)
+tanz_all_2015to2022_submit$status()#'uncrystallisable_africancivet'
+tanz_all_2015to2022_submit$tasks$`3a53a5cfb7eb3d51302a5fa94dd8454e`$log()
+
+tanz_all_2015to2022_results <- lapply(1:25, function(id){
+  tanz_all_2015to2022_submit$tasks[[id]]$result()
+})
+
+names(tanz_all_2015to2022_results) <- gsub(' Region','',names(tanz_data_list_15to22))
+
+##Get den
+run_pmcmc(data_raw = tanz_data_list_15to22[[1]],
+          n_particles = 200,
+          proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
+          max_EIR=1000,
+          max_steps = 1e7,
+          atol = 1e-5,
+          rtol = 1e-6,
+          n_steps = 5,
+          n_threads = 1,
+          lag_rates = 10,
+          preyears = 5,
+          seasonality_on = 0,
+          state_check = 1,
+          seasonality_check = 0)
+init_age <- c(0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 3.5, 5, 7.5, 10, 15, 20, 30, 40, 50, 60, 70, 80)
+prop_treated <- 0.4
+het_brackets <- 5
+mpl <- model_param_list_create(init_age = init_age,
+                                  pro_treated = prop_treated,
+                                  het_brackets = het_brackets)
+state <- equilibrium_init_create_stripped(age_vector = mpl$init_age,
+                                          init_EIR = 10,
+                                          ft = 0.4,
+                                          model_param_list = mpl,
+                                          het_brackets = het_brackets)
+state$den
+plot(init_age,state$den)
+sum(state$den)
+age <- init_age * mpl$DY
+na <- as.integer(length(age))  # number of age groups
+
+age_rate <- age_width <- age_mid_point <- den <- c()
+for (i in 1:(na-1))
+{
+  age_width[i] <- age[i+1] - age[i]
+  age_rate[i] <- 1/(age[i + 1] - age[i])  # vector of rates at which people leave each age group (1/age group width)
+  age_mid_point[i] <- 0.5 * (age[i] + age[i + 1])  # set age group vector to the midpoint of the group
+  
+}
+age_rate[na] = 0
+den <- 1/(1 + age_rate[1]/mpl$eta)
+for (i in 1:(na-1))
+{
+  den[i+1] <- age_rate[i] * den[i]/(age_rate[i+1] + mpl$eta)  # proportion in each age_vector group
+}
+age_mid_point[length(age_mid_point)+1] <- 90*mpl$DY
+plot(age_mid_point,den)
+state$den
+age_df <- data.frame(age_dy = age_mid_point,
+                     age_yr = age_mid_point/mpl$DY,
+                     init_age = init_age,
+                     prop = den)
+age_df <-  age_df %>%
+  mutate(age_cat = case_when(
+    init_age < 1 ~ '<1',
+    init_age >= 1 & init_age < 5 ~ '1-5',
+    init_age >= 5 & init_age < 10 ~ '5-10',
+    init_age >= 10 & init_age < 20 ~ '10-20',
+    init_age >= 20 & init_age < 30 ~ '20-30',
+    init_age >= 30 & init_age < 40 ~ '30-40',
+    init_age >= 40 & init_age < 50 ~ '40-50',
+    init_age >= 50 & init_age < 60 ~ '50-60',
+    init_age >= 60 & init_age < 70 ~ '60-70',
+    init_age >= 70 & init_age < 80 ~ '70-80',
+    init_age >= 80  ~ '80+',
+    .default = NA
+  ),
+  age_cat_2 = factor(case_when(
+    init_age < 1 ~ '<1',
+    init_age >= 1 & init_age < 5 ~ '1-4',
+    init_age >= 5 & init_age < 10 ~ '5-9',
+    init_age >= 10 & init_age < 15 ~ '10-14',
+    init_age >= 15 & init_age < 50 ~ '15-49',
+    init_age >= 50 & init_age < 60 ~ '50-59',
+    init_age >= 60 ~ '60+',
+    .default = NA
+  ),levels = c('<1','1-4','5-9','10-14','15-49','50-59','60+')))
+
+age_cat_df <- age_df %>%
+  group_by(age_cat)%>%
+  summarise(age_prop = sum(prop))%>%
+  mutate(age_factor = factor(age_cat,levels = c('<1','1-5','5-10','10-20','20-30','30-40','40-50','50-60','60-70','70-80','80+')))
+age_cat_2_df <- age_df %>%
+  group_by(age_cat_2)%>%
+  summarise(age_prop = sum(prop))
+  
+plot(age_cat_df$age_cat,age_cat_df$age_prop)
+ggplot(age_cat_2_df,aes(x=age_cat_2, y=age_prop))+
+  geom_bar(stat="identity")+
+  scale_y_continuous(limits=c(0,0.6))
