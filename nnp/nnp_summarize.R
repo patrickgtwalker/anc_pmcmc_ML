@@ -821,6 +821,26 @@ NG_estprev_pg/NG_inc_pg
 
 ##Create plots for BF and NG HMIS data
 bf_hmis <- readxl::read_excel('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl020323/Burkina Faso/Routine HMIS/Routine Data All Ages.xlsx')
+bf_hmis <- bf_hmis %>%
+  rename(district = 'Distrist')%>%
+  mutate(population_2017 = case_when(
+    district=='Nouna' ~ 368395-(15001+54109),
+    district=='Tougan' ~ 287801-(11720+42273),
+    district=='Banfora' ~ 392498-(14131+50817),
+    district=='Orodara' ~ 257258-(8262+31725),
+    district=='Gaoua' ~ 252385-(9927+35702)
+  ))
+bf_hmis_u5 <- readxl::read_excel('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl020323/Burkina Faso/Routine HMIS/Routine Data Under 5.xlsx')
+names(bf_hmis_u5) <- c('district','date','mal_severe','mal_simple','mal_simple_act','positive','tested')
+bf_hmis_u5 <- bf_hmis_u5 %>%
+  mutate(population = case_when(
+    district=='Nouna' ~ 15001+54109,
+    district=='Tougan' ~ 11720+42273,
+    district=='Banfora' ~ 14131+50817,
+    district=='Orodara' ~ 8262+31725,
+    district=='Gaoua' ~ 9927+35702
+  ))
+
 mz_hmis <- readxl::read_excel('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl020323/Mozambique/Routine HMIS/Mozambique_Routine_Sept2022.xlsx')
 ng_hmis <- readxl::read_excel('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl020323/Nigeria/Routine data/NNP Nigeria HMIS Data 2019-2022 - LGA rev 2023.03.02.xlsx')
 
@@ -978,9 +998,9 @@ create_obsinc_plots <- function(results,country=c('BF','MZ','NG')){
   annotations <- list(
     BF = ggplot(results)+
       annotate("rect", xmin = as.Date('2020-9-1'), xmax = as.Date('2020-10-1'), ymin = 0, ymax = 3750,alpha = .1,fill = "#999999")+
-      annotate("rect", xmin = as.Date('2021-6-1'), xmax = as.Date('2021-10-1'), ymin = 0, ymax = 3750,alpha = .1,fill = "#999999")+
-      scale_y_continuous(limits = c(0,3750))+
-      coord_cartesian(ylim=c(0, 2000)),
+      annotate("rect", xmin = as.Date('2021-6-1'), xmax = as.Date('2021-10-1'), ymin = 0, ymax = 3750,alpha = .1,fill = "#999999")
+      ,#scale_y_continuous(limits = c(0,3750)),
+      #coord_cartesian(ylim=c(0, 2000)),
     MZ = ggplot(results)+
       annotate("rect", xmin = as.Date('2021-1-1'), xmax = as.Date('2021-6-30'), ymin = 0, ymax = 3000,alpha = .1,fill = "#999999")+
       annotate("rect", xmin = as.Date('2022-1-1'), xmax = as.Date('2022-6-30'), ymin = 0, ymax = 3000,alpha = .1,fill = "#999999")+
@@ -992,7 +1012,7 @@ create_obsinc_plots <- function(results,country=c('BF','MZ','NG')){
     
   )
   inc_plot <- annotations[[country]]+
-    # geom_ribbon(aes(x=date_ex,ymin=lower,ymax=upper,fill=Distrist,group=Distrist),alpha=0.2)+
+    geom_ribbon(aes(x=date_ex,ymin=lower,ymax=upper,fill=district,group=district),alpha=0.2)+
     geom_line(aes(x=date_ex,y=inc,color=district,group=district),size=1)+
     # geom_line(data=df_eir,aes(x=month,y=median,color=district,group=district),size=1,linetype='dashed')+
     scale_color_manual(values=colors)+
@@ -1024,6 +1044,17 @@ bf_hmis_forplot <- bf_hmis_forplot %>%
 BF_obsinc_plot <- create_obsinc_plots(bf_hmis_forplot,'BF')
 ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/obsinc_bf_std_310223.pdf'), width = 7, height = 5)
 
+##BF <5yo
+bf_hmis_u5$date <- as.yearmon(bf_hmis_u5$date)
+bf_hmis_forplot <- bf_hmis_u5[bf_hmis_u5$district %in% c('Banfora','Gaoua','Orodara')&bf_hmis_u5$date>=as.yearmon('Sep 2020')&
+                             bf_hmis_u5$date<=as.yearmon('Jun 2022')&!is.na(bf_hmis_u5$positive),]
+bf_hmis_forplot <- addCIs_inc(bf_hmis_forplot,bf_hmis_forplot$positive,bf_hmis_forplot$population)
+bf_hmis_forplot <- bf_hmis_forplot %>%
+  mutate(date_ex = as.Date(date, frac = 0),
+         prop_pos = positive/tested)%>%
+  dplyr::rename(inc = mean)
+BF_obsinc_plot <- create_obsinc_plots(bf_hmis_forplot,'BF')
+
 mz_hmis_filtered <- mz_hmis[mz_hmis$District %in% c('Changara','Chemba','Guro')&!is.na(mz_hmis$Positive),]%>%
   group_by(District, Month, Year, `Net type`)%>%
   dplyr::summarise(Tested=sum(Tested),
@@ -1035,6 +1066,19 @@ mz_hmis_forplot <- addCIs_inc(mz_hmis_filtered,mz_hmis_filtered$Positive,mz_hmis
   filter(date_ex>=as.Date('2020-12-1')&date_ex<=as.Date('2022-09-1'))%>%
   dplyr::rename(district = District,
          inc = mean)
+
+##BF >5yo
+bf_hmis$date = as.yearmon(paste(bf_hmis$Year, bf_hmis$Month), "%Y %b")
+bf_hmis_all <- left_join(bf_hmis,bf_hmis_u5,by=c('date','district'),suffix=c('.allpop','.u5'))
+bf_hmis_all$positive_o5 <- bf_hmis_all$`RDT +`-bf_hmis_all$positive
+bf_hmis_forplot <- bf_hmis_all[bf_hmis_all$district %in% c('Banfora','Gaoua','Orodara')&bf_hmis_all$date>=as.yearmon('Sep 2020')&
+                             bf_hmis_all$date<=as.yearmon('Jun 2022')&!is.na(bf_hmis_all$Confirmed),]
+bf_hmis_forplot <- addCIs_inc(bf_hmis_forplot,bf_hmis_forplot$positive_o5,bf_hmis_forplot$population_2017)
+bf_hmis_forplot <- bf_hmis_forplot %>%
+  mutate(date_ex = as.Date(date, frac = 0),
+         prop_pos = positive_o5/(Tested-tested))%>%
+  dplyr::rename(inc = mean)
+BF_obsinc_plot <- create_obsinc_plots(bf_hmis_forplot,'BF')
 
 MZ_obsinc_plot <- create_obsinc_plots(mz_hmis_forplot,'MZ')
 ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/obsinc_mz_std_310223.pdf'), width = 7, height = 5)
