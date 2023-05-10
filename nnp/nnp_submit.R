@@ -380,3 +380,38 @@ test_run_std <- run_pmcmc_mg(data = data_raw_bf_pg_banfora,
                           seasonality_on = 1,
                           state_check = 0)
 plot_particle_filter(test_run_std$history,true_history=data_raw_bf_pg_banfora,times=data_raw_bf_pg_banfora$t)
+
+
+##Test sifter package
+library(sifter)
+test_run_sifter <- sifter::run_pmcmc(data = data_raw_bf_pg_banfora,
+                             n_particles = 10,
+                             proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
+                             max_EIR=1000,
+                             max_steps = 1e7,
+                             atol = 1e-5,
+                             rtol = 1e-6,
+                             n_steps = 3,
+                             n_threads = 2,
+                             lag_rates = 10,
+                             country = 'Burkina Faso',
+                             admin_unit = 'Cascades',
+                             seasonality_on = 1,
+                             state_check = 0)
+
+##Test incidence
+source('shared/run_pmcmc.R')
+test_run_inc <- run_pmcmc(data = data_raw_bf_pg_banfora,
+                                     n_particles = 10,
+                                     proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
+                                     max_EIR=1000,
+                                     max_steps = 1e7,
+                                     atol = 1e-5,
+                                     rtol = 1e-6,
+                                     n_steps = 3,
+                                     n_threads = 2,
+                                     lag_rates = 10,
+                                     country = 'Burkina Faso',
+                                     admin_unit = 'Cascades',
+                                     seasonality_on = 1,
+                                     state_check = 0)
