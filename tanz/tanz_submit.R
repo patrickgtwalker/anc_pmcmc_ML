@@ -219,8 +219,9 @@ tanz_all_2015to2022_submit <- obj$enqueue_bulk(1:25, function(x,obs_list) {
             state_check = 0,
             seasonality_check = 0)},obs_list=tanz_data_list_15to22)
 tanz_all_2015to2022_submit$status()#'uncrystallisable_africancivet'
+tanz_all_2015to2022_submit$status()#'sharpwitted_mite' <- added incidence <5 yo
 tanz_all_2015to2022_submit$tasks$`3a53a5cfb7eb3d51302a5fa94dd8454e`$log()
-
+tanz_all_2015to2022_submit <- obj$task_bundle_get('sharpwitted_mite')
 tanz_all_2015to2022_results <- lapply(1:25, function(id){
   tanz_all_2015to2022_submit$tasks[[id]]$result()
 })

@@ -216,6 +216,7 @@ nnp_mgcorr_bulk_seas_single <- obj$enqueue_bulk(1:10, function(i,data_pg,data_mg
 },data_pg=nnp_pg_list,data_mg=nnp_mg_list,country=country,admin=admin)
 nnp_mgcorr_bulk_seas_single$status() #'monotonous_betafish' - submitted 1 Mar 9:35am
 nnp_mgcorr_bulk_seas_single$times()
+nnp_mgcorr_bulk_seas_single <- obj$task_bundle_get('monotonous_betafish')
 nnp_mgcorr_bulk_seas_results <- lapply(1:6, function(id){
   nnp_mgcorr_bulk_seas_single$tasks[[id]]$result()
 })
@@ -239,8 +240,9 @@ nnp_ng_mgcorr_bulk_seas_single <- obj$enqueue_bulk(7:10, function(i,data_pg,data
                state_check = 0)
 },data_pg=nnp_pg_list,data_mg=nnp_mg_list,country=country,admin=admin)
 nnp_ng_mgcorr_bulk_seas_single$status() #'antimonarchal_flee' submitted 2 Mar 10:40am
+nnp_ng_mgcorr_bulk_seas_single <- obj$task_bundle_get('antimonarchal_flee')
 nnp_ng_mgcorr_bulk_seas_results <- lapply(1:4, function(id){
   nnp_ng_mgcorr_bulk_seas_single$tasks[[id]]$result()
 })
-
+obj$task_bundle_list()
 nnp_mgcorr_bulk_seas_results_update <- append(nnp_mgcorr_bulk_seas_results,nnp_ng_mgcorr_bulk_seas_results)
