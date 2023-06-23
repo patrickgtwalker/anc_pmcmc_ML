@@ -20,16 +20,20 @@ run_pmcmc_pg <- function(data_raw,
                       preyears = 5, #Length of time in years the deterministic seasonal model should run before Jan 1 of the year observations began
                       seasonality_on = 1,  ## state_check = 1 runs a deterministic seasonal model before running the stochastic model to get more realistic immunity levels
                       ## If seasonality_on = 0, runs the stochastic model based on the standard equilibrium solution
-                      seasonality_check = 0 ##If 1, saves values of seasonality equilibrium
+                      seasonality_check = 0, ##If 1, saves values of seasonality equilibrium
+                      seed = 1L,
+                      start_pf_time = 30
 ){
   ## Modify dates from data
   start_obs <- min(as.Date(data_raw$month))#Month of first observation (in Date format)
-  time_origin <- as.Date(ifelse(month(start_obs)!=1,paste0(year(start_obs),'-01-01'),paste0(year(start_obs)-1,'-01-01'))) #January 1 of the first year of observation (in Date format)
-  start_stoch <- as.Date(as.yearmon(start_obs)) #Start of stochastic schedule (First day of the month of first observation)
+  time_origin <- as.Date(paste0(year(start_obs)-1,'-01-01')) #January 1 of year before observation (in Date format)
   data_raw_time <- data_raw %>%
     mutate(date = as.Date(as.yearmon(month), frac = 0.5))%>% #Convert dates to middle of month
     mutate(t = as.integer(difftime(date,time_origin,units="days"))) #Calculate date as number of days since January 1 of first year of observation
-  initial_time <- min(data_raw_time$t) - 30 #Start particle_filter_data one month before first ime in data
+  initial_time <- min(data_raw_time$t) - start_pf_time #Start particle_filter_data a given time (default = 30d) before first ime in data
+  start_stoch <- as.Date(start_obs - start_pf_time) #Start of stochastic schedule
+  # buffer <- data.frame(t=seq(initial_time,min(data_raw_time$t),length.out=6))
+  # data_raw_time <- plyr::rbind.fill(buffer,data_raw_time)
   data <- mcstate::particle_filter_data(data_raw_time, time = "t", rate = NULL, initial_time = initial_time) #Declares data to be used for particle filter fitting
   
   coefs_df <- as.data.frame(readRDS('./nnp/Corr/pg_corr_sample.RDS'))
@@ -69,15 +73,14 @@ run_pmcmc_pg <- function(data_raw,
   ##    state: output used for visualization
   index <- function(info) {
     list(run = c(prev = info$index$prev),
-         state = c(prev = info$index$prev,
+         state = c(prev_05 = info$index$prev,
                    EIR = info$index$EIR_out,
-                   inc = info$index$inc,
-                   Sout = info$index$Sout,
-                   Tout = info$index$Tout,
+                   clininc_all = info$index$inc,
+                   prev_all = info$index$prevall,
+                   clininc_05 = info$index$inc05,
                    Dout = info$index$Dout,
                    Aout = info$index$Aout,
                    Uout = info$index$Uout,
-                   Pout = info$index$Pout,
                    p_det_out = info$index$p_det_out,
                    phi_out = info$index$phi_out,
                    b_out = info$index$b_out))
@@ -85,7 +88,7 @@ run_pmcmc_pg <- function(data_raw,
   
   ## Provide schedule for changes in stochastic process (in this case EIR)
   ## Converts a sequence of dates (from start_stoch to 1 month after last observation point) to days since January 1 of the first year of observation
-  stochastic_schedule <- as.integer(difftime(seq.Date(start_stoch,max(as.Date(data_raw_time$date+30)),by='month'),time_origin,units="days"))#[-1]
+  stochastic_schedule <- as.integer(difftime(seq.Date(start_stoch,max(as.Date(data_raw_time$date+30),na.rm = TRUE),by='month'),time_origin,units="days"))#[-1]
   # print(stochastic_schedule)
   
   #Provide age categories, proportion treated, and number of heterogeneity brackets
@@ -198,14 +201,14 @@ run_pmcmc_pg <- function(data_raw,
   model <- odin.dust::odin_dust("shared/odinmodelmatchedstoch.R")
   # print('loaded stochastic model')
   
-  set.seed(1) #To reproduce pMCMC results
+  set.seed(seed) #To reproduce pMCMC results
   
   ### Set particle filter
   # print('about to set up particle filter')
   pf <- mcstate::particle_filter$new(data, model, n_particles, compare,
-                                     index = index, seed = 1L,
+                                     index = index, seed = seed,
                                      stochastic_schedule = stochastic_schedule,
-                                     ode_control = mode::mode_control(max_steps = max_steps, atol = atol, rtol = rtol),
+                                     ode_control = dust::dust_ode_control(max_steps = max_steps, atol = atol, rtol = rtol),
                                      n_threads = n_threads)
   # print('set up particle filter')
   
@@ -277,7 +280,8 @@ run_pmcmc_pg <- function(data_raw,
                            prev = out$prev,
                            prev_all = out$prev_all,
                            inc05 = out$inc05,
-                           inc = out$inc)
+                           inc = out$inc,
+                           EIR = out$EIR_init)
       return(out.df)
     }
     
