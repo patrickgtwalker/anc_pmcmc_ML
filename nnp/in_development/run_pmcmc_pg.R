@@ -31,23 +31,44 @@ run_pmcmc_pg <- function(data_raw,
     mutate(date = as.Date(as.yearmon(month), frac = 0.5))%>% #Convert dates to middle of month
     mutate(t = as.integer(difftime(date,time_origin,units="days"))) #Calculate date as number of days since January 1 of first year of observation
   initial_time <- min(data_raw_time$t) - start_pf_time #Start particle_filter_data a given time (default = 30d) before first ime in data
+  time_list <- data.frame(t=initial_time:max(data_raw_time$t))
+  data_raw_time <- left_join(time_list,data_raw_time,by='t')
   start_stoch <- as.Date(start_obs - start_pf_time) #Start of stochastic schedule
   # buffer <- data.frame(t=seq(initial_time,min(data_raw_time$t),length.out=6))
   # data_raw_time <- plyr::rbind.fill(buffer,data_raw_time)
   data <- mcstate::particle_filter_data(data_raw_time, time = "t", rate = NULL, initial_time = initial_time) #Declares data to be used for particle filter fitting
   
-  coefs_df <- as.data.frame(readRDS('./nnp/Corr/pg_corr_sample.RDS'))
+  coefs_pg_df <- as.data.frame(readRDS('./nnp/Corr/pg_corr_sample.RDS'))
+  # Binomial function that checks for NAs
+  ll_binom <- function(positive, tested, model) {
+    if (is.na(positive)) {
+      # Creates vector of NAs in ll with same length, if no data
+      ll_obs <- rep(NA,length(model))
+    } else {
+      ll_obs <- dbinom(x = positive,
+                       size = tested,
+                       prob = model,
+                       log = FALSE)
+    }
+    ll_obs
+  }
+  
   compare <- function(state, observed, pars = NULL) {
-    ###draw a sample at beginning to go ahead with
+    #skip comparison if data is missing
+    if(is.na(observed$positive)) {return(numeric(length(state[1,])))}
+
     logodds_child <- log(get_odds_from_prev(state[1,]))
 
-    av_likelihood <- as.data.frame(sapply(1:nrow(coefs_df), function(x){
-      prev_preg <- get_prev_from_log_odds(logodds_child+coefs_df$gradient[x]*(logodds_child-coefs_df$av_lo_child[x])+coefs_df$intercept[x])
-      dbinom(x = observed$positive,
-             size = observed$tested,
-             prob = prev_preg)
+    likelihood_pg <- as.data.frame(sapply(1:nrow(coefs_pg_df), function(x){
+      prev_preg <- get_prev_from_log_odds(logodds_child+coefs_pg_df$gradient[x]*(logodds_child-coefs_pg_df$av_lo_child[x])+coefs_pg_df$intercept[x])
+      ll_binom(positive = observed$positive,
+               tested = observed$tested,
+               model = prev_preg)
     }))
-    return(log(rowMeans(av_likelihood)))
+    av_likelihood_pg <- rowMeans(likelihood_pg,na.rm=TRUE)
+    ll_pg <- ifelse(is.na(av_likelihood_pg),0,log(av_likelihood_pg))
+    
+    return(ll_pg)
     # av_likeli=0
     # for(i in 1:n_sample){
     # prev_preg <- get_prev_from_log_odds(logodds_child+coefs$gradient[i]*(logodds_child-coefs$av_lo_child)+coefs$intercept)
