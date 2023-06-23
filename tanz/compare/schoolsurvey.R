@@ -16,7 +16,9 @@ tanz_data_all_2017_dist <- read_csv("./tanz/Patrick/processed_inputs/TZ_ANC_data
   rename(region = Region,
          council = Council)
 tanz_data_all_16to22_dist <- read_csv("./tanz/Patrick/processed_inputs/TZ_ANC_data_district_2016_2022.csv")%>%
-  select(-total)
+  select(-total)%>%
+  rename(region = Region,
+         council = Council)
 
 tanz_data_all_14to22_dist <- bind_rows(tanz_data_all_2017_dist,tanz_data_all_16to22_dist)%>%
   mutate(yearmon=as.yearmon(yearmon))%>%
@@ -105,7 +107,6 @@ district_school <- unique(survey_dates_all[c('Region','Council')])
 write_csv(district_school,"./tanz/Patrick/Data/districts_school.csv")
 
 district_key <- read_csv("./tanz/Patrick/Data/District_key.csv")
-df$RECODED <- mydf$V2[match(as.character(df$KC27sc_R), as.character(mydf$V1))]
 
 school_counts$council_anc <- district_key$`ANC district`[match(as.character(school_counts$Council), as.character(district_key$school))]
 
@@ -471,6 +472,27 @@ obs_regprev_plot_dhs <- ggplot(tanz_anc_14to22_regprev_dhs)+
         axis.title.x = element_text(size = 10),
         axis.text.y = element_text(size = 10),
         axis.text.x = element_text(size = 8),
+        axis.text.y.right = element_blank())
+
+obs_regprev_plot_dhs_2017 <- ggplot(tanz_anc_14to22_regprev_dhs)+
+  geom_line(data=tanz_data_all_14to22_region[!(tanz_data_all_14to22_region$Region=='Mbeya'&tanz_data_all_14to22_region$yearmon=='Oct 2020'),],aes(x=as.Date(as.yearmon(yearmon)),y=a + mean*b),color="#27808EFF",size=0.7)+
+  geom_ribbon(data=tanz_data_all_14to22_region[!(tanz_data_all_14to22_region$Region=='Mbeya'&tanz_data_all_14to22_region$yearmon=='Oct 2020'),],aes(x=as.Date(as.yearmon(yearmon)),ymin=a + lower*b,ymax=a+upper*b),fill="#27808EFF",alpha=0.2)+
+  geom_point(aes(x=as.Date(svy_dt),y=a+mean_anc*b),pch = 19,size=2.5,color="#27808EFF")+
+  geom_errorbar(aes(x=as.Date(svy_dt),ymin=a+lower_anc*b,ymax=a+upper_anc*b),width = 0,color="#27808EFF")+
+  geom_point(aes(x=as.Date(svy_dt),y=mean_dhs),pch = 19, size=2.5,color = '#666666')+
+  geom_errorbar(aes(x=as.Date(svy_dt),ymin=lower_dhs,ymax=upper_dhs),width = 0,color="#666666")+
+  # scale_color_manual(values=colors)+
+  # scale_fill_manual(values=colors)+
+  facet_geo(~ Region, grid = province_grid%>%
+              select(row,col,code,name))+
+  scale_x_date(date_labels = "%b",date_breaks='3 months',limits = as.Date(c('2017-01-01','2017-12-31')))+
+  scale_y_continuous("DHS Prevalence (grey)", sec.axis = sec_axis(~ (. - a)/b, name = "ANC Survey Prevalence (blue)"),limits = c(0,0.3)) +
+  labs(x='Date')+
+  theme(strip.text.x = element_text(size = 7),
+        axis.title.y = element_text(size = 10),
+        axis.title.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        axis.text.x = element_text(size = 8,angle=45,hjust=1),
         axis.text.y.right = element_blank())
 
 obs_regprev_plot_dhs <- ggplot(tanz_anc_14to22_regprev_dhs)+
