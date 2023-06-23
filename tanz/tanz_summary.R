@@ -17,6 +17,8 @@ library(terra)
 library(spData)
 library(spDataLarge)
 library(tmap)
+library(excel.link)
+library(readxl)
 
 theme_set(theme_minimal()+
             theme(panel.grid.major = element_blank(),
@@ -116,6 +118,7 @@ create_diag_figs_bulk <- function(results){
 }
 
 diagnostic_plots <- create_diag_figs_bulk(tanz_lt20_2015to2017_results)
+diagnostic_plots <- create_diag_figs_bulk(tanz_all_2015to2022_results)
 diagnostic_plots$ar.plot
 diagnostic_plots$posterior.trace
 diagnostic_plots$EIR_SD.density
@@ -137,9 +140,9 @@ create_summary_plots <- function(results,data_list,rainfall,
                               }))
   prev.df <- bind_rows(lapply(1:length(results), 
                               function(x){
-                                history.df <- as.data.frame(t(results[[x]]$history['prev', 101:1000, -1]))
+                                history.df <- as.data.frame(t(results[[x]]$history['prev_05', 101:1000, -1]))
                                 prev_history <- history.df%>%
-                                  mutate(t=c(1:nrow(history.df)))%>%
+                                  dplyr::mutate(t=c(1:nrow(history.df)))%>%
                                   melt(id='t')%>%
                                   dplyr::rename(time=t)%>%
                                   group_by(time)%>%
@@ -147,14 +150,14 @@ create_summary_plots <- function(results,data_list,rainfall,
                                             mean=mean(value),
                                             upper=quantile(value,probs=0.975),
                                             lower=quantile(value,probs=0.025))%>%
-                                  mutate(sites = names(results[x]),
-                                         month = as.Date(data_list[[x]]$month))
+                                 dplyr::mutate(sites = names(results[x]),
+                                        month = as.Date(data_list[[x]]$month))
                                 return(prev_history)
                               }))
 
   inc.df <- bind_rows(lapply(1:length(results), 
                               function(x){
-                                history.df <- as.data.frame(t(results[[x]]$history['inc', 101:1000, -1]))
+                                history.df <- as.data.frame(t(results[[x]]$history['clininc_all', 101:1000, -1]))
                                 inc_history <- history.df%>%
                                   mutate(t=c(1:nrow(history.df)))%>%
                                   melt(id='t')%>%
@@ -174,7 +177,7 @@ create_summary_plots <- function(results,data_list,rainfall,
   
   inc.rainfall.df <- bind_rows(lapply(1:length(results), 
                              function(x){
-                               history.df <- as.data.frame(t(results[[x]]$history['inc', 101:1000, -1]))
+                               history.df <- as.data.frame(t(results[[x]]$history['clininc_all', 101:1000, -1]))
                                inc_history <- history.df%>%
                                  mutate(t=c(1:nrow(history.df)))%>%
                                  melt(id='t')%>%
@@ -189,7 +192,7 @@ create_summary_plots <- function(results,data_list,rainfall,
                                inc_plus_rainfall <- left_join(inc_history,rainfall,by=c('month','sites'))%>%
                                  mutate(rainfall_norm = Rainfall/max(Rainfall),
                                         rainfall_maxinc = Rainfall * (max(inc.median)/max(Rainfall)))
-                               history.df.prev <- as.data.frame(t(results[[x]]$history['prev', 101:1000, -1]))
+                               history.df.prev <- as.data.frame(t(results[[x]]$history['prev_05', 101:1000, -1]))
                                prev_history <- history.df.prev%>%
                                  mutate(t=c(1:nrow(history.df.prev)))%>%
                                  melt(id='t')%>%
@@ -231,17 +234,17 @@ create_summary_plots <- function(results,data_list,rainfall,
                                return(eir_history)
                              }))
   EIR_SD.density <- ggplot(mcmc.df)+
-    geom_violin(aes(x=sites,y=EIR_SD),fill='darkgray')+
+    geom_violin(aes(x=sites,y=EIR_SD),fill='#6D6A67')+
     theme(axis.text.x = element_text(angle = 45, hjust=1))+
     labs(title='EIR_SD density by Site',x='Site',y='EIR_SD')
   
   log_init_EIR.density <- ggplot(mcmc.df)+
-    geom_violin(aes(x=sites,y=log_init_EIR),fill='darkgray')+
+    geom_violin(aes(x=sites,y=log_init_EIR),fill='#6D6A67')+
     theme(axis.text.x = element_text(angle = 45, hjust=1))+
     labs(title='Log init_EIR density by Site',x='Site',y='Log init_EIR')
   
   init_EIR.density <- ggplot(mcmc.df)+
-    geom_violin(aes(x=sites,y=exp(log_init_EIR)),fill='darkgray')+
+    geom_violin(aes(x=sites,y=exp(log_init_EIR)),fill='#6D6A67')+
     scale_y_log10()+
     theme(axis.text.x = element_text(angle = 45, hjust=1))+
     labs(title='init_EIR density by Site',x='Site',y='init_EIR')
@@ -258,12 +261,12 @@ create_summary_plots <- function(results,data_list,rainfall,
   }
 
   obs_prev_plot <- ggplot(inc.rainfall.df[!(inc.rainfall.df$sites=='Mbeya'&inc.rainfall.df$yearmon=='Oct 2020'),])+
-    geom_line(aes(x=month,y=rainfall_norm*0.3),col="#2A788EFF",size=0.8)+
+    geom_line(aes(x=month,y=rainfall_norm*0.3),col="#1582AD",size=0.8)+
     # geom_ribbon(aes(x=month,ymin=lower,ymax=upper),alpha=0.2)+
     # geom_line(aes(x=month,y=median),size=1)+
     # geom_vline(xintercept = c(as.Date('2017-7-1'),as.Date('2021-5-1')),size=1,linetype='dashed') +
-    geom_point(aes(x=month,y=mean),pch = 19,color='darkgray')+
-    geom_errorbar(aes(x=month,ymin=lower,ymax=upper),width = 0,color='darkgray')+
+    geom_point(aes(x=month,y=mean),pch = 19,color='#6D6A67')+
+    geom_errorbar(aes(x=month,ymin=lower,ymax=upper),width = 0,color='#6D6A67')+
     # scale_color_manual(values=colors)+
     # scale_fill_manual(values=colors)+
     facet_geo(~ sites, grid = province_grid%>%
@@ -271,11 +274,11 @@ create_summary_plots <- function(results,data_list,rainfall,
     scale_x_date(date_labels = "'%y",limits = date_limits)+
     labs(x='Date',y='ANC Prevalence')
   est_prev_plot <- ggplot(inc.rainfall.df[!(inc.rainfall.df$sites=='Mbeya'&inc.rainfall.df$yearmon=='Oct 2020'),])+
-    geom_line(aes(x=month,y=rainfall_norm*0.3),col="#2A788EFF",size=0.8)+
-    geom_point(aes(x=month,y=mean),pch = 19,color='darkgray')+
-    geom_errorbar(aes(x=month,ymin=lower,ymax=upper),width = 0,color='darkgray')+
-    geom_ribbon(aes(x=month,ymin=prev.lower,ymax=prev.upper),alpha=0.2,fill="#414487FF")+
-    geom_line(aes(x=month,y=prev.median),size=1,color="#414487FF")+
+    geom_line(aes(x=month,y=rainfall_norm*0.3),col="#1582AD",size=0.8)+
+    geom_point(aes(x=month,y=mean),pch = 19,color='#6D6A67')+
+    geom_errorbar(aes(x=month,ymin=lower,ymax=upper),width = 0,color='#6D6A67')+
+    geom_ribbon(aes(x=month,ymin=prev.lower,ymax=prev.upper),alpha=0.2,fill="#EFBB12")+
+    geom_line(aes(x=month,y=prev.median),size=1,color="#EFBB12")+
     # geom_vline(xintercept = c(as.Date('2017-7-1'),as.Date('2021-5-1')),size=1,linetype='dashed') +
     # scale_color_manual(values=colors)+
     # scale_fill_manual(values=colors)+
@@ -316,9 +319,9 @@ create_summary_plots <- function(results,data_list,rainfall,
   # corr_map <- tm_shape(tz) +
   #   tm_borders()
   inc.rainfall <- ggplot(inc.rainfall.df)+
-    geom_line(aes(x=month,y=rainfall_norm*scaler),col="#2A788EFF",size=0.8)+
-    geom_ribbon(aes(x=month,ymin=inc.lower,ymax=inc.upper),alpha=0.4,fill="#D95F02")+
-    geom_line(aes(x=month,y=inc.median),size=0.8,col="#D95F02")+
+    geom_line(aes(x=month,y=rainfall_norm*scaler),col="#1582AD",size=0.8)+
+    geom_ribbon(aes(x=month,ymin=inc.lower,ymax=inc.upper),alpha=0.4,fill="#CE5126")+
+    geom_line(aes(x=month,y=inc.median),size=0.8,col="#CE5126")+
     scale_x_date(date_labels = "'%y",limits = date_limits)+
     facet_geo(~ sites, grid = province_grid%>%
                                select(row,col,code,name))+
@@ -326,9 +329,9 @@ create_summary_plots <- function(results,data_list,rainfall,
     coord_cartesian(ylim=c(0,scaler))
 
   inc.rainfall.3 <- ggplot(inc.rainfall.df)+
-    geom_line(aes(x=month,y=rainfall_norm),col="#2A788EFF",size=0.8)+
-    geom_ribbon(aes(x=month,ymin=lower_maxinc,ymax=upper_maxinc),alpha=0.4,fill="#D95F02")+
-    geom_line(aes(x=month,y=inc_maxinc),size=0.8,col="#D95F02")+
+    geom_line(aes(x=month,y=rainfall_norm),col="#1582AD",size=0.8)+
+    geom_ribbon(aes(x=month,ymin=lower_maxinc,ymax=upper_maxinc),alpha=0.4,fill="#CE5126")+
+    geom_line(aes(x=month,y=inc_maxinc),size=0.8,col="#CE5126")+
     facet_geo(~ sites, grid = province_grid%>%
                                select(row,col,code,name))+
     # geom_ribbon(aes(x=month,ymin=lower_maxinc,ymax=upper_maxinc),alpha=0.2,fill="#414487FF")+
@@ -339,9 +342,9 @@ create_summary_plots <- function(results,data_list,rainfall,
     theme(axis.text.y = element_blank())
   
   inc.rainfall.2 <- ggplot(inc.rainfall.df)+
-    geom_line(aes(x=month,y=rainfall_norm*max(inc.df$upper)),col="#27808EFF",size=0.8)+
-    geom_ribbon(aes(x=month,ymin=lower,ymax=upper),alpha=0.2,fill="#D95F02")+
-    geom_line(aes(x=month,y=median),size=0.8,col="#D95F02")+
+    geom_line(aes(x=month,y=rainfall_norm*max(inc.df$upper)),col="#1582AD",size=0.8)+
+    geom_ribbon(aes(x=month,ymin=lower,ymax=upper),alpha=0.2,fill="#CE5126")+
+    geom_line(aes(x=month,y=median),size=0.8,col="#CE5126")+
     facet_geo(~ sites, grid = province_grid%>%
                 select(row,col,code,name),scale = 'free_y')+
     scale_x_date(date_labels = "%Y",limits = date_limits)+
@@ -532,14 +535,14 @@ tanzania_summary_plots <- create_summary_plots(results = tanz_all_2015to2022_res
                                                date_limits = c(as.Date('2016-01-01'),NA))
 windows(10,10)
 obs <- tanzania_summary_plots$obs_prev_plot
-ggsave('tanz/figures/obs_prev_tanz_250422.pdf',plot = obs,width = 8,height=8)
+ggsave('tanz/figures/obs_prev_tanz_300523.pdf',plot = obs,width = 8,height=8)
 prev <- tanzania_summary_plots$est_prev_plot
-ggsave('tanz/figures/est_prev_tanz_250422.pdf',plot = prev,width = 8,height=8)
+ggsave('tanz/figures/est_prev_tanz_300523.pdf',plot = prev,width = 8,height=8)
 
 inc <- tanzania_summary_plots$inc.rainfall
-ggsave('tanz/figures/est_inc_tanz_250422.pdf',plot = inc,width = 8,height=8)
+ggsave('tanz/figures/est_inc_tanz_300523.pdf',plot = inc,width = 8,height=8)
 inc_norm <- tanzania_summary_plots$inc.rainfall.3
-ggsave('tanz/figures/est_incnorm_tanz_250422.pdf',plot = inc_norm,width = 8,height=8)
+ggsave('tanz/figures/est_incnorm_tanz_300523.pdf',plot = inc_norm,width = 8,height=8)
 
 ##National-level incidence estimates
 tz_census <- read_excel('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/Tanzania/tz_province_census_2022.xlsx')
@@ -550,14 +553,14 @@ tz_pop_prop <- tz_census %>%
          Region = recode(Region, DaresSalaam = 'Dar Es Salaam',.default = Region))
   
 
-results <- tanz_all_2015to2022_results[c('Lindi','Mtwara')]
+results <- tanz_all_2015to2022_results#[c('Lindi','Mtwara','Ruvuma')]
 rainfall <- ANC_rainfall_region
 rainfall$sites <- sapply(1:nrow(rainfall), function(x) gsub(' Region','',rainfall[x,level]))
 rainfall$month <- as.Date(as.yearmon(rainfall$yearmon))
 
 inc.rainfall.df <- bind_rows(lapply(1:length(results), 
                                     function(x){
-                                      history.df <- as.data.frame(t(results[[x]]$history['inc', 101:1000, -1]))
+                                      history.df <- as.data.frame(t(results[[x]]$history['clininc_all', 101:1000, -1]))
                                       inc_history <- history.df%>%
                                         mutate(t=c(1:nrow(history.df)))%>%
                                         melt(id='t')%>%
@@ -572,7 +575,7 @@ inc.rainfall.df <- bind_rows(lapply(1:length(results),
                                       inc_plus_rainfall <- left_join(inc_history,rainfall,by=c('month','sites'))%>%
                                         mutate(rainfall_norm = Rainfall/max(Rainfall),
                                                rainfall_maxinc = Rainfall * (max(inc.median)/max(Rainfall)))
-                                      history.df.prev <- as.data.frame(t(results[[x]]$history['prev', 101:1000, -1]))
+                                      history.df.prev <- as.data.frame(t(results[[x]]$history['prev_05', 101:1000, -1]))
                                       prev_history <- history.df.prev%>%
                                         mutate(t=c(1:nrow(history.df.prev)))%>%
                                         melt(id='t')%>%
@@ -602,6 +605,10 @@ est_cases <- left_join(inc.rainfall.df,tz_pop_prop,by='Region')%>%
          est_cases.upper = inc.upper*pop_2022_census,
          est_cases.lower = inc.lower*pop_2022_census
          )
+est_cases_4PW <- est_cases %>%
+  select(inc.median,inc.mean,inc.lower,inc.upper,sites,yearmon,positive,tested,total,
+         pop_2012_census,pop_2022_census)
+saveRDS(est_cases_4PW,'./tanz/est_cases_tz.rds')
 windows(10,10)
 scaler <- 400000
 est_cases.rainfall <- ggplot(est_cases)+
@@ -612,6 +619,24 @@ est_cases.rainfall <- ggplot(est_cases)+
   facet_geo(~ sites, grid = province_grid%>%
               select(row,col,code,name))+
   ylab("Estimated case counts/normalised rainfall")+xlab("Year")+
+  coord_cartesian(ylim=c(0,scaler))
+
+num_tested_plot <- ggplot(est_cases)+
+  geom_line(aes(x=month,y=tested),size=0.8,col="#999999")+
+  scale_x_date(date_labels = "'%y",limits = date_limits)+
+  scale_y_continuous(limits = c(0,NA))+
+  facet_geo(~ sites, grid = province_grid%>%
+              select(row,col,code,name))+
+  ylab("Number tested at first ANC")+xlab("Year")
+rate_tested_plot <- ggplot(est_cases)+
+  geom_line(aes(x=month,y=(tested*100*12/pop_2022_census)),size=0.8,col="#999999")+
+  scale_x_date(date_labels = "'%y",limits = date_limits)+
+  scale_y_continuous(limits = c(0,NA))+
+  facet_geo(~ sites, grid = province_grid%>%
+              select(row,col,code,name))+
+  ylab("Percent of population tested\nper year")+xlab("Year")
+
+
   coord_cartesian(ylim=c(0,scaler))
 
 est_cases_total <- est_cases %>%
@@ -642,7 +667,7 @@ est_cases_total_annual_plot <- ggplot(est_cases_total_annual)+
   coord_cartesian(ylim=c(0,NA))
 
 ##Lindi and Mtwara illustration
-lindi_mtwara<-Full_data%>%
+lindi_mtwara_ruvuma<-Full_data%>%
   mutate(yearmon=as.yearmon(paste0(Full_data$Year,"-",Full_data$Month),"%Y-%m"))%>%
   filter(!is.na(ANC_test)&ANC_re_ad!=0)%>%
   group_by(yearmon,Region)%>%
@@ -653,7 +678,7 @@ lindi_mtwara<-Full_data%>%
                    first_visit_total=sum(Before_12wk,na.rm = TRUE)+sum(After_12wk,na.rm = TRUE),
                    first_visit_b12wk=sum(Before_12wk,na.rm = TRUE),
                    first_visit_a12wk=sum(After_12wk,na.rm = TRUE))%>%
-  filter(Region == 'Lindi Region' | Region == 'Mtwara Region') %>%
+  filter(Region == 'Lindi Region' | Region == 'Mtwara Region' | Region == 'Ruvuma Region') %>%
   mutate(period = ifelse(yearmon>=as.yearmon('2018-01-01')&yearmon<=as.yearmon('2019-12-31'),'2018-2019',
                          ifelse(yearmon>=as.yearmon('2020-01-01')&yearmon<=as.yearmon('2021-12-31'),'2020-2021',NA)))
 windows(5,10)
@@ -668,8 +693,8 @@ colors <- c('Women tested' = "#33A02C", 'Women attended (all visits)' = "#B2DF8A
             'Facilities reporting' = "#1F78B4")
 colors_2 <- c('Women tested' = "#33A02C", 'Women attended (all visits)' = "#B2DF8A",
               'Women attended (first visits)' = "#B2DF8A",
-              'Facilities reporting' = "#1F78B4",'Normalised rainfall' = "#2A788EFF", 'Observed prevalence' = 'darkgray',
-              'Fitted prevalence' = "#414487FF", 'Estimated incidence' = "#D95F02")
+              'Facilities reporting' = "#1F78B4",'Normalised rainfall' = "#1582AD", 'Observed prevalence' = '#6D6A67',
+              'Fitted prevalence' = "#EFBB12", 'Estimated incidence' = "#CE5126")
 obs_tested_plot_dist <- ggplot(lindi_mtwara)+
   geom_line(aes(x=as.Date(as.yearmon(yearmon)),y=tested,color='Women tested'),size=1)+
   # geom_line(aes(x=as.Date(as.yearmon(yearmon)),y=total,color='Women attended (all visits)'),size=1)+
@@ -677,13 +702,30 @@ obs_tested_plot_dist <- ggplot(lindi_mtwara)+
   geom_line(aes(x=as.Date(as.yearmon(yearmon)),y=count*b+a,color='Facilities reporting'),size=1)+
   # scale_color_manual(values=colors)+
   # scale_fill_manual(values=colors)+
-  facet_wrap(~ Region,nrow = 2)+
+  facet_wrap(~ Region,nrow = 3)+
   scale_color_manual(values=colors_2)+
   scale_x_date(date_labels = "'%y")+
   scale_y_continuous("# Women Attended and Tested", sec.axis = sec_axis(~ (. - a)/b, name = "# Facilities Reporting"),limits = c(0,NA)) +
   labs(x='Date')+
   theme(legend.title = element_blank())
 
+windows(12,12)
+obs_testedprop_plot_dist <- ggplot(lindi_mtwara)+
+  geom_line(aes(x=as.Date(as.yearmon(yearmon)),y=tested/first_visit_total),size=1)+
+  geom_hline(yintercept = 1, linetype='dashed',color='#666666')+
+  # scale_color_manual(values=colors)+
+  # scale_fill_manual(values=colors)+
+  facet_wrap(~ Region,nrow = 3)+
+  scale_x_date(date_labels = "'%y")+
+  scale_y_continuous("Proportion of women tested") +
+  labs(x='Date')
+
+toomanytests <- Full_data%>%
+  mutate(yearmon=as.yearmon(paste0(Full_data$Year,"-",Full_data$Month),"%Y-%m"))%>%
+  filter(!is.na(ANC_test)&ANC_re_ad!=0)%>%
+  filter(ANC_test>(Before_12wk+After_12wk))
+  
+table(toomanytests$yearmon)
 obs_prev_plot <- ggplot(inc.rainfall.df[!(inc.rainfall.df$sites=='Mbeya'&inc.rainfall.df$yearmon=='Oct 2020'),])+
   geom_line(aes(x=month,y=rainfall_norm*0.3,color='Normalised rainfall'),size=0.8)+
   # geom_ribbon(aes(x=month,ymin=lower,ymax=upper),alpha=0.2)+
@@ -693,22 +735,22 @@ obs_prev_plot <- ggplot(inc.rainfall.df[!(inc.rainfall.df$sites=='Mbeya'&inc.rai
   geom_errorbar(aes(x=month,ymin=lower,ymax=upper,color='Observed prevalence'),width = 0)+
   # scale_color_manual(values=colors)+
   # scale_fill_manual(values=colors)+
-  facet_wrap(~ sites,nrow=2)+
+  facet_wrap(~ sites,nrow=3)+
   scale_x_date(date_labels = "'%y",limits = date_limits)+
   scale_color_manual(values=colors_2)+
   labs(x='Date',y='ANC Prevalence')+
   theme(legend.title = element_blank())
 
 est_prev_plot <- ggplot(inc.rainfall.df[!(inc.rainfall.df$sites=='Mbeya'&inc.rainfall.df$yearmon=='Oct 2020'),])+
-  geom_line(aes(x=month,y=rainfall_norm*0.3,color='Normalised rainfall'),col="#2A788EFF",size=0.8)+
+  geom_line(aes(x=month,y=rainfall_norm*0.3,color='Normalised rainfall'),col="#1582AD",size=0.8)+
   geom_point(aes(x=month,y=mean,color='Observed prevalence'),pch = 19)+
   geom_errorbar(aes(x=month,ymin=lower,ymax=upper,color='Observed prevalence'),width = 0)+
-  geom_ribbon(aes(x=month,ymin=prev.lower,ymax=prev.upper),alpha=0.2,fill="#414487FF")+
+  geom_ribbon(aes(x=month,ymin=prev.lower,ymax=prev.upper),alpha=0.2,fill="#EFBB12")+
   geom_line(aes(x=month,y=prev.median,color='Fitted prevalence'),size=1)+
   # geom_vline(xintercept = c(as.Date('2017-7-1'),as.Date('2021-5-1')),size=1,linetype='dashed') +
   # scale_color_manual(values=colors)+
   # scale_fill_manual(values=colors)+
-  facet_wrap(~ sites,nrow=2)+
+  facet_wrap(~ sites,nrow=3)+
   scale_x_date(date_labels = "'%y",limits = date_limits)+
   scale_color_manual(values=colors_2)+
   labs(x='Date',y='ANC Prevalence')+
@@ -717,15 +759,18 @@ est_prev_plot <- ggplot(inc.rainfall.df[!(inc.rainfall.df$sites=='Mbeya'&inc.rai
 scaler <- 0.0075*30
 inc.rainfall <- ggplot(inc.rainfall.df)+
   geom_line(aes(x=month,y=rainfall_norm*scaler,color='Normalised rainfall'),size=0.8)+
-  geom_ribbon(aes(x=month,ymin=inc.lower,ymax=inc.upper),alpha=0.4,fill="#D95F02")+
+  geom_ribbon(aes(x=month,ymin=inc.lower,ymax=inc.upper),alpha=0.4,fill="#CE5126")+
   geom_line(aes(x=month,y=inc.median,color='Estimated incidence'),size=0.8)+
   scale_x_date(date_labels = "'%y",limits = date_limits)+
   scale_color_manual(values=colors_2)+
-  facet_wrap(~ sites,nrow=2)+
+  facet_wrap(~ sites,nrow=3)+
   ylab("Estimated incidence/normalised rainfall")+xlab("Year")+
   theme(legend.title = element_blank())
 
 windows(12,8)
 obs_tested_plot_dist + obs_prev_plot + est_prev_plot + inc.rainfall + plot_layout(ncol=4,guides = 'collect') &
   guides(color=guide_legend(nrow=3, byrow=TRUE))
+dash <- obs_prev_plot + est_prev_plot + inc.rainfall + plot_layout(ncol=3,guides = 'collect') &
+  guides(color=guide_legend(nrow=3, byrow=TRUE))
+ggsave('./tanz/figures/lindi_mtwara_ruvuma_model_300523.pdf',plot=dash,width = 12,height=8)
 ggarrange(obs_tested_plot_dist, obs_prev_plot, est_prev_plot, inc.rainfall, ncol=4, nrow=1, common.legend = TRUE, legend="right")
