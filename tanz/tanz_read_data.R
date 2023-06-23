@@ -65,11 +65,11 @@ Full_data_new$region[Full_data_new$region=="Songwe Region"]="Mbeya Region"
 ##Combine old and new data sets
 tanz_data_all_2017_region <- read_csv("./tanz/Patrick/processed_inputs/TZ_ANC_data_region_2014_2017.csv")%>%
   select(1:6)%>%
-  filter(yearmon <= as.yearmon('Dec 2015')) %>%
-  rename(region = Region)
+  filter(yearmon <= as.yearmon('Dec 2015')) 
 tanz_data_all_16to22_region <- read_csv("./tanz/Patrick/processed_inputs/TZ_ANC_data_region_2016_2022.csv")
 
-tanz_data_all_14to22_region <- bind_rows(tanz_data_all_2017_region,tanz_data_all_16to22_region)
+tanz_data_all_14to22_region <- bind_rows(tanz_data_all_2017_region,tanz_data_all_16to22_region)%>%
+  rename(region = Region)
 data <- tanz_data_all_14to22_region
 level <- 'Region'
 remove_before <- as.yearmon('Jan 2015')
