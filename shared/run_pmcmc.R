@@ -30,19 +30,33 @@ run_pmcmc <- function(data_raw,
     mutate(date = as.Date(as.yearmon(month), frac = 0.5))%>% #Convert dates to middle of month
     mutate(t = as.integer(difftime(date,time_origin,units="days"))) #Calculate date as number of days since January 1 of first year of observation
   initial_time <- min(data_raw_time$t) - start_pf_time #Start particle_filter_data a given time (default = 30d) before first ime in data
+  time_list <- data.frame(t=initial_time:max(data_raw_time$t))
+  data_raw_time <- left_join(time_list,data_raw_time,by='t')
   start_stoch <- as.Date(start_obs - start_pf_time) #Start of stochastic schedule
   # buffer <- data.frame(t=seq(initial_time,min(data_raw_time$t),length.out=6))
   # data_raw_time <- plyr::rbind.fill(buffer,data_raw_time)
   data <- mcstate::particle_filter_data(data_raw_time, time = "t", rate = NULL, initial_time = initial_time) #Declares data to be used for particle filter fitting
   # print('Data processed')
   
+  # Binomial function that checks for NAs
+  ll_binom <- function(obs, model) {
+    if (is.na(obs$positive)) {
+      # Creates vector of zeros in ll with same length, if no data
+      ll_obs <- numeric(length(model))
+    } else {
+      ll_obs <- dbinom(x = obs$positive,
+                       size = obs$tested,
+                       prob = model,
+                       log = TRUE)
+    }
+    ll_obs
+  }
   # Compare function to calculate likelihood
   compare <- function(state, observed, pars = NULL) {
     # print('in compare function')
-    dbinom(x = observed$positive,
-           size = observed$tested,
-           prob = state[1,],
-           log = TRUE)
+    ll <- ll_binom(obs=observed,model=state[1,])
+    # print(ll)
+    return(ll)
   }
   
   ##Output from particle filter

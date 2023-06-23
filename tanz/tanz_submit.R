@@ -25,8 +25,11 @@ ctx <- context::context_save("T:/jth/contexts.temp", sources = sources,
 ctx <- context::context_save("T:/jth/contexts.190423", sources = sources,
                              packages = c('dplyr','statmod','coda','zoo','lubridate','stringi','dde'),
                              package_sources = conan::conan_sources(c('mrc-ide/mode','mrc-ide/dust',"mrc-ide/odin.dust",'mrc-ide/mcstate')))
+ctx <- context::context_save("T:/jth/contexts.230623", sources = sources,
+                                    packages = c('dplyr','statmod','coda','zoo','lubridate','stringi','dde'),
+                                    package_sources = conan::conan_sources(c('mrc-ide/mode','mrc-ide/dust',"mrc-ide/odin.dust",'mrc-ide/mcstate')))
 
-config_1 <- didehpc::didehpc_config(template = "24Core",cores =4, parallel = TRUE,wholenode = FALSE, cluster = 'fi--didemrchnb')
+config_1 <- didehpc::didehpc_config(template = "24Core",cores =6, parallel = TRUE,wholenode = FALSE, cluster = 'fi--didemrchnb')
 # config_dide <- didehpc::didehpc_config(template = "8Core",cores =1, parallel = TRUE,wholenode = FALSE, cluster = 'fi--dideclusthn')
 obj <- didehpc::queue_didehpc(ctx,config = config_1)
 obj$login()
