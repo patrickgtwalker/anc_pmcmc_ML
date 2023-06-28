@@ -398,7 +398,8 @@ test_run_sifter <- sifter::run_pmcmc(data = data_raw_bf_pg_banfora,
                              country = 'Burkina Faso',
                              admin_unit = 'Cascades',
                              seasonality_on = 1,
-                             state_check = 0)
+                             state_check = 0,
+                             seasonality_check = 1)
 
 ##Test incidence
 source('shared/run_pmcmc.R')

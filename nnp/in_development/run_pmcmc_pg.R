@@ -119,7 +119,7 @@ run_pmcmc_pg <- function(data_raw,
   
   #Create model parameter list. Also loads seasonality profile data file to match to desired admin_unit and country
   mpl_pf <- model_param_list_create(init_age = init_age,
-                                    pro_treated = prop_treated,
+                                    prop_treated = prop_treated,
                                     het_brackets = het_brackets,
                                     max_EIR = max_EIR,
                                     state_check = state_check,
@@ -148,9 +148,9 @@ run_pmcmc_pg <- function(data_raw,
       ## Run equilibrium function
       state <- equilibrium_init_create_stripped(age_vector = mpl$init_age,
                                                 init_EIR = init_EIR,
-                                                ft = prop_treated,
+                                                ft = mpl$prop_treated,
                                                 model_param_list = mpl,
-                                                het_brackets = het_brackets,
+                                                het_brackets = mpl$het_brackets,
                                                 state_check = mpl$state_check)
       # print(state)
       ##run seasonality model first if seasonality_on == 1
@@ -278,9 +278,9 @@ run_pmcmc_pg <- function(data_raw,
       ## Run equilibrium function
       state <- equilibrium_init_create_stripped(age_vector = mpl$init_age,
                                                 init_EIR = init_EIR,
-                                                ft = prop_treated,
+                                                ft = mpl$prop_treated,
                                                 model_param_list = mpl,
-                                                het_brackets = het_brackets,
+                                                het_brackets = mpl$het_brackets,
                                                 state_check = mpl$state_check)
       # print(state)
       ##run seasonality model first if seasonality_on == 1
