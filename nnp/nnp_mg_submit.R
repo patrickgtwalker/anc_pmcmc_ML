@@ -39,7 +39,8 @@ data_raw_bf_pg_orodara <- readRDS('nnp/data/data_raw_bf_pg_orodara.RDS')
 data_raw_bf_pg_gaoua <- readRDS('nnp/data/data_raw_bf_pg_gaoua.RDS')
 
 data_raw_mz_pg_guro <- readRDS('nnp/data/data_raw_mz_pg_guro.RDS')
-data_raw_mz_pg_chemba <- readRDS('nnp/data/data_raw_mz_pg_chemba.RDS')
+data_raw_mz_pg_chemba <- readRDS('nnp/data/data_raw_mz_pg_chemba.RDS')%>%
+  filter(as.yearmon(month) >= as.yearmon('July 2021'))
 data_raw_mz_pg_changara <- readRDS('nnp/data/data_raw_mz_pg_changara.RDS')
 
 nnp_pg_list <- list(data_raw_bf_pg_banfora,data_raw_bf_pg_gaoua,data_raw_bf_pg_orodara,
@@ -57,7 +58,8 @@ data_raw_bf_mg_orodara <- readRDS('nnp/data/data_raw_bf_mg_orodara.RDS')
 data_raw_bf_mg_gaoua <- readRDS('nnp/data/data_raw_bf_mg_gaoua.RDS')
 
 data_raw_mz_mg_guro <- readRDS('nnp/data/data_raw_mz_mg_guro.RDS')
-data_raw_mz_mg_chemba <- readRDS('nnp/data/data_raw_mz_mg_chemba.RDS')
+data_raw_mz_mg_chemba <- readRDS('nnp/data/data_raw_mz_mg_chemba.RDS')%>%
+  filter(as.yearmon(month) >= as.yearmon('July 2021'))
 data_raw_mz_mg_changara <- readRDS('nnp/data/data_raw_mz_mg_changara.RDS')
 
 nnp_mg_list <- list(data_raw_bf_mg_banfora,data_raw_bf_mg_gaoua,data_raw_bf_mg_orodara,
@@ -247,3 +249,78 @@ nnp_ng_mgcorr_bulk_seas_results <- lapply(1:4, function(id){
 })
 obj$task_bundle_list()
 nnp_mgcorr_bulk_seas_results_update <- append(nnp_mgcorr_bulk_seas_results,nnp_ng_mgcorr_bulk_seas_results)
+
+
+###### Run with sifter ######
+##Configure cluster settings
+ctx_sifter2 <- context::context_save("T:/jth/contexts.sift2",
+                                    packages = c('dplyr','statmod','coda','zoo','lubridate','stringi','dde','RecordLinkage'),
+                                    package_sources = conan::conan_sources(c('mrc-ide/mode','mrc-ide/dust',"mrc-ide/odin.dust",'mrc-ide/mcstate','jt-hicks/sifter')))
+config_1 <- didehpc::didehpc_config(template = "24Core",cores =6, parallel = TRUE,wholenode = FALSE, cluster = 'fi--didemrchnb')
+# config_dide <- didehpc::didehpc_config(template = "8Core",cores =1, parallel = TRUE,wholenode = FALSE, cluster = 'fi--dideclusthn')
+obj <- didehpc::queue_didehpc(ctx_sifter2,config = config_1)
+obj$cluster_load(TRUE)
+obj$login()
+
+nnp_pgmg_bulk_sifter_eir <- obj$enqueue_bulk(1:10, function(i,data_pg,data_mg,country,admin){
+  sifter::run_pmcmc(data_raw_pg = data_pg[[i]],
+               data_raw_mg = data_mg[[i]],
+               n_particles = 200,
+               proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
+               max_EIR=1000,
+               max_steps = 1e7,
+               atol = 1e-6,
+               rtol = 1e-6,
+               n_steps = 1000,
+               n_threads = 6,
+               lag_rates = 10,
+               seasonality_on = 1,
+               country = country[i],
+               admin_unit = admin[i],
+               state_check = 0,
+               preyears = 5,
+               start_pf_time = 30*4,
+               seasonality_check = 1,
+               stoch_param = 'EIR',
+               comparison = 'pgmg')
+},data_pg=nnp_pg_list,data_mg=nnp_mg_list,country=country,admin=admin)
+nnp_pgmg_bulk_sifter_eir$status() #'homebred_blobfish' - submitted 11 July 5:28pm
+nnp_pgmg_bulk_sifter_eir$tasks[[1]]$log()
+nnp_mgcorr_bulk_snnp_pgmg_bulk_sifter_eireas_single$times()
+nnp_pgmg_bulk_sifter_eir <- obj$task_bundle_get('homebred_blobfish')
+nnp_pgmg_bulk_sifter_eir_results <- lapply(1:10, function(id){
+  nnp_pgmg_bulk_sifter_eir$tasks[[id]]$result()
+})
+
+### With mosquito emergence
+nnp_pgmg_bulk_sifter_betaa <- obj$enqueue_bulk(1:10, function(i,data_pg,data_mg,country,admin){
+  sifter::run_pmcmc(data_raw_pg = data_pg[[i]],
+                    data_raw_mg = data_mg[[i]],
+                    n_particles = 200,
+                    proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
+                    max_EIR=1000,
+                    max_steps = 1e7,
+                    atol = 1e-6,
+                    rtol = 1e-6,
+                    n_steps = 1000,
+                    n_threads = 6,
+                    lag_rates = 10,
+                    seasonality_on = 1,
+                    country = country[i],
+                    admin_unit = admin[i],
+                    state_check = 0,
+                    preyears = 5,
+                    start_pf_time = 30*4,
+                    seasonality_check = 1,
+                    stoch_param = 'betaa',
+                    comparison = 'pgmg')
+},data_pg=nnp_pg_list,data_mg=nnp_mg_list,country=country,admin=admin)
+nnp_pgmg_bulk_sifter_betaa$status() #'declinate_parrot' - submitted 11 July 5:30pm
+nnp_pgmg_bulk_sifter_betaa$times()
+nnp_pgmg_bulk_sifter_betaa$tasks[['ab8339b81e36f767dd37e6e38aab436e']]$log()
+nnp_pgmg_bulk_sifter_betaa$tasks[['7d82d64373ef6d43a786488d89d76e7f']]$log()
+nnp_pgmg_bulk_sifter_betaa$tasks$e988e0d986be894d5cfb3b26f288ee35$log()
+nnp_pgmg_bulk_sifter_betaa <- obj$task_bundle_get('declinate_parrot')
+nnp_pgmg_bulk_sifter_betaa_results <- lapply(c(1:6,8,9), function(id){
+  nnp_pgmg_bulk_sifter_betaa$tasks[[id]]$result()
+})
