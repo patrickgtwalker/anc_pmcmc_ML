@@ -128,6 +128,8 @@ tanz_data_all_16to22_dist <-Full_data%>%
   group_by(yearmon,Region,Council)%>%
   dplyr::summarise(count=n(),positive=sum(ANC_pos, na.rm = TRUE),tested=sum(ANC_test, na.rm=TRUE),total=sum(Total_re_ad, na.rm = TRUE))
 write_csv(tanz_data_all_16to22_dist,"./tanz/Patrick/processed_inputs/TZ_ANC_data_district_2016_2022.csv")
+tanz_data_all_16to22_dist <- read_csv("./tanz/Patrick/processed_inputs/TZ_ANC_data_district_2016_2022.csv")
+
 tanz_data_all_16to22_region <-Full_data%>%
   mutate(yearmon=as.yearmon(paste0(Full_data$Year,"-",Full_data$Month),"%Y-%m"))%>%
     # filter(ANC_pos<=ANC_test)%>%

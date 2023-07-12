@@ -833,7 +833,7 @@ bf_hmis <- bf_hmis %>%
 bf_hmis_u5 <- readxl::read_excel('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl020323/Burkina Faso/Routine HMIS/Routine Data Under 5.xlsx')
 names(bf_hmis_u5) <- c('district','date','mal_severe','mal_simple','mal_simple_act','positive','tested')
 bf_hmis_u5 <- bf_hmis_u5 %>%
-  mutate(population = case_when(
+  mutate(population = dplyr::case_when(
     district=='Nouna' ~ 15001+54109,
     district=='Tougan' ~ 11720+42273,
     district=='Banfora' ~ 14131+50817,
@@ -1033,14 +1033,13 @@ create_obsinc_plots <- function(results,country=c('BF','MZ','NG')){
 }
 source('shared/addCIs_inc.R')
 bf_hmis$date = as.yearmon(paste(bf_hmis$Year, bf_hmis$Month), "%Y %b")
-bf_hmis_forplot <- bf_hmis[bf_hmis$Distrist %in% c('Banfora','Gaoua','Orodara')&bf_hmis$date>=as.yearmon('Sep 2020')&
+bf_hmis_forplot <- bf_hmis[bf_hmis$district %in% c('Banfora','Gaoua','Orodara')&bf_hmis$date>=as.yearmon('Sep 2020')&
                      bf_hmis$date<=as.yearmon('Jun 2022')&!is.na(bf_hmis$Confirmed),]
 bf_hmis_forplot <- addCIs_inc(bf_hmis_forplot,bf_hmis_forplot$Confirmed,bf_hmis_forplot$Population)
 bf_hmis_forplot <- bf_hmis_forplot %>%
   mutate(date_ex = as.Date(date, frac = 0),
          prop_pos = Confirmed/Tested)%>%
-  dplyr::rename(district = Distrist,
-         inc = mean)
+  dplyr::rename(inc = mean)
 BF_obsinc_plot <- create_obsinc_plots(bf_hmis_forplot,'BF')
 ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/obsinc_bf_std_310223.pdf'), width = 7, height = 5)
 
@@ -1099,6 +1098,10 @@ pois.daly(bf_hmis_forplot$Confirmed[1],bf_hmis_forplot$Population[1])
 windows(10,10)
 BF_inc_pg_threads/BF_obsinc_plot + plot_layout(guides = "collect")
 NG_inc_pg_threads / NG_obsinc_plot + plot_layout(guides = "collect")
+
+BF_CS_all_grouped_site <- readRDS('nnp/data/BF_CS_all_grouped_site_0822.rds')
+MZ_CS_all_grouped_site <- readRDS('nnp/data/MZ_CS_all_grouped_site_180123.rds')
+NG_CS_all_grouped_site <- readRDS('nnp/data/NG_CS_all_grouped_site.rds')
 
 cs_data_list <- list(BF = BF_CS_all_grouped_site, MZ = MZ_CS_all_grouped_site, NG = NG_CS_all_grouped_site)
 ##Create dashboard by country
@@ -1468,6 +1471,12 @@ create_dashboard_pgmg_plots <- function(results,prev_pg,prev_mg,prev_all=NULL,co
   district_list <- list(BF = c('Banfora','Gaoua','Orodara'),
                         MZ = c('Changara','Chemba','Guro'),
                         NG = c('Asa','Ejigbo','Ife North','Moro'))
+  admin_key <- data.frame(district=c('Banfora','Gaoua','Orodara',
+                                     'Changara','Chemba','Guro',
+                                     'Asa','Ejigbo','Ife North','Moro'),
+                          admin=c('Cascades','Sud-Ouest','Haut-Bassins',
+                                  'Tete','Sofala','Manica',
+                                  'Kwara','Osun','Osun','Kwara'))
   district_labels <- c('Banfora - IG2','Gaoua - Standard','Orodara - PBO',
                        'Changara - PBO','Chemba - Standard','Guro - IG2',
                        'Asa - IG2','Ejigbo - Standard','Ife North - PBO','Moro - RG')
@@ -1578,6 +1587,10 @@ create_dashboard_pgmg_plots <- function(results,prev_pg,prev_mg,prev_all=NULL,co
     df_data_mg <- rbind(df_data_mg,data_cis)
   }
   
+  df_data_pg$grav <- 'pg'
+  df_data_mg$grav <- 'mg'
+  df_data_all <- rbind(df_data_pg,df_data_mg)
+
   # df_data_all <- data.frame(t=numeric(),
   #                          tested=integer(),
   #                          positive=numeric(),
@@ -1599,7 +1612,8 @@ create_dashboard_pgmg_plots <- function(results,prev_pg,prev_mg,prev_all=NULL,co
                        upper = numeric(),
                        lower = numeric(),
                        district = character(),
-                       month = character())
+                       month = character(),
+                       rel_inc = numeric())
   df_inc_sample <- data.frame(time = integer(),
                               value = numeric(),
                               variable = character(),
@@ -1618,7 +1632,9 @@ create_dashboard_pgmg_plots <- function(results,prev_pg,prev_mg,prev_all=NULL,co
                        upper=quantile(value,probs=0.975)*10000*30,
                        lower=quantile(value,probs=0.025)*10000*30)%>%
       dplyr::mutate(district = districts[[i-start+1]],
-                    month = dates_list[[country]])
+                    month = dates_list[[country]])%>%
+      group_by(district)%>%
+      mutate(rel_inc = median/max(median))
     df_inc <- rbind(df_inc,long_inc_sum)
     
     inc_sample <- inc_history[, sample(ncol(inc_history), 100)] %>%
@@ -1637,12 +1653,14 @@ create_dashboard_pgmg_plots <- function(results,prev_pg,prev_mg,prev_all=NULL,co
                        upper = numeric(),
                        lower = numeric(),
                        district = character(),
-                       month = character())
+                       month = character(),
+                       rel_eir = numeric())
   df_eir_sample <- data.frame(time = integer(),
                               value = numeric(),
                               variable = character(),
                               district = character(),
-                              month = character())
+                              month = character(),
+                              rel_eir = numeric())
   for(i in start:(start+number-1)){
     eir_history <- data.frame(t(results[[i]]$history['EIR', 501:1000, -1]))
 
@@ -1656,7 +1674,8 @@ create_dashboard_pgmg_plots <- function(results,prev_pg,prev_mg,prev_all=NULL,co
                        upper=quantile(value,probs=0.975),
                        lower=quantile(value,probs=0.025))%>%
       dplyr::mutate(district = districts[[i-start+1]],
-                    month = dates_list[[country]])
+                    month = dates_list[[country]],
+                    rel_eir = median/max(median))
     df_eir <- rbind(df_eir,long_eir_sum)
 
     eir_sample <- eir_history[, sample(ncol(eir_history), 100)] %>%
@@ -1669,7 +1688,18 @@ create_dashboard_pgmg_plots <- function(results,prev_pg,prev_mg,prev_all=NULL,co
     df_eir_sample <- rbind(df_eir_sample,eir_sample)
   }
 
-  # ratio <- 1.5 * max(df$upper)/max(df_eir$median)
+  rainfall <- read_csv('./nnp/data/NNP_rainfall.csv') %>%
+    left_join(admin_key,by=join_by(NAME_1==admin))%>%
+    filter(district %in% district_list[[country]])%>%
+    group_by(district) %>%
+    filter(between(as.yearmon(Month), as.yearmon(min(dates_list[[country]])), as.yearmon(max(dates_list[[country]]))))%>%
+    mutate(rel_rainfall = Rainfall/max(Rainfall))
+  
+  incidence <- incidence%>%
+    filter(district %in% district_list[[country]])%>%
+    group_by(district)%>%
+    mutate(rel_inc = (inc/max(inc)))
+  
   annotations <- list(
     BF = ggplot()+
       annotate("rect", xmin = as.Date('2020-9-1'), xmax = as.Date('2020-10-1'), ymin = 0, ymax = Inf,alpha = .1,fill = "#999999")+
@@ -1681,6 +1711,58 @@ create_dashboard_pgmg_plots <- function(results,prev_pg,prev_mg,prev_all=NULL,co
       annotate("rect", xmin = as.Date('2021-7-1'), xmax = as.Date('2021-11-1'), ymin = 0, ymax = Inf,alpha = .1,fill = "#999999")+
       annotate("rect", xmin = as.Date('2022-7-1'), xmax = as.Date('2022-11-1'), ymin = 0, ymax = Inf,alpha = .1,fill = "#999999")
   )
+  est_eir_plot <- annotations[[country]]+
+    # geom_line(data=rainfall, aes(x=as.Date(as.yearmon(Month)),y=rel_rainfall),color="black",size=1)+
+    geom_line(data=df_eir_sample,aes(x=as.Date(month),y=value,color=district,group=variable),alpha=0.1)+
+    # geom_ribbon(aes(x=month,ymin=lower,ymax=upper,fill=district,group=district),alpha=0.2)+
+    geom_line(data=df_eir,aes(x=as.Date(month),y=median,color=district,group=district),size=1)+
+    # geom_line(data=df_eir,aes(x=month,y=median,color=district,group=district),size=1,linetype='dashed')+
+    scale_color_manual(values=colors)+
+    scale_fill_manual(values=colors)+
+    scale_x_date(date_labels = "%b %Y")+
+    # coord_cartesian(ylim=c(0, 1000))+
+    # scale_y_continuous(limits=c(0,500))+
+    scale_y_log10(breaks=c(.01,.1,1,10,100,1000),labels=c(.01,.1,1,10,100,1000))+
+    coord_cartesian(ylim=c(.01, 800))+
+    # scale_y_continuous(sec.axis = sec_axis(~ . /ratio, name = "EIR"))+
+    # labs(x='Date',y='EIR')+
+    facet_grid(district~.,labeller = labeller(district = district_labels))+
+    labs(title = 'EIR - log scale')+
+    theme(legend.title = element_blank(),
+          legend.position = 'none',
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.x=element_text(angle=45, hjust=1, vjust=1),
+          axis.ticks.x = element_line(size = 0.5),
+          axis.ticks.length = unit(3, "pt")
+    )
+  rel_eir_plot <- annotations[[country]]+
+    geom_line(data=rainfall, aes(x=as.Date(as.yearmon(Month)),y=rel_rainfall),color="black",size=1)+
+    # geom_line(data=df_eir_sample,aes(x=as.Date(month),y=rel_eir,color=site,group=variable),alpha=0.1)+
+    # geom_ribbon(aes(x=month,ymin=lower,ymax=upper,fill=district,group=district),alpha=0.2)+
+    geom_line(data=df_eir,aes(x=as.Date(month),y=rel_eir,color=district,group=district),size=1)+
+    # geom_line(data=df_eir,aes(x=month,y=median,color=district,group=district),size=1,linetype='dashed')+
+    scale_color_manual(values=colors)+
+    scale_fill_manual(values=colors)+
+    scale_x_date(date_labels = "%b %Y")+
+    # coord_cartesian(ylim=c(0, 1000))+
+    # scale_y_continuous(limits=c(0,500))+
+    # scale_y_log10(breaks=c(.1,1,10,100,1000),labels=c(.1,1,10,100,1000))+
+    coord_cartesian(ylim=c(0, 1.2))+
+    # scale_y_continuous(sec.axis = sec_axis(~ . /ratio, name = "EIR"))+
+    # labs(x='Date',y='EIR')+
+    facet_grid(district~.,labeller = labeller(district = district_labels))+
+    labs(title = 'Relative EIR and\nRainfall')+
+    theme(legend.title = element_blank(),
+          legend.position = 'none',
+          axis.text.y = element_blank(),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.x=element_text(angle=45, hjust=1, vjust=1),
+          axis.ticks.x = element_line(size = 0.5),
+          axis.ticks.length = unit(3, "pt")
+    )
+  
   est_inc_plot <- annotations[[country]]+
     geom_line(data=df_inc_sample,aes(x=month,y=value,color=district,group=variable),alpha=0.1)+
     # geom_ribbon(aes(x=month,ymin=lower,ymax=upper,fill=district,group=district),alpha=0.2)+
@@ -1705,15 +1787,41 @@ create_dashboard_pgmg_plots <- function(results,prev_pg,prev_mg,prev_all=NULL,co
           axis.ticks.x = element_line(size = 0.5),
           axis.ticks.length = unit(3, "pt")
     )
+  rel_est_inc_plot <- annotations[[country]]+
+    geom_line(data=rainfall, aes(x=as.Date(as.yearmon(Month)),y=rel_rainfall),color="black",size=1)+
+    # geom_line(data=df_inc_sample,aes(x=month,y=value,color=district,group=variable),alpha=0.1)+
+    # geom_ribbon(aes(x=month,ymin=lower,ymax=upper,fill=district,group=district),alpha=0.2)+
+    geom_line(data=df_inc,aes(x=month,y=rel_inc,color=district,group=district),size=1)+
+    # geom_line(data=df_eir,aes(x=month,y=median,color=district,group=district),size=1,linetype='dashed')+
+    scale_color_manual(values=colors)+
+    scale_fill_manual(values=colors)+
+    scale_x_date(date_labels = "%b %Y")+
+    # coord_cartesian(ylim=c(0, 1000))+
+    # coord_cartesian(ylim=c(0, ifelse(country=='NG',1000,max(incidence$inc)*2)))+
+    # scale_y_continuous(limits=c(0,500))+
+    # scale_y_log10(breaks=c(.001,0.01,.1,1,10,100,1000),labels=c(.001,0.01,.1,1,10,100,1000))+
+    # scale_y_continuous(sec.axis = sec_axis(~ . /ratio, name = "EIR"))+
+    # labs(x='Date',y='EIR')+
+    facet_grid(district~.,labeller = labeller(district = district_labels))+
+    labs(title = 'Rel. Est. Cases\nand Rainfall')+
+    theme(legend.title = element_blank(),
+          legend.position = 'none',
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y = element_blank(),
+          axis.text.x=element_text(angle=45, hjust=1, vjust=1),
+          axis.ticks.x = element_line(size = 0.5),
+          axis.ticks.length = unit(3, "pt")
+    )
   # print('est_inc_plot')
   obs_prev_plot_mg <- annotations[[country]]+
     # geom_ribbon(aes(x=month,ymin=lower,ymax=upper,fill=district,group=district),alpha=0.2)+
     # geom_line(aes(x=month,y=median,color=district,group=district),size=1)+
     # geom_vline(xintercept = c(as.Date('2017-7-1'),as.Date('2021-5-1')),size=1,linetype='dashed') +
-    geom_point(data=cs_data,aes(x=month,y=mean,color=district,group=district),pch= 2, size=1.5,color="black")+
-    geom_errorbar(data=cs_data,aes(x=month,y=mean,ymax=upper,ymin=lower,width=0,color=district,group=district),color='black')+
     geom_point(data=df_data_mg,aes(x=month,y=mean,color=district,group=district),pch = 19,position=position_dodge(width=10))+
     geom_errorbar(data=df_data_mg,aes(x=month,ymin=lower,ymax=upper,color=district,group=district),width = 0,position=position_dodge(width=10))+
+    geom_point(data=cs_data,aes(x=month,y=mean,color=district,group=district),pch= 2, size=1.5,color="black")+
+    geom_errorbar(data=cs_data,aes(x=month,y=mean,ymax=upper,ymin=lower,width=0,color=district,group=district),color='black')+
     scale_color_manual(values=colors)+
     scale_fill_manual(values=colors)+
     scale_x_date(date_labels = "%b %Y")+
@@ -1733,12 +1841,12 @@ create_dashboard_pgmg_plots <- function(results,prev_pg,prev_mg,prev_all=NULL,co
     # geom_ribbon(aes(x=month,ymin=lower,ymax=upper,fill=district,group=district),alpha=0.2)+
     # geom_line(aes(x=month,y=median,color=district,group=district),size=1)+
     # geom_vline(xintercept = c(as.Date('2017-7-1'),as.Date('2021-5-1')),size=1,linetype='dashed') +
-    geom_point(data=cs_data,aes(x=month,y=mean,color=district,group=district),pch= 2, size=1.5,color="black")+
-    geom_errorbar(data=cs_data,aes(x=month,y=mean,ymax=upper,ymin=lower,width=0,color=district,group=district),color='black')+
     geom_line(data=df_prev_sample,aes(x=month,y=prev_mg,color=district,group=variable),alpha=0.2)+
     geom_line(data=df_prev,aes(x=month,y=median_mg,color=district,group=district),linewidth=1)+
     geom_point(data=df_data_mg,aes(x=month,y=mean,color=district,group=district),pch = 19,position=position_dodge(width=10))+
     geom_errorbar(data=df_data_mg,aes(x=month,ymin=lower,ymax=upper,color=district,group=district),width = 0,position=position_dodge(width=10))+
+    geom_point(data=cs_data,aes(x=month,y=mean,color=district,group=district),pch= 2, size=1.5,color="black")+
+    geom_errorbar(data=cs_data,aes(x=month,y=mean,ymax=upper,ymin=lower,width=0,color=district,group=district),color='black')+
     scale_color_manual(values=colors)+
     scale_fill_manual(values=colors)+
     scale_x_date(date_labels = "%b %Y")+
@@ -1777,14 +1885,14 @@ create_dashboard_pgmg_plots <- function(results,prev_pg,prev_mg,prev_all=NULL,co
   # #         legend.position = 'none'
   # #   )
   est_prev_plot_pg <- annotations[[country]]+
-    geom_point(data=cs_data,aes(x=month,y=mean,color=district,group=district),size=1.5,pch=2,color="black")+
-    geom_errorbar(data=cs_data,aes(x=month,y=mean,ymax=upper,ymin=lower,width=0,color=district,group=district),color="black")+
     geom_line(data=df_prev_sample,aes(x=month,y=prev_pg,color=district,group=variable),alpha=0.2)+
     # geom_ribbon(aes(x=month,ymin=lower,ymax=upper,fill=district,group=district),alpha=0.2)+
     geom_line(data=df_prev,aes(x=month,y=median_pg,color=district,group=district),linewidth=1)+
     # geom_vline(xintercept = c(as.Date('2017-7-1'),as.Date('2021-5-1')),size=1,linetype='dashed') +
     geom_point(data=df_data_pg,aes(x=month,y=mean,color=district,group=district),pch = 19,position=position_dodge(width=10))+
     geom_errorbar(data=df_data_pg,aes(x=month,ymin=lower,ymax=upper,color=district,group=district),width = 0,position=position_dodge(width=10))+
+    geom_point(data=cs_data,aes(x=month,y=mean,color=district,group=district),size=1.5,pch=2,color="black")+
+    geom_errorbar(data=cs_data,aes(x=month,y=mean,ymax=upper,ymin=lower,width=0,color=district,group=district),color="black")+
     scale_color_manual(values=colors)+
     scale_fill_manual(values=colors)+
     scale_x_date(date_labels = "%b %Y")+
@@ -1801,10 +1909,10 @@ create_dashboard_pgmg_plots <- function(results,prev_pg,prev_mg,prev_all=NULL,co
           legend.position = 'none'
     )
   obs_prev_plot_pg <- annotations[[country]]+
-    geom_point(data=cs_data,aes(x=month,y=mean,color=district,group=district),size=1.5,pch=2,color="black")+
-    geom_errorbar(data=cs_data,aes(x=month,y=mean,ymax=upper,ymin=lower,width=0,color=district,group=district),color="black")+
     geom_point(data=df_data_pg,aes(x=month,y=mean,color=district,group=district),pch = 19,position=position_dodge(width=10))+
     geom_errorbar(data=df_data_pg,aes(x=month,ymin=lower,ymax=upper,color=district,group=district),width = 0,position=position_dodge(width=10))+
+    geom_point(data=cs_data,aes(x=month,y=mean,color=district,group=district),size=1.5,pch=2,color="black")+
+    geom_errorbar(data=cs_data,aes(x=month,y=mean,ymax=upper,ymin=lower,width=0,color=district,group=district),color="black")+
     scale_color_manual(values=colors)+
     scale_fill_manual(values=colors)+
     scale_x_date(date_labels = "%b %Y")+
@@ -1842,7 +1950,31 @@ create_dashboard_pgmg_plots <- function(results,prev_pg,prev_mg,prev_all=NULL,co
           axis.text.x=element_text(angle=45, hjust=1, vjust=1),
           axis.ticks.x = element_line(size = 0.5),
           axis.ticks.length = unit(3, "pt"))
-  # print('obs_inc_plot')
+  obs_rel_inc_plot <- annotations[[country]]+
+    geom_line(data=rainfall, aes(x=as.Date(as.yearmon(Month)),y=rel_rainfall),color="black",size=1)+
+    # geom_ribbon(aes(x=date_ex,ymin=lower,ymax=upper,fill=Distrist,group=Distrist),alpha=0.2)+
+    geom_line(data=incidence,aes(x=date_ex,y=rel_inc,color=district,group=district),size=1)+
+    # geom_line(data=df_eir,aes(x=month,y=median,color=district,group=district),size=1,linetype='dashed')+
+    scale_color_manual(values=colors)+
+    scale_fill_manual(values=colors)+
+    scale_x_date(date_labels = "%b %Y")+
+    # scale_y_continuous(limits=c(0,500))+
+    # scale_y_log10(breaks=c(.001,0.01,.1,1,10,100,1000),labels=c(.001,0.01,.1,1,10,100,1000))+
+    # scale_y_continuous(sec.axis = sec_axis(~ . /ratio, name = "EIR"))+
+    facet_grid(district~.,labeller = labeller(district = district_labels))+
+    labs(title='Rel. Obs. Cases\nand Rainfall')+
+    # coord_cartesian(ylim=c(0, ifelse(country=='NG',1000,max(incidence$inc)*2)))+
+    # coord_cartesian(ylim=c(0, max(incidence$inc)*2))+
+    theme(legend.title = element_blank(),
+          legend.position = 'none',
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y = element_blank(),
+          axis.text.x=element_text(angle=45, hjust=1, vjust=1),
+          axis.ticks.x = element_line(size = 0.5),
+          axis.ticks.length = unit(3, "pt"))
+  
+    # print('obs_inc_plot')
   obs_pos_plot <- annotations[[country]]+
     # geom_ribbon(aes(x=date_ex,ymin=lower,ymax=upper,fill=Distrist,group=Distrist),alpha=0.2)+
     geom_line(data=incidence,aes(x=date_ex,y=prop_pos,color=district,group=district),size=1)+
@@ -1863,6 +1995,24 @@ create_dashboard_pgmg_plots <- function(results,prev_pg,prev_mg,prev_all=NULL,co
           axis.text.x=element_text(angle=45, hjust=1, vjust=1),
           axis.ticks.x = element_line(size = 0.5),
           axis.ticks.length = unit(3, "pt"))
+  sample_size_plot <- annotations[[country]]+
+    # geom_ribbon(aes(x=month,ymin=lower,ymax=upper,fill=site,group=site),alpha=0.2)+
+    # geom_line(aes(x=month,y=median,color=site,group=site),size=1)+
+    # geom_vline(xintercept = c(as.Date('2017-7-1'),as.Date('2021-5-1')),size=1,linetype='dashed') +
+    geom_line(data=df_data_all,aes(x=month,y=tested,color=district,linetype=factor(grav,levels=c('pg','mg'))))+
+    scale_color_manual(values=colors)+
+    scale_fill_manual(values=colors)+
+    scale_x_date(date_labels = "%b %Y")+
+    facet_grid(district~.,labeller = labeller(district = district_labels))+
+    labs(title = 'Number Tested')+
+    theme(legend.title = element_blank(),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.x=element_text(angle=45, hjust=1, vjust=1),
+          axis.ticks.x = element_line(linewidth = 0.5),
+          axis.ticks.length = unit(3, "pt"),
+          legend.position = 'none'
+    )
   # print('obs_pos_plot')
   # # obs_test_plot <- annotations[[country]]+
   # #   # geom_ribbon(aes(x=date_ex,ymin=lower,ymax=upper,fill=Distrist,group=Distrist),alpha=0.2)+
@@ -1885,9 +2035,11 @@ create_dashboard_pgmg_plots <- function(results,prev_pg,prev_mg,prev_all=NULL,co
   full_dash <- est_prev_plot_pg+est_prev_plot_mg+est_inc_plot+obs_inc_plot+obs_pos_plot+ plot_layout(guides = "collect",ncol=5)
   obs_data_dash <- obs_prev_plot_pg+obs_prev_plot_mg+est_inc_plot+obs_inc_plot+ plot_layout(guides = "collect",ncol=4)
   pres_dash <- est_prev_plot_pg+est_prev_plot_mg+est_inc_plot+obs_inc_plot+ plot_layout(guides = "collect",ncol=4)
+  rel_dash <- sample_size_plot+est_prev_plot_pg+est_prev_plot_mg+est_eir_plot+rel_est_inc_plot+obs_rel_inc_plot+plot_layout(guides = "collect",ncol=6)
   return(list(full_dash = full_dash,
               obs_data_dash = obs_data_dash,
-              pres_dash = pres_dash))
+              pres_dash = pres_dash,
+              rel_dash = rel_dash))
   # obs_prev_plot_mg
 }
 coefs_pg_df <- as.data.frame(readRDS('./nnp/Corr/pg_corr_sample.RDS'))
@@ -2025,7 +2177,10 @@ bf_pgmg_seas_dash <- create_dashboard_pgmg_plots(results=nnp_mgcorr_bulk_seas_re
                                                cs_data_list = cs_data_list,
                                                country='BF')
 bf_pgmg_seas_dash$full_dash
-ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_bf_pgmg_seas_080323.pdf'),plot=bf_pgmg_seas_dash$full_dash, width = 12, height = 6)
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_bf_pgmg_seas_300523.pdf'),plot=bf_pgmg_seas_dash$full_dash, width = 12, height = 6)
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_bf_pgmg_seas_300523_pres.pdf'),plot=bf_pgmg_seas_dash$pres_dash, width = 12, height = 6)
+bf_pgmg_seas_dash$rel_dash
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_bf_pgmg_seas_300523_rel.pdf'),plot=bf_pgmg_seas_dash$rel_dash, width = 12, height = 6)
 
 mz_pgmg_seas_dash <- create_dashboard_pgmg_plots(results=nnp_mgcorr_bulk_seas_results_update,
                                                prev_pg=nnp_pg_list,
@@ -2036,7 +2191,9 @@ mz_pgmg_seas_dash <- create_dashboard_pgmg_plots(results=nnp_mgcorr_bulk_seas_re
                                                incidence=mz_hmis_forplot,
                                                country='MZ')
 mz_pgmg_seas_dash$full_dash
-ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_mz_pgmg_seas_080323.pdf'),plot = mz_pgmg_seas_dash$full_dash, width = 12, height = 6)
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_mz_pgmg_seas_300523.pdf'),plot = mz_pgmg_seas_dash$full_dash, width = 12, height = 6)
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_mz_pgmg_seas_300523_pres.pdf'),plot = mz_pgmg_seas_dash$pres_dash, width = 12, height = 6)
+mz_pgmg_seas_dash$rel_dash
 
 ng_pgmg_seas_dash <- create_dashboard_pgmg_plots(results=nnp_mgcorr_bulk_seas_results_update,
                                               prev_pg=nnp_pg_list,
@@ -2048,3 +2205,6 @@ ng_pgmg_seas_dash <- create_dashboard_pgmg_plots(results=nnp_mgcorr_bulk_seas_re
                                               country='NG')
 ng_pgmg_seas_dash$full_dash
 ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_ng_pgmg_seas_080323.pdf'), plot = ng_pgmg_seas_dash$full_dash, width = 12, height = 6)
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_ng_pgmg_seas_080323_pres.pdf'), plot = ng_pgmg_seas_dash$pres_dash, width = 12, height = 6)
+ng_pgmg_seas_dash$rel_dash
+ggsave(paste0('Q:/anc_pmcmc/nnp/figures/obs_prev/dash_ng_pgmg_seas_080323_rel.pdf'), plot = ng_pgmg_seas_dash$rel_dash, width = 12, height = 6)

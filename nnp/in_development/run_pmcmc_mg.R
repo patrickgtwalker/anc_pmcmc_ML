@@ -21,40 +21,65 @@ run_pmcmc_mg <- function(data_raw_pg,
                          preyears = 5, #Length of time in years the deterministic seasonal model should run before Jan 1 of the year observations began
                          seasonality_on = 1,  ## state_check = 1 runs a deterministic seasonal model before running the stochastic model to get more realistic immunity levels
                          ## If seasonality_on = 0, runs the stochastic model based on the standard equilibrium solution
-                         seasonality_check = 0 ##If 1, saves values of seasonality equilibrium
+                         seasonality_check = 0, ##If 1, saves values of seasonality equilibrium,
+                         seed = 1L,
+                         start_pf_time = 30
 ){
   ## Merge pg and mg datasets
   data_raw <- left_join(data_raw_pg,data_raw_mg,by=c('month','t'),suffix = c('.pg','.mg'))
-  ## Modify dates from data
   start_obs <- min(as.Date(data_raw$month))#Month of first observation (in Date format)
-  time_origin <- as.Date(ifelse(month(start_obs)!=1,paste0(year(start_obs),'-01-01'),paste0(year(start_obs)-1,'-01-01'))) #January 1 of the first year of observation (in Date format)
-  start_stoch <- as.Date(as.yearmon(start_obs)) #Start of stochastic schedule (First day of the month of first observation)
+  time_origin <- as.Date(paste0(year(start_obs)-1,'-01-01')) #January 1 of year before observation (in Date format)
   data_raw_time <- data_raw %>%
     mutate(date = as.Date(as.yearmon(month), frac = 0.5))%>% #Convert dates to middle of month
     mutate(t = as.integer(difftime(date,time_origin,units="days"))) #Calculate date as number of days since January 1 of first year of observation
-  initial_time <- min(data_raw_time$t) - 30 #Start particle_filter_data one month before first ime in data
+  initial_time <- min(data_raw_time$t) - start_pf_time #Start particle_filter_data a given time (default = 30d) before first ime in data
+  time_list <- data.frame(t=initial_time:max(data_raw_time$t))
+  data_raw_time <- left_join(time_list,data_raw_time,by='t')
+  start_stoch <- as.Date(start_obs - start_pf_time) #Start of stochastic schedule
+  # buffer <- data.frame(t=seq(initial_time,min(data_raw_time$t),length.out=6))
+  # data_raw_time <- plyr::rbind.fill(buffer,data_raw_time)
   data <- mcstate::particle_filter_data(data_raw_time, time = "t", rate = NULL, initial_time = initial_time) #Declares data to be used for particle filter fitting
   
   coefs_pg_df <- as.data.frame(readRDS('./nnp/Corr/pg_corr_sample.RDS'))
   coefs_mg_df <- as.data.frame(readRDS('./nnp/Corr/mg_corr_sample.RDS'))
 
+  # Binomial function that checks for NAs
+  ll_binom <- function(positive, tested, model) {
+    if (is.na(positive)) {
+      # Creates vector of NAs in ll with same length, if no data
+      ll_obs <- rep(NA,length(model))
+    } else {
+      ll_obs <- dbinom(x = positive,
+                       size = tested,
+                       prob = model,
+                       log = FALSE)
+    }
+    ll_obs
+  }
+  
   compare <- function(state, observed, pars = NULL) {
-    ###draw a sample at beginning to go ahead with
+    #skip comparison if data is missing
+    if(is.na(observed$positive.pg)&is.na(observed$positive.mg)) {return(numeric(length(state[1,])))}
+    
     logodds_child <- log(get_odds_from_prev(state[1,]))
-
-    av_likelihood_pg <- as.data.frame(sapply(1:nrow(coefs_pg_df), function(x){
+    
+    likelihood_pg <- as.data.frame(sapply(1:nrow(coefs_pg_df), function(x){
       prev_preg <- get_prev_from_log_odds(logodds_child+coefs_pg_df$gradient[x]*(logodds_child-coefs_pg_df$av_lo_child[x])+coefs_pg_df$intercept[x])
-      dbinom(x = observed$positive.pg,
-             size = observed$tested.pg,
-             prob = prev_preg)
+      ll_binom(positive = observed$positive.pg,
+             tested = observed$tested.pg,
+             model = prev_preg)
     }))
-    av_likelihood_mg <- as.data.frame(sapply(1:nrow(coefs_mg_df), function(x){
+    likelihood_mg <- as.data.frame(sapply(1:nrow(coefs_mg_df), function(x){
       prev_preg <- get_prev_from_log_odds(logodds_child+coefs_mg_df$gradient[x]*(logodds_child-coefs_mg_df$av_lo_child[x])+coefs_mg_df$intercept[x])
-      dbinom(x = observed$positive.mg,
-             size = observed$tested.mg,
-             prob = prev_preg)
+      ll_binom(positive = observed$positive.mg,
+             tested = observed$tested.mg,
+             model = prev_preg)
     }))
-    return(log(rowMeans(av_likelihood_pg))+log(rowMeans(av_likelihood_mg)))
+    av_likelihood_pg <- rowMeans(likelihood_pg,na.rm=TRUE)
+    av_likelihood_mg <- rowMeans(likelihood_mg,na.rm=TRUE)
+    ll_pg <- ifelse(is.na(av_likelihood_pg),0,log(av_likelihood_pg))
+    ll_mg <- ifelse(is.na(av_likelihood_mg),0,log(av_likelihood_mg))
+    return(ll_pg+ll_mg)
   }
   
   ## fn to return prevalence from log_odds
@@ -71,15 +96,14 @@ run_pmcmc_mg <- function(data_raw_pg,
   ##    state: output used for visualization
   index <- function(info) {
     list(run = c(prev = info$index$prev),
-         state = c(prev = info$index$prev,
+         state = c(prev_05 = info$index$prev,
                    EIR = info$index$EIR_out,
-                   inc = info$index$inc,
-                   Sout = info$index$Sout,
-                   Tout = info$index$Tout,
+                   clininc_all = info$index$inc,
+                   prev_all = info$index$prevall,
+                   clininc_05 = info$index$inc05,
                    Dout = info$index$Dout,
                    Aout = info$index$Aout,
                    Uout = info$index$Uout,
-                   Pout = info$index$Pout,
                    p_det_out = info$index$p_det_out,
                    phi_out = info$index$phi_out,
                    b_out = info$index$b_out))
@@ -87,7 +111,7 @@ run_pmcmc_mg <- function(data_raw_pg,
   
   ## Provide schedule for changes in stochastic process (in this case EIR)
   ## Converts a sequence of dates (from start_stoch to 1 month after last observation point) to days since January 1 of the first year of observation
-  stochastic_schedule <- as.integer(difftime(seq.Date(start_stoch,max(as.Date(data_raw_time$date+30)),by='month'),time_origin,units="days"))#[-1]
+  stochastic_schedule <- as.integer(difftime(seq.Date(start_stoch,max(as.Date(data_raw_time$date+30),na.rm = TRUE),by='month'),time_origin,units="days"))#[-1]
   # print(stochastic_schedule)
   
   #Provide age categories, proportion treated, and number of heterogeneity brackets
@@ -97,7 +121,7 @@ run_pmcmc_mg <- function(data_raw_pg,
   
   #Create model parameter list. Also loads seasonality profile data file to match to desired admin_unit and country
   mpl_pf <- model_param_list_create(init_age = init_age,
-                                    pro_treated = prop_treated,
+                                    prop_treated = prop_treated,
                                     het_brackets = het_brackets,
                                     max_EIR = max_EIR,
                                     state_check = state_check,
@@ -126,9 +150,9 @@ run_pmcmc_mg <- function(data_raw_pg,
       ## Run equilibrium function
       state <- equilibrium_init_create_stripped(age_vector = mpl$init_age,
                                                 init_EIR = init_EIR,
-                                                ft = prop_treated,
+                                                ft = mpl$prop_treated,
                                                 model_param_list = mpl,
-                                                het_brackets = het_brackets,
+                                                het_brackets = mpl$het_brackets,
                                                 state_check = mpl$state_check)
       # print(state)
       ##run seasonality model first if seasonality_on == 1
@@ -200,14 +224,14 @@ run_pmcmc_mg <- function(data_raw_pg,
   model <- odin.dust::odin_dust("shared/odinmodelmatchedstoch.R")
   # print('loaded stochastic model')
   
-  set.seed(1) #To reproduce pMCMC results
+  set.seed(seed) #To reproduce pMCMC results
   
   ### Set particle filter
   # print('about to set up particle filter')
   pf <- mcstate::particle_filter$new(data, model, n_particles, compare,
-                                     index = index, seed = 1L,
+                                     index = index, seed = seed,
                                      stochastic_schedule = stochastic_schedule,
-                                     ode_control = mode::mode_control(max_steps = max_steps, atol = atol, rtol = rtol),
+                                     ode_control = dust::dust_ode_control(max_steps = max_steps, atol = atol, rtol = rtol),
                                      n_threads = n_threads)
   # print('set up particle filter')
   
@@ -256,9 +280,9 @@ run_pmcmc_mg <- function(data_raw_pg,
       ## Run equilibrium function
       state <- equilibrium_init_create_stripped(age_vector = mpl$init_age,
                                                 init_EIR = init_EIR,
-                                                ft = prop_treated,
+                                                ft = mpl$prop_treated,
                                                 model_param_list = mpl,
-                                                het_brackets = het_brackets,
+                                                het_brackets = mpl$het_brackets,
                                                 state_check = mpl$state_check)
       # print(state)
       ##run seasonality model first if seasonality_on == 1

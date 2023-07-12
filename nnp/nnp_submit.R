@@ -23,6 +23,7 @@ source('shared/run_pmcmc.R')
 source('nnp/in_development/run_pmcmc_pg.R')
 source('shared/plot_particle_filter.R')
 source('shared/addCIs.R')
+source('shared/addCIs_inc.R')
 source('shared/model_parameters.R')
 source('shared/equilibrium-init-create-stripped.R')
 source('shared/utils.R')
@@ -107,7 +108,7 @@ admin <- c('Cascades','Sud-Ouest','Haut-Bassins',
            'Tete','Sofala','Manica',
            'Kwara','Osun','Osun','Kwara')
 ##Test run_pmcmc function##
-test_run_std <- run_pmcmc(data = data_raw_bf_pg_banfora,
+test_run_std <- run_pmcmc(data_raw = data_raw_bf_pg_banfora,
                       n_particles = 10,
                       proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
                       max_EIR=1000,
@@ -397,7 +398,8 @@ test_run_sifter <- sifter::run_pmcmc(data = data_raw_bf_pg_banfora,
                              country = 'Burkina Faso',
                              admin_unit = 'Cascades',
                              seasonality_on = 1,
-                             state_check = 0)
+                             state_check = 0,
+                             seasonality_check = 1)
 
 ##Test incidence
 source('shared/run_pmcmc.R')
