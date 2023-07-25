@@ -26,7 +26,7 @@ library(torch)
 library(luz)
 library(tidyverse)
 
-??load_file
+
 ##Set default theme
 theme_set(theme_minimal()+
             theme(panel.grid.major = element_blank(),
@@ -44,12 +44,207 @@ source('shared/equilibrium-init-create-stripped.R')
 
 ##Generate simulated data##
 
-n_sims<-20
+### function to generate a bunch of simulations for a given volatility and EIR 
+generate_sim_compendium<-function(n_sims,volatility,init_EIR,duration,out_step){
+  sims_compendium<-data.frame(
+    run=numeric(),t=numeric(),prev_true=numeric(),EIR_true=numeric(),vol_true=numeric(),inc_true=numeric()
+  )
+  for(i in 1:n_sims){
+    sims_compendium<-sims_compendium%>%add_row(
+      cbind(
+        data.frame(run=i),
+        data_gen(EIR_volatility = volatility, init_EIR = init_EIR,time = duration,out_step = out_step)
+      )
+    )
+  }
+  return(sims_compendium)
+}
+
+## function to generate torch data sets of a sliding window
+##middle determines whether the prediction is in the middle of that window (T) or at the end (F)
+generate_torch_ds_lags<-function(sim_compendium,fit_var,pred_var,t_var,lag_no,middle=F){
+  ### 
+  lags=1:lag_no
+  map_lag <- lags %>% map(~partial(lag, n = .x))
+  fit_tensor<-torch_tensor(
+    as.matrix(
+      sim_compendium%>%group_by(run)%>%
+        arrange(run,!!sym(t_var))%>%
+        mutate(across(.cols = {{fit_var}}, .fns = map_lag, .names = "{.col}_lag{lags}"))%>%
+        filter(!!sym(t_var)>lag_no)%>%
+        ungroup()%>%
+        select(contains("lag"))
+    )
+  )
+  if(middle==T){
+    pred_tensor<-torch_tensor(
+      as.matrix(sim_compendium%>%
+                  group_by(run)%>%
+                  arrange(run,!!sym(t_var))%>%
+                  filter(!!sym(t_var)>floor(lag_no/2),!!sym(t_var)<(max(!!sym(t_var))-floor(lag_no/2)+1))%>%
+                  ungroup()%>%
+                  select(pred_var)))
+  }
+  else{
+    pred_tensor<-torch_tensor(
+      as.matrix(sim_compendium%>%
+                  group_by(run)%>%
+                  arrange(run,!!sym(t_var))%>%
+                  filter(!!sym(t_var)>lag_no)%>%
+                  ungroup()%>%
+                  select(pred_var)))
+  }
+  return(tensor_dataset(fit_tensor, pred_tensor))
+}
+## function that fits said model with sliding window structure with training, validation, testing dataset 
+generate_preds_valid_lag<-function(model,fit_var,pred_var,t_var,middle=F,sims_compendium_train,sims_compendium_test,sims_compendium_valid,
+                                   d_hidden=100,epochs=50,loss=nn_mse_loss(),optimizer=optim_adam,lag_no=24){
+  ## get the training and testing data and determine batching structure
+  train_ds<-generate_torch_ds_lags(sim_compendium = sims_compendium_train,fit_var = fit_var,pred_var = pred_var,t_var=t_var,lag_no=lag_no,middle=middle)
+  test_ds<-generate_torch_ds_lags(sim_compendium = sims_compendium_test,fit_var = fit_var,pred_var = pred_var,t_var=t_var,lag_no=lag_no,middle=middle)
+  valid_ds<-generate_torch_ds_lags(sim_compendium = sims_compendium_valid,fit_var = fit_var,pred_var = pred_var,t_var=t_var,lag_no=lag_no,middle=middle)
+  train_dl<-dataloader(train_ds, batch_size = 100, shuffle = TRUE)
+  test_dl<-dataloader(test_ds, batch_size = 100, shuffle = TRUE)
+  valid_dl<-dataloader(valid_ds, batch_size = 100, shuffle = TRUE)
+  
+  # output dimensionality (number of predicted features - here just one)
+  d_out <- ncol(train_ds$tensors[[2]])
+  ## number of variables to use for prediction (here a window of observation of the data lag_no wide)
+  d_in <-  ncol(train_ds$tensors[[1]])
+  ## number of datapoints (number of windows*no of runs)
+  n<-nrow(train_ds$tensors[[1]])
+  
+  ##fit the model###
+  fitted <- model %>%
+    setup(loss = loss, 
+          optimizer = optimizer,
+          metrics = list(luz_metric_mae())) %>%
+    set_hparams(
+      d_in = d_in,
+      d_hidden = d_hidden, d_out = d_out
+    ) %>%
+    fit(train_ds, epochs = epochs, valid_data = valid_dl)
+  ## generate predictions 
+  pred<-fitted %>% predict(test_ds)
+  # sims_compendium_test$pred<-as.vector(t(as.matrix(pred)))
+  return(list(fit_model=fitted,
+              predictions=as.vector(t(as.matrix(pred))))
+  )
+}
+
+generate_preds_valid_lag<-function(model,fit_var,pred_var,t_var,middle=F,sims_compendium_train,sims_compendium_test,sims_compendium_valid,
+                                   d_hidden=100,epochs=50,loss=nn_mse_loss(),optimizer=optim_adam,lag_no=24){
+  
+  train_ds<-generate_torch_ds_lags(sim_compendium = sims_compendium_train,fit_var = fit_var,pred_var = pred_var,t_var=t_var,lag_no=lag_no,middle=middle)
+  test_ds<-generate_torch_ds_lags(sim_compendium = sims_compendium_test,fit_var = fit_var,pred_var = pred_var,t_var=t_var,lag_no=lag_no,middle=middle)
+  valid_ds<-generate_torch_ds_lags(sim_compendium = sims_compendium_valid,fit_var = fit_var,pred_var = pred_var,t_var=t_var,lag_no=lag_no,middle=middle)
+  train_dl<-dataloader(train_ds, batch_size = 100, shuffle = TRUE)
+  test_dl<-dataloader(test_ds, batch_size = 100, shuffle = TRUE)
+  valid_dl<-dataloader(valid_ds, batch_size = 100, shuffle = TRUE)
+  
+  # output dimensionality (number of predicted features)
+  d_out <- ncol(train_ds$tensors[[2]])
+  d_in <-  ncol(train_ds$tensors[[1]])
+  n<-nrow(train_ds$tensors[[1]])
+  
+  fitted <- model %>%
+    setup(loss = loss, 
+          optimizer = optimizer,
+          metrics = list(luz_metric_mae())) %>%
+    set_hparams(
+      d_in = d_in,
+      d_hidden = d_hidden, d_out = d_out
+    ) %>%
+    fit(train_ds, epochs = epochs, valid_data = valid_dl)
+  
+  pred<-fitted %>% predict(test_ds)
+  if(middle==T){
+    predict_data_df<-sims_compendium_test%>%group_by(run)%>%
+      arrange(run,!!sym(t_var))%>%
+      filter(!!sym(t_var)>floor(lag_no/2),!!sym(t_var)<(max(!!sym(t_var))-floor(lag_no/2)+1))%>%
+      select(run,t,pred_var)
+  }
+  else{
+    predict_data_df<-sims_compendium_test%>%group_by(run)%>%
+      group_by(run)%>%
+      arrange(run,!!sym(t_var))%>%
+      filter(!!sym(t_var)>lag_no)%>%
+      ungroup()%>%
+      select(run,t,pred_var)
+    
+  }
+  predict_data_df$predictions=as.vector(t(as.matrix(pred)))
+  compare_plot<-ggplot(predict_data_df,aes(x=t,y=!!sym(pred_var)))+
+    geom_line()+geom_line(aes(y=predictions),col="red")+
+    facet_wrap(~run)+theme(strip.text.x = element_blank())
+  return(list(fit_model=fitted,
+              predictions=predict_data_df,
+              compare_plot=compare_plot)
+  )
+}
+
+n_sims<-200
 volatility<-0.8
 init_EIR<-20
 duration=20*365
 out_step=30
 
+sims_compendium_train<-generate_sim_compendium(n_sims,volatility,init_EIR,duration,out_step)
+sims_compendium_train<-sims_compendium_train%>%
+  mutate(log_EIR=log(EIR_true),
+         inc_true_1000=inc_true*1000,
+         prev_true_zeroed=replace(prev_true,prev_true<0,1e-12),
+         log_odds_prev=log(prev_true_zeroed/(1-prev_true_zeroed)))
+
+sims_compendium_test<-generate_sim_compendium(n_sims,volatility,init_EIR,duration,out_step)
+sims_compendium_test<-sims_compendium_test%>%
+  mutate(log_EIR=log(EIR_true),
+         inc_true_1000=inc_true*1000,
+         prev_true_zeroed=replace(prev_true,prev_true<0,1e-12),
+         log_odds_prev=log(prev_true_zeroed/(1-prev_true_zeroed)))
+
+sims_compendium_valid<-generate_sim_compendium(n_sims,volatility,init_EIR,duration,out_step)
+sims_compendium_valid<-sims_compendium_valid%>%
+  mutate(log_EIR=log(EIR_true),
+         inc_true_1000=inc_true*1000,
+         prev_true_zeroed=replace(prev_true,prev_true<0,1e-12),
+         log_odds_prev=log(prev_true_zeroed/(1-prev_true_zeroed)))
+
+sims_compendium_test$step<-sims_compendium_test$t/30
+sims_compendium_train$step<-sims_compendium_train$t/30
+sims_compendium_valid$step<-sims_compendium_valid$t/30
+sims_compendium_train$step_back<-(max(sims_compendium_train$t)-sims_compendium_train$t)/30+1
+sims_compendium_test$step_back<-(max(sims_compendium_test$t)-sims_compendium_test$t)/30+1
+sims_compendium_valid$step_back<-(max(sims_compendium_valid$t)-sims_compendium_valid$t)/30+1
+sims_compendium_train$step_back<-(max(sims_compendium_train$t)-sims_compendium_train$t)/30+1
+
+
+net <- nn_module(
+  initialize = function(d_in, d_hidden, d_out) {
+    self$net <- nn_sequential(
+      nn_linear(d_in, d_hidden),
+      nn_relu(),
+      nn_linear(d_hidden, d_hidden),
+      nn_relu(),
+      nn_linear(d_hidden, d_out),
+    )
+  },
+  forward = function(x) {
+    self$net(x)
+  }
+)
+
+predict_prev_inf_lags<-generate_preds_valid_lag(model=net,fit_var="prev_true",pred_var = "log_EIR",t_var="step",middle=T,
+                                                epochs=50, sims_compendium_train=sims_compendium_train,sims_compendium_test = sims_compendium_test,sims_compendium_valid = sims_compendium_valid
+)
+
+predict_prev_inf_lags$compare_plot
+
+
+
+##Generate simulated data##
+
+### function to generate a bunch of simulations for a given volatility and EIR 
 generate_sim_compendium<-function(n_sims,volatility,init_EIR,duration,out_step){
   sims_compendium<-data.frame(
     run=numeric(),t=numeric(),prev_true=numeric(),EIR_true=numeric(),vol_true=numeric(),inc_true=numeric()
@@ -65,29 +260,10 @@ generate_sim_compendium<-function(n_sims,volatility,init_EIR,duration,out_step){
   return(sims_compendium)
 }
 
-#generate_torch_ds_lags<-function(sim_compendium,fit_var,pred_var,lag_no){
-  lags=1:lag_no
-  map_lag <- lags %>% map(~partial(lag, n = .x))
-  fit_tensor<-torch_tensor(
-    as.matrix(
-      sim_compendium%>%group_by(run)%>%
-        mutate(across(.cols = {{fit_var}}, .fns = map_lag, .names = "{.col}_lag{lags}"))%>%
-        filter(step>lag_no)%>%
-        ungroup()%>%
-        select(contains("lag"))
-    )
-  )
-  pred_tensor<-torch_tensor(
-    as.matrix(sim_compendium%>%
-                group_by(run)%>%
-                filter(step>lag_no)%>%
-                ungroup()%>%
-                select(pred_var)))
-  return(tensor_dataset(fit_tensor, pred_tensor))
-}
-
-
-generate_torch_ds_lags<-function(sim_compendium,fit_var,pred_var,t_var,lag_no){
+## function to generate torch data sets of a sliding window
+##middle determines whether the prediction is in the middle of that window (T) or at the end (F)
+generate_torch_ds_lags<-function(sim_compendium,fit_var,pred_var,t_var,lag_no,middle=F){
+  ### 
   lags=1:lag_no
   map_lag <- lags %>% map(~partial(lag, n = .x))
   fit_tensor<-torch_tensor(
@@ -100,34 +276,134 @@ generate_torch_ds_lags<-function(sim_compendium,fit_var,pred_var,t_var,lag_no){
         select(contains("lag"))
     )
   )
-  pred_tensor<-torch_tensor(
-    as.matrix(sim_compendium%>%
-                group_by(run)%>%
-                arrange(run,!!sym(t_var))%>%
-                filter(!!sym(t_var)>lag_no)%>%
-                ungroup()%>%
-                select(pred_var)))
+  if(middle==T){
+    pred_tensor<-torch_tensor(
+      as.matrix(sim_compendium%>%
+                  group_by(run)%>%
+                  arrange(run,!!sym(t_var))%>%
+                  filter(!!sym(t_var)>floor(lag_no/2),!!sym(t_var)<(max(!!sym(t_var))-floor(lag_no/2)+1))%>%
+                  ungroup()%>%
+                  select(pred_var)))
+  }
+  else{
+    pred_tensor<-torch_tensor(
+      as.matrix(sim_compendium%>%
+                  group_by(run)%>%
+                  arrange(run,!!sym(t_var))%>%
+                  filter(!!sym(t_var)>lag_no)%>%
+                  ungroup()%>%
+                  select(pred_var)))
+  }
   return(tensor_dataset(fit_tensor, pred_tensor))
 }
+## function that fits said model with sliding window structure with training, validation, testing dataset 
+generate_preds_valid_lag<-function(model,fit_var,pred_var,t_var,middle=F,sims_compendium_train,sims_compendium_test,sims_compendium_valid,
+                                   d_hidden=100,epochs=50,loss=nn_mse_loss(),optimizer=optim_adam,lag_no=24){
+  ## get the training and testing data and determine batching structure
+  train_ds<-generate_torch_ds_lags(sim_compendium = sims_compendium_train,fit_var = fit_var,pred_var = pred_var,t_var=t_var,lag_no=lag_no,middle=middle)
+  test_ds<-generate_torch_ds_lags(sim_compendium = sims_compendium_test,fit_var = fit_var,pred_var = pred_var,t_var=t_var,lag_no=lag_no,middle=middle)
+  valid_ds<-generate_torch_ds_lags(sim_compendium = sims_compendium_valid,fit_var = fit_var,pred_var = pred_var,t_var=t_var,lag_no=lag_no,middle=middle)
+  train_dl<-dataloader(train_ds, batch_size = 100, shuffle = TRUE)
+  test_dl<-dataloader(test_ds, batch_size = 100, shuffle = TRUE)
+  valid_dl<-dataloader(valid_ds, batch_size = 100, shuffle = TRUE)
+  
+  # output dimensionality (number of predicted features - here just one)
+  d_out <- ncol(train_ds$tensors[[2]])
+  ## number of variables to use for prediction (here a window of observation of the data lag_no wide)
+  d_in <-  ncol(train_ds$tensors[[1]])
+  ## number of datapoints (number of windows*no of runs)
+  n<-nrow(train_ds$tensors[[1]])
+  
+  ##fit the model###
+  fitted <- model %>%
+    setup(loss = loss, 
+          optimizer = optimizer,
+          metrics = list(luz_metric_mae())) %>%
+    set_hparams(
+      d_in = d_in,
+      d_hidden = d_hidden, d_out = d_out
+    ) %>%
+    fit(train_ds, epochs = epochs, valid_data = valid_dl)
+  ## generate predictions 
+  pred<-fitted %>% predict(test_ds)
+  # sims_compendium_test$pred<-as.vector(t(as.matrix(pred)))
+  return(list(fit_model=fitted,
+              predictions=as.vector(t(as.matrix(pred))))
+  )
+}
 
-predict_prev_inf_lags<-generate_preds_valid_lag(model=net,fit_var="prev_true",pred_var = "inc_true_1000",t_var="step_back",
-                                                epochs=50, sims_compendium_train=sims_compendium_train,sims_compendium_test = sims_compendium_test,sims_compendium_valid = sims_compendium_valid
+generate_preds_valid_lag<-function(model,fit_var,pred_var,t_var,middle=F,sims_compendium_train,sims_compendium_test,sims_compendium_valid,
+                                   d_hidden=100,epochs=50,loss=nn_mse_loss(),optimizer=optim_adam,lag_no=24){
+  
+  train_ds<-generate_torch_ds_lags(sim_compendium = sims_compendium_train,fit_var = fit_var,pred_var = pred_var,t_var=t_var,lag_no=lag_no,middle=middle)
+  test_ds<-generate_torch_ds_lags(sim_compendium = sims_compendium_test,fit_var = fit_var,pred_var = pred_var,t_var=t_var,lag_no=lag_no,middle=middle)
+  valid_ds<-generate_torch_ds_lags(sim_compendium = sims_compendium_valid,fit_var = fit_var,pred_var = pred_var,t_var=t_var,lag_no=lag_no,middle=middle)
+  train_dl<-dataloader(train_ds, batch_size = 100, shuffle = TRUE)
+  test_dl<-dataloader(test_ds, batch_size = 100, shuffle = TRUE)
+  valid_dl<-dataloader(valid_ds, batch_size = 100, shuffle = TRUE)
+  
+  # output dimensionality (number of predicted features)
+  d_out <- ncol(train_ds$tensors[[2]])
+  d_in <-  ncol(train_ds$tensors[[1]])
+  n<-nrow(train_ds$tensors[[1]])
+  
+  fitted <- model %>%
+    setup(loss = loss, 
+          optimizer = optimizer,
+          metrics = list(luz_metric_mae())) %>%
+    set_hparams(
+      d_in = d_in,
+      d_hidden = d_hidden, d_out = d_out
+    ) %>%
+    fit(train_ds, epochs = epochs, valid_data = valid_dl)
+  
+  pred<-fitted %>% predict(test_ds)
+  if(middle==T){
+    predict_data_df<-sims_compendium_test%>%group_by(run)%>%
+      arrange(run,!!sym(t_var))%>%
+    filter(!!sym(t_var)>floor(lag_no/2),!!sym(t_var)<(max(!!sym(t_var))-floor(lag_no/2)+1))%>%
+    select(run,t,pred_var)
+  }
+  else{
+    predict_data_df<-sims_compendium_test%>%group_by(run)%>%
+    group_by(run)%>%
+      arrange(run,!!sym(t_var))%>%
+      filter(!!sym(t_var)>lag_no)%>%
+      ungroup()%>%
+      select(run,t,pred_var)
+    
+  }
+  predict_data_df$predictions=as.vector(t(as.matrix(pred)))
+  compare_plot<-ggplot(predict_data_df,aes(x=t,y=!!sym(pred_var)))+
+    geom_line()+geom_line(aes(y=predictions),col="red")+
+    facet_wrap(~run)+theme(strip.text.x = element_blank())
+  return(list(fit_model=fitted,
+              predictions=predict_data_df,
+              compare_plot=compare_plot)
+         )
+}
+
+n_sims<-20
+volatility<-0.8
+init_EIR<-20
+duration=20*365
+out_step=30
+
+
+predict_prev_inf_lags<-generate_preds_valid_lag(model=net,fit_var="prev_true",pred_var = "log_EIR",t_var="step",middle=T,
+                                                epochs=5, sims_compendium_train=sims_compendium_train,sims_compendium_test = sims_compendium_test,sims_compendium_valid = sims_compendium_valid
 )
+
+predict_prev_inf_lags$compare_plot
 compare<-sims_compendium_test%>%
   group_by(run)%>%
-  filter(step_back>24)%>%
-  select(t,inc_true_1000)
-compare<-sims_compendium_test%>%
-  group_by(run)%>%
-  arrange(run,step_back)%>%
-  filter(step_back>24)%>%
-  select(t,inc_true_1000)
+  arrange(run,step)%>%
+  filter(step>floor(24/2),step<(max(step)-floor(24/2)+1))%>%
+  select(t,log_EIR)
 compare$pred<-predict_prev_inf_lags$predictions
 
 
-ggplot(compare,aes(x=t,y=inc_true))+
-  geom_line()+geom_line(aes(y=pred),col="red")+
-  facet_wrap(~run)+theme(strip.text.x = element_text(size=0))
+
 
 length(compare$t)
 
@@ -156,74 +432,31 @@ sims_compendium_train%>%group_by(run)%>%
   ungroup()
 
 sims_compendium_train
-check_torch<-generate_torch_ds_lags(sim_compendium = sims_compendium_train,fit_var = "prev_true",pred_var = "inc_true_1000",t_var="step_back",lag_no=24)
-check_torch$tensors[[1]]
+
 
 sims_compendium_train$inc_true_1000
-generate_preds_valid_lag<-function(model,fit_var,pred_var,t_var,sims_compendium_train,sims_compendium_test,sims_compendium_valid,
-                                   d_hidden=100,epochs=50,loss=nn_mse_loss(),optimizer=optim_adam,lag_no=24){
-  
-  train_ds<-generate_torch_ds_lags(sim_compendium = sims_compendium_train,fit_var = fit_var,pred_var = pred_var,t_var=t_var,lag_no=lag_no)
-  test_ds<-generate_torch_ds_lags(sim_compendium = sims_compendium_test,fit_var = fit_var,pred_var = pred_var,t_var=t_var,lag_no=lag_no)
-  valid_ds<-generate_torch_ds_lags(sim_compendium = sims_compendium_valid,fit_var = fit_var,pred_var = pred_var,t_var=t_var,lag_no=lag_no)
-  train_dl<-dataloader(train_ds, batch_size = 100, shuffle = TRUE)
-  test_dl<-dataloader(test_ds, batch_size = 100, shuffle = TRUE)
-  valid_dl<-dataloader(valid_ds, batch_size = 100, shuffle = TRUE)
-  
-  # output dimensionality (number of predicted features)
-  d_out <- ncol(train_ds$tensors[[2]])
-  d_in <-  ncol(train_ds$tensors[[1]])
-  n<-nrow(train_ds$tensors[[1]])
-  
-  fitted <- model %>%
-    setup(loss = loss, 
-          optimizer = optimizer,
-          metrics = list(luz_metric_mae())) %>%
-    set_hparams(
-      d_in = d_in,
-      d_hidden = d_hidden, d_out = d_out
-    ) %>%
-    fit(train_ds, epochs = epochs, valid_data = valid_dl)
-  
-  pred<-fitted %>% predict(test_ds)
-  # sims_compendium_test$pred<-as.vector(t(as.matrix(pred)))
-  return(list(fit_model=fitted,
-              predictions=as.vector(t(as.matrix(pred))))
-  )
-}
 
 
 
-net <- nn_module(
-  initialize = function(d_in, d_hidden, d_out) {
-    self$net <- nn_sequential(
-      nn_linear(d_in, d_hidden),
-      nn_relu(),
-      nn_linear(d_hidden, d_hidden),
-      nn_relu(),
-      nn_linear(d_hidden, d_out),
-        )
-  },
-  forward = function(x) {
-    self$net(x)
-  }
-)
 
 sims_compendium_train<-generate_sim_compendium(n_sims,volatility,init_EIR,duration,out_step)
 sims_compendium_train<-sims_compendium_train%>%
-  mutate(inc_true_1000=inc_true*1000,
+  mutate(log_EIR=log(EIR_true),
+    inc_true_1000=inc_true*1000,
          prev_true_zeroed=replace(prev_true,prev_true<0,1e-12),
          log_odds_prev=log(prev_true_zeroed/(1-prev_true_zeroed)))
 
 sims_compendium_test<-generate_sim_compendium(n_sims,volatility,init_EIR,duration,out_step)
 sims_compendium_test<-sims_compendium_test%>%
-  mutate(inc_true_1000=inc_true*1000,
+  mutate(log_EIR=log(EIR_true),
+    inc_true_1000=inc_true*1000,
          prev_true_zeroed=replace(prev_true,prev_true<0,1e-12),
          log_odds_prev=log(prev_true_zeroed/(1-prev_true_zeroed)))
 
 sims_compendium_valid<-generate_sim_compendium(n_sims,volatility,init_EIR,duration,out_step)
 sims_compendium_valid<-sims_compendium_valid%>%
-  mutate(inc_true_1000=inc_true*1000,
+  mutate(log_EIR=log(EIR_true),
+    inc_true_1000=inc_true*1000,
          prev_true_zeroed=replace(prev_true,prev_true<0,1e-12),
          log_odds_prev=log(prev_true_zeroed/(1-prev_true_zeroed)))
 
