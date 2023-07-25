@@ -93,8 +93,8 @@ generate_torch_ds_lags<-function(sim_compendium,fit_var,pred_var,t_var,lag_no){
   fit_tensor<-torch_tensor(
     as.matrix(
       sim_compendium%>%group_by(run)%>%
-        arrange(run,!!sym(paste0(t_var)))%>%
-        mutate(across(.cols = {{fit_var}}, .fns = map_lag, .names = "{.col}_forward{lags}"))%>%
+        arrange(run,!!sym(t_var))%>%
+        mutate(across(.cols = {{fit_var}}, .fns = map_lag, .names = "{.col}_lag{lags}"))%>%
         filter(!!sym(t_var)>lag_no)%>%
         ungroup()%>%
         select(contains("lag"))
@@ -125,7 +125,7 @@ compare<-sims_compendium_test%>%
 compare$pred<-predict_prev_inf_lags$predictions
 
 
-ggplot(compare,aes(x=t,y=inc_true_1000))+
+ggplot(compare,aes(x=t,y=inc_true))+
   geom_line()+geom_line(aes(y=pred),col="red")+
   facet_wrap(~run)+theme(strip.text.x = element_text(size=0))
 
