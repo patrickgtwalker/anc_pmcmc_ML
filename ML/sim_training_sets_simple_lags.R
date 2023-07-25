@@ -1,21 +1,21 @@
 
 
-library("odin.dust")
+#library("odin.dust")
 
-library("patchwork")
-library('mcstate')
-library(didehpc)
-library(pkgdepends)
+#library("patchwork")
+#library('mcstate')
+#library(didehpc)
+#library(pkgdepends)
 
-library("coda")
-library(binom)
+#library("coda")
+#library(binom)
 
-library(bayesplot)
-library(reshape2)
-library(ggpubr)
-library(patchwork)
-library(RColorBrewer)
-
+#library(bayesplot)
+#library(reshape2)
+#library(ggpubr)
+#library(patchwork)
+#library(RColorBrewer)
+install.packages("luz")
 ## actually used libraries..
 library(odin)
 library(ggplot2)
@@ -65,7 +65,7 @@ generate_sim_compendium<-function(n_sims,volatility,init_EIR,duration,out_step){
   return(sims_compendium)
 }
 
-generate_torch_ds_lags<-function(sim_compendium,fit_var,pred_var,lag_no){
+#generate_torch_ds_lags<-function(sim_compendium,fit_var,pred_var,lag_no){
   lags=1:lag_no
   map_lag <- lags %>% map(~partial(lag, n = .x))
   fit_tensor<-torch_tensor(
@@ -87,14 +87,15 @@ generate_torch_ds_lags<-function(sim_compendium,fit_var,pred_var,lag_no){
 }
 
 
-generate_torch_ds_lags_forward<-function(sim_compendium,fit_var,pred_var,lag_no){
+generate_torch_ds_lags<-function(sim_compendium,fit_var,pred_var,t_var,lag_no){
   lags=1:lag_no
   map_lag <- lags %>% map(~partial(lag, n = .x))
   fit_tensor<-torch_tensor(
     as.matrix(
       sim_compendium%>%group_by(run)%>%
-        mutate(across(.cols = {{fit_var}}, .fns = map_lag, .names = "{.col}_lag{lags}"))%>%
-        filter(step>lag_no)%>%
+        arrange(run,!!sym(paste0(t_var)))%>%
+        mutate(across(.cols = {{fit_var}}, .fns = map_lag, .names = "{.col}_forward{lags}"))%>%
+        filter(!!sym(t_var)>lag_no)%>%
         ungroup()%>%
         select(contains("lag"))
     )
@@ -102,18 +103,69 @@ generate_torch_ds_lags_forward<-function(sim_compendium,fit_var,pred_var,lag_no)
   pred_tensor<-torch_tensor(
     as.matrix(sim_compendium%>%
                 group_by(run)%>%
-                filter(step>lag_no)%>%
+                arrange(run,!!sym(t_var))%>%
+                filter(!!sym(t_var)>lag_no)%>%
                 ungroup()%>%
                 select(pred_var)))
   return(tensor_dataset(fit_tensor, pred_tensor))
 }
 
-generate_preds_valid_lag<-function(model,fit_var,pred_var,sims_compendium_train,sims_compendium_test,sims_compendium_valid,
+predict_prev_inf_lags<-generate_preds_valid_lag(model=net,fit_var="prev_true",pred_var = "inc_true_1000",t_var="step_back",
+                                                epochs=50, sims_compendium_train=sims_compendium_train,sims_compendium_test = sims_compendium_test,sims_compendium_valid = sims_compendium_valid
+)
+compare<-sims_compendium_test%>%
+  group_by(run)%>%
+  filter(step_back>24)%>%
+  select(t,inc_true_1000)
+compare<-sims_compendium_test%>%
+  group_by(run)%>%
+  arrange(run,step_back)%>%
+  filter(step_back>24)%>%
+  select(t,inc_true_1000)
+compare$pred<-predict_prev_inf_lags$predictions
+
+
+ggplot(compare,aes(x=t,y=inc_true_1000))+
+  geom_line()+geom_line(aes(y=pred),col="red")+
+  facet_wrap(~run)+theme(strip.text.x = element_text(size=0))
+
+length(compare$t)
+
+fit_var = "prev_true"
+pred_var = "inc_true"
+t_var="step_back"
+sims_compendium_train%>%group_by(run)%>%
+  arrange(run,!!sym(t_var))%>%
+  mutate(across(.cols = {{fit_var}}, .fns = map_lag, .names = "{.col}_lag{lags}"))%>%
+  filter(!!sym(t_var)>lag_no)%>%
+  ungroup()
+
+sims_compendium_train%>%
+  group_by(run)%>%
+  arrange(run,!!sym(t_var))%>%
+  filter(!!sym(t_var)>lag_no)%>%
+  ungroup()%>%
+  select(pred_var)
+
+sims_compendium_train
+
+sims_compendium_train%>%group_by(run)%>%
+  arrange(run,!!sym(t_var))%>%
+  mutate(across(.cols = {{fit_var}}, .fns = map_lag, .names = "{.col}_lag{lags}"))%>%
+  filter(!!sym(t_var)>lag_no)%>%
+  ungroup()
+
+sims_compendium_train
+check_torch<-generate_torch_ds_lags(sim_compendium = sims_compendium_train,fit_var = "prev_true",pred_var = "inc_true_1000",t_var="step_back",lag_no=24)
+check_torch$tensors[[1]]
+
+sims_compendium_train$inc_true_1000
+generate_preds_valid_lag<-function(model,fit_var,pred_var,t_var,sims_compendium_train,sims_compendium_test,sims_compendium_valid,
                                    d_hidden=100,epochs=50,loss=nn_mse_loss(),optimizer=optim_adam,lag_no=24){
   
-  train_ds<-generate_torch_ds_lags(sim_compendium = sims_compendium_train,fit_var = fit_var,pred_var = pred_var,lag_no=lag_no)
-  test_ds<-generate_torch_ds_lags(sim_compendium = sims_compendium_test,fit_var = fit_var,pred_var = pred_var,lag_no=lag_no)
-  valid_ds<-generate_torch_ds_lags(sim_compendium = sims_compendium_valid,fit_var = fit_var,pred_var = pred_var,lag_no=lag_no)
+  train_ds<-generate_torch_ds_lags(sim_compendium = sims_compendium_train,fit_var = fit_var,pred_var = pred_var,t_var=t_var,lag_no=lag_no)
+  test_ds<-generate_torch_ds_lags(sim_compendium = sims_compendium_test,fit_var = fit_var,pred_var = pred_var,t_var=t_var,lag_no=lag_no)
+  valid_ds<-generate_torch_ds_lags(sim_compendium = sims_compendium_valid,fit_var = fit_var,pred_var = pred_var,t_var=t_var,lag_no=lag_no)
   train_dl<-dataloader(train_ds, batch_size = 100, shuffle = TRUE)
   test_dl<-dataloader(test_ds, batch_size = 100, shuffle = TRUE)
   valid_dl<-dataloader(valid_ds, batch_size = 100, shuffle = TRUE)
@@ -140,6 +192,8 @@ generate_preds_valid_lag<-function(model,fit_var,pred_var,sims_compendium_train,
   )
 }
 
+
+
 net <- nn_module(
   initialize = function(d_in, d_hidden, d_out) {
     self$net <- nn_sequential(
@@ -148,8 +202,7 @@ net <- nn_module(
       nn_linear(d_hidden, d_hidden),
       nn_relu(),
       nn_linear(d_hidden, d_out),
-      nn_sigmoid()
-    )
+        )
   },
   forward = function(x) {
     self$net(x)
@@ -177,23 +230,29 @@ sims_compendium_valid<-sims_compendium_valid%>%
 sims_compendium_test$step<-sims_compendium_test$t/30
 sims_compendium_train$step<-sims_compendium_train$t/30
 sims_compendium_valid$step<-sims_compendium_valid$t/30
-predict_inc_prev_lags<-generate_preds_valid_lag(model=net,fit_var="inc_true",pred_var = "prev_true",
-                                                sims_compendium_train=sims_compendium_train,sims_compendium_test = sims_compendium_test,sims_compendium_valid = sims_compendium_valid
-)
-compare<-sims_compendium_test%>%
-  group_by(run)%>%
-  filter(step>24)%>%
-  select(t,prev_true)
-compare$pred<-predict_inc_prev_lags$predictions
-ggplot(compare,aes(x=t,y=prev_true))+
-  geom_line()+geom_line(aes(y=pred),col="red")+
-  facet_wrap(~run)+theme(strip.text.x = element_text(size=0))
+sims_compendium_train$step_back<-(max(sims_compendium_train$t)-sims_compendium_train$t)/30+1
+sims_compendium_test$step_back<-(max(sims_compendium_test$t)-sims_compendium_test$t)/30+1
+sims_compendium_valid$step_back<-(max(sims_compendium_valid$t)-sims_compendium_valid$t)/30+1
+sims_compendium_train$step_back<-(max(sims_compendium_train$t)-sims_compendium_train$t)/30+1
+
+
+max(predict_prev_inf_lags$predictions)
 
 
 
+compare
 
 
 ########## after here isn't relevant#####
+
+check<-data.frame(t=1:10,y=rep(1:2,5),x=rnorm(10))
+order_data<-function(data,arg_var){
+  return(data%>%arrange(y,!!sym(arg_var))%>%group_by(y))
+}
+order_data(check,"x")
+
+
+
 generate_torch_ds<-function(sim_compendium,fit_var,pred_var){
   fit_tensor<-torch_tensor(
     as.matrix(sim_compendium%>%
