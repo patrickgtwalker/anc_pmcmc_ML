@@ -417,7 +417,7 @@ rel_foi[] <- user()
   output(inc05) <- sum(clin_inc0to5)/sum(den[1:age05])
   output(inc) <- sum(clin_inc[,])
   output(inc1) <- sum(clin_inc[1,])/den[1]
-
+  output(inc_smc) <- sum(clin_inc[2:age05,])/sum(den[2:age05])
   # Param checking outputs
   # output(mu) <- mu
   # output(beta_larval) <- beta_larval

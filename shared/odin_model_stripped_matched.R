@@ -436,7 +436,7 @@ clin_inc0to5[1:age05,] <- clin_inc[i,j]
 output(inc05) <- sum(clin_inc0to5)/sum(den[1:age05])
 
 output(inc) <- sum(clin_inc[,])
-
+output(inc_smc) <- sum(clin_inc[2:age05,])/sum(den[2:age05])
 
 # Param checking outputs
 #output(mu) <- mu

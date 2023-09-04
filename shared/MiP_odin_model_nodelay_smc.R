@@ -360,6 +360,7 @@ rel_foi[] <- user()
   # Interpolate constant betaa values between user-defined switch points
   betaa_td <- interpolate(betaa_times, betaa_vals, "constant")
   output(betaa_out) <- betaa_td
+  output(SMC_prot)<-SMC_prot
   dim(SMC_times)<-user()
   dim(SMC_vals)<-user()
   SMC_times[]<-user()

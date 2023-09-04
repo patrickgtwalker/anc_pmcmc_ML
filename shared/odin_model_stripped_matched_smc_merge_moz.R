@@ -1,13 +1,13 @@
 ## MODEL VARIABLES
 ##------------------------------------------------------------------------------
 smc_cov<-user()
-dim(cov_vect) <- c(na,2)
-cov_vect[1,1]<-1
-cov_vect[1,2]<-0
-cov_vect[2:age05,1]<-1-smc_cov
-cov_vect[2:age05,2]<-smc_cov
-cov_vect[(1+age05):na,1]<-1
-cov_vect[(1+age05):na,2]<-0
+dim(cov_vect) <- c(2)
+cov_vect[1]<-1-smc_cov
+cov_vect[2]<-smc_cov
+dim(on_vect) <- c(na)
+on_vect[2:age05]<-1
+on_vect[1]<-0
+on_vect[(1+age05):na]<-0
 na <- user() # number of age categories
 nh <- user() # number of biting heterogeneity categories
 ft <- user() # proportion of cases treated
@@ -37,18 +37,18 @@ rP <- user() # rate at which prophylaxis wears off P -> S
 # S - SUSCEPTIBLE
 init_S[,] <- user()
 dim(init_S) <- c(na,nh)
-initial(S[,,]) <- init_S[i,j]*cov_vect[i,k]
+initial(S[,,]) <- init_S[i,j]*cov_vect[k]
 dim(S) <- c(na,nh,2)
 
 deriv(S[1, 1:nh,1:2]) <- -FOI[i,j,k]*S[i,j,k] + rP*P[i,j,k] + rU*U[i,j,k] +
-  eta*H*het_wt[j]*cov_vect[i,k] - (eta+age_rate[i])*S[i,j,k]
+  eta*H*het_wt[j]*cov_vect[k] - (eta+age_rate[i])*S[i,j,k]
 deriv(S[2:na, 1:nh,1:2]) <- -FOI[i,j,k]*S[i,j,k] + rP*P[i,j,k] + rU*U[i,j,k] -
   (eta+age_rate[i])*S[i,j,k] + age_rate[i-1]*S[i-1,j,k]
 
 # T- SUCCESSFULLY TREATED
 init_T[,] <- user()
 dim(init_T) <- c(na,nh)
-initial(T[,,]) <- init_T[i,j]*cov_vect[i,k]
+initial(T[,,]) <- init_T[i,j]*cov_vect[k]
 dim(T) <- c(na,nh,2)
 deriv(T[1, 1:nh,1:2]) <- ft*clin_inc[i,j,k] - rT*T[i,j,k] -
   (eta+age_rate[i])*T[i,j,k]
@@ -58,7 +58,7 @@ deriv(T[2:na, 1:nh,1:2]) <- ft*clin_inc[i,j,k] - rT*T[i,j,k] -
 # D - CLEAR DISEASE
 init_D[,] <- user()
 dim(init_D) <- c(na,nh)
-initial(D[,,]) <- init_D[i,j]*cov_vect[i,k]
+initial(D[,,]) <- init_D[i,j]*cov_vect[k]
 dim(D) <- c(na,nh,2)
 
 deriv(D[1, 1:nh,1:2]) <- (1-ft)*clin_inc[i,j,k] - rD*D[i,j,k] -
@@ -69,7 +69,7 @@ deriv(D[2:na, 1:nh,1:2]) <- (1-ft)*clin_inc[i,j,k] - rD*D[i,j,k] -
 # A - ASYMPTOMATIC DISEASE
 init_A[,] <- user()
 dim(init_A) <- c(na,nh)
-initial(A[,,]) <- init_A[i,j]*cov_vect[i,k]
+initial(A[,,]) <- init_A[i,j]*cov_vect[k]
 dim(A) <- c(na,nh,2)
 
 deriv(A[1, 1:nh,1:2]) <- (1-phi[i,j,k])*FOI[i,j,k]*Y[i,j,k] - FOI[i,j,k]*A[i,j,k] +
@@ -80,7 +80,7 @@ deriv(A[2:na, 1:nh,1:2]) <- (1-phi[i,j,k])*FOI[i,j,k]*Y[i,j,k] - FOI[i,j,k]*A[i,
 # U - SUBPATENT DISEASE
 init_U[,] <- user()
 dim(init_U) <- c(na,nh)
-initial(U[,,]) <- init_U[i,j]*cov_vect[i,k]
+initial(U[,,]) <- init_U[i,j]*cov_vect[k]
 dim(U) <- c(na,nh,2)
 
 deriv(U[1, 1:nh,1:2]) <- rA*A[i,j,k] - FOI[i,j,k]*U[i,j,k] - rU*U[i,j,k] -
@@ -91,7 +91,7 @@ deriv(U[2:na, 1:nh,1:2]) <- rA*A[i,j,k] - FOI[i,j,k]*U[i,j,k] - rU*U[i,j,k] -
 # P - PROPHYLAXIS
 init_P[,] <- user()
 dim(init_P) <- c(na,nh)
-initial(P[,,]) <- init_P[i,j]*cov_vect[i,k]
+initial(P[,,]) <- init_P[i,j]*cov_vect[k]
 dim(P) <- c(na,nh,2)
 
 deriv(P[1, 1:nh,1:2]) <- rT*T[i,j,k] - rP*P[i,j,k] - (eta+age_rate[i])*P[i,j,k]
@@ -253,8 +253,8 @@ foi_age[] <- user()
 dim(rel_foi) <- nh
 rel_foi[] <- user()
 dim(EIR) <- c(na,nh,2)
-EIR[,,1] <- EIR_td*rel_foi[j] * foi_age[i]*SMC_prot
-EIR[,,2] <- EIR_td*rel_foi[j] * foi_age[i]
+EIR[,,1] <- EIR_td*rel_foi[j] * foi_age[i]
+EIR[,,2] <- EIR_td*rel_foi[j] * foi_age[i]*(1-(1-SMC_prot)*on_vect[i])
 #output(Ivout) <- Iv
 
 #output(omega) <- omega
