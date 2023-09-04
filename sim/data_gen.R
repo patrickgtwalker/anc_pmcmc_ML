@@ -1,3 +1,5 @@
+
+
 data_gen <- function(EIR_volatility,
                      init_EIR=100,
                      max_EIR=1000,

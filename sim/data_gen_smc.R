@@ -1,0 +1,159 @@
+genRandWalk <- function(x,vol,randWalk) {
+  if (x == 0)    return (randWalk)
+  else return(genRandWalk(x-1,vol,c(randWalk,min(exp(log(randWalk[length(randWalk)])+rnorm(1)*vol),max_EIR))))
+}
+time<-5*365
+EIR_step<-30
+EIR_times<-seq(0,time,by=EIR_step)
+init_EIR<-10
+EIR_volatility<-0.4
+max_EIR<-1000
+EIR_vals<-genRandWalk(length(EIR_times)-1,EIR_volatility,init_EIR)
+SMC_times<-seq(90,150,by=30)
+SMC_roll_out<-5
+SMC_covs<-0.1
+SMC_switches<-sort(c(0,SMC_times,SMC_times+5,time))
+gen_chemo_prev(EIR_times,
+               EIR_vals,
+               SMC_times,
+               SMC_covs,
+               SMC_roll_out)
+
+gen_chemo_prev <- function(EIR_times,
+                           EIR_vals,
+                           SMC_times,
+                           SMC_covs,
+                           SMC_roll_out,
+                           prop_treated = 0.4,
+                           init_age = c(0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 3.5, 5, 7.5, 10, 15, 20, 30, 40, 50, 60, 70, 80),
+                           time= 5*365,
+                           EIR_step=30,
+                           out_step=30,
+                           het_brackets=5,
+                           model_file="shared/odin_model_stripped_smc.R"){
+  
+  SMC_switches<-sort(c(0,SMC_times,SMC_times+5,time))
+  SMC_rates<-rep(0,length(SMC_switches))
+  SMC_rates[which(SMC_switches%in%SMC_times)]<-log(1/(1-SMC_covs))/SMC_roll_out
+  
+  mpl <- model_param_list_create(SMC_switches = SMC_switches,
+                                 SMC_rates = SMC_rates,
+                                 EIR_times=EIR_times,
+                                 EIR_vals=EIR_vals
+  )
+
+  pars <- equilibrium_init_create_stripped(age_vector = init_age,
+                                           init_EIR = init_EIR,
+                                           ft = prop_treated,
+                                           model_param_list = mpl,
+                                           het_brackets = het_brackets)
+  
+  # create model with initial values
+  mod <- generator(user = state_use, use_dde = TRUE)
+  tt <- seq(0, time, out_step)
+  
+  # run the simulation to base the data
+  start.time <- Sys.time()
+  mod_run <- mod$run(tt, step_max_n = 1e7,
+                     atol = 1e-5,
+                     rtol = 1e-5)
+  print(Sys.time()-start.time)
+  
+  # shape output
+  out <- mod$transform_variables(mod_run)
+  
+  # plot data and generate data
+  #plot(out$t,out$prev,col="white")
+  #lines(out$t,out$prev,col="blue",lwd=4)
+  #tested<-round(rnorm(length(out$prev_all),220,40))
+  #positive<-rbinom(length(out$prev_all),tested,out$prev_all)
+  #month <- seq.Date(from = as.Date('2015-01-01'),by = 'month',length.out = length(tt))
+  data_raw<-data.frame(t=out$t+30,
+                       #month=as.yearmon(month),
+                       #tested=tested,
+                       #positive=positive,
+                       prev_true=out$prev_all,
+                       EIR_true=EIR_vals,
+                       vol_true=EIR_volatility,
+                       inc_true=out$incunder5)
+  return(data_raw)
+}
+ return(pars) 
+}
+
+data_gen <- function(EIR_volatility,
+                     init_EIR=100,
+                     max_EIR=1000,
+                     prop_treated = 0.4,
+                     init_age = c(0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 3.5, 5, 7.5, 10, 15, 20, 30, 40, 50, 60, 70, 80),
+                     time= 5*365,
+                     EIR_step=30,
+                     out_step=30,
+                     model_file="shared/odin_model_stripped_matched.R"){
+cat('EIR_vol = ',EIR_volatility,' init_EIR = ',init_EIR,'\n')
+
+EIR_times=seq(0,time,by=EIR_step)
+
+rA_preg <- 0.00512821
+rU_preg <- 0.00906627
+het_brackets <- 5
+
+################## generate the data ######################
+# generate random walk of EIR (recursive fn)
+genRandWalk <- function(x,vol,randWalk) {
+  if (x == 0)    return (randWalk)
+  else return(genRandWalk(x-1,vol,c(randWalk,min(exp(log(randWalk[length(randWalk)])+rnorm(1)*vol),max_EIR))))
+}
+
+
+### just a random walk on logscale
+EIR_vals=genRandWalk(length(EIR_times)-1,EIR_volatility,init_EIR)
+
+
+
+mpl <- model_param_list_create(init_EIR = init_EIR,
+                               init_ft = prop_treated,
+                               EIR_times=EIR_times,
+                               EIR_vals=EIR_vals
+                               )
+
+pars <- equilibrium_init_create_stripped(age_vector = init_age,
+                                init_EIR = init_EIR,
+                                ft = prop_treated,
+                                model_param_list = mpl,
+                                het_brackets = het_brackets)
+
+##The malaria model but only on human side (i.e. no mosquitoes to worry about)
+generator <- odin(model_file)
+state_use <- pars[names(pars) %in% coef(generator)$name]
+
+# create model with initial values
+mod <- generator(user = state_use, use_dde = TRUE)
+tt <- seq(0, time, out_step)
+
+# run the simulation to base the data
+start.time <- Sys.time()
+mod_run <- mod$run(tt, step_max_n = 1e7,
+                   atol = 1e-5,
+                   rtol = 1e-5)
+print(Sys.time()-start.time)
+
+# shape output
+out <- mod$transform_variables(mod_run)
+
+# plot data and generate data
+#plot(out$t,out$prev,col="white")
+#lines(out$t,out$prev,col="blue",lwd=4)
+#tested<-round(rnorm(length(out$prev_all),220,40))
+#positive<-rbinom(length(out$prev_all),tested,out$prev_all)
+#month <- seq.Date(from = as.Date('2015-01-01'),by = 'month',length.out = length(tt))
+data_raw<-data.frame(t=out$t+30,
+                     #month=as.yearmon(month),
+                     #tested=tested,
+                     #positive=positive,
+                     prev_true=out$prev_all,
+                     EIR_true=EIR_vals,
+                     vol_true=EIR_volatility,
+                     inc_true=out$incunder5)
+return(data_raw)
+}
