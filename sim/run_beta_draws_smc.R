@@ -37,9 +37,148 @@ weibull <- function(time, alpha = 3.4, beta = 39.34) {
   y <- exp(pow)
   return(y)
 }
+
+plot(weibull(1:100))
+lines(weibull(1:100,alpha=7,beta=40))
+gambia_sims_step<-get_smc_sims(1.712536,gambia_draws,gambia_times[1]+30,3,30,1,7,40)
+BF_sims_step<-get_smc_sims(49.81896,BF_draws,BF_times[1]+30,3,30,1,7,40)
+mali_sims_step<-get_smc_sims(7.419249,mali_draws,mali_times[1]+30,3,30,1,7,40)
+ghana_sims_step_check<-get_smc_sims(111.0336,ghana_draws,ghana_times[1]+30,4,30,1,7,40)
+
+ghana_sims_step_2yr<-get_smc_sims(111.0336,ghana_draws,ghana_times[1]+30,4,30,2,7,40)
+BF_sims_step_2yr<-get_smc_sims(49.81896,BF_draws,BF_times[1]+30,4,30,2,7,40)
+mali_sims_step_2yr<-get_smc_sims(7.419249,mali_draws,mali_times[1]+30,4,30,2,7,40)
+gambia_sims_step_2yr<-get_smc_sims(1.712536,gambia_draws,gambia_times[1]+30,4,30,2,7,40)
+
+ghana_summary_step_2yr<-ghana_sims_step_2yr%>%
+  group_by(t)%>%
+  summarise(incu5_med=quantile(inc_target,0.5),incu5_lower=quantile(inc_target,0.025),incu5_upper=quantile(inc_target,0.975),
+            incu5_smc_med=quantile(inc_target_smc,0.5),incu5_smc_lower=quantile(inc_target_smc,0.025),incu5_smc_upper=quantile(inc_target_smc,0.975))
+BF_summary_step_2yr<-BF_sims_step_2yr%>%
+  group_by(t)%>%
+  summarise(incu5_med=quantile(inc_target,0.5),incu5_lower=quantile(inc_target,0.025),incu5_upper=quantile(inc_target,0.975),
+            incu5_smc_med=quantile(inc_target_smc,0.5),incu5_smc_lower=quantile(inc_target_smc,0.025),incu5_smc_upper=quantile(inc_target_smc,0.975))
+mali_summary_step_2yr<-mali_sims_step_2yr%>%
+  group_by(t)%>%
+  summarise(incu5_med=quantile(inc_target,0.5),incu5_lower=quantile(inc_target,0.025),incu5_upper=quantile(inc_target,0.975),
+            incu5_smc_med=quantile(inc_target_smc,0.5),incu5_smc_lower=quantile(inc_target_smc,0.025),incu5_smc_upper=quantile(inc_target_smc,0.975))
+
+gambia_summary_step_2yr<-gambia_sims_step_2yr%>%
+  group_by(t)%>%
+  summarise(incu5_med=quantile(inc_target,0.5),incu5_lower=quantile(inc_target,0.025),incu5_upper=quantile(inc_target,0.975),
+            incu5_smc_med=quantile(inc_target_smc,0.5),incu5_smc_lower=quantile(inc_target_smc,0.025),incu5_smc_upper=quantile(inc_target_smc,0.975))
+
+
+step_df_long_2yr<-data.frame(time=date_zero+time_vect-30,
+                         inc= c(BF_summary_step_2yr$incu5_med,gambia_summary_step_2yr$incu5_med,mali_summary_step_2yr$incu5_med,ghana_summary_step_2yr$incu5_med),
+                         inc_smc=c(BF_summary_step_2yr$incu5_smc_med,gambia_summary_step_2yr$incu5_smc_med,mali_summary_step_2yr$t,ghana_summary_step_2yr$incu5_smc_med),
+                         site=c(rep("Burkina Faso",length(BF_summary_step_2yr$t)),rep("Gambia",length(gambia_summary_step_2yr$t)),rep("Mali",length(mali_summary_step_2yr$t)),rep("Ghana",length(ghana_summary_step_2yr$t)))
+)
+step_df_long_2yr$site<-factor(step_df_long_2yr$site,levels=c("Ghana","Burkina Faso","Mali","Gambia"))
+ggplot(step_df_long_2yr,aes(x=time,y=inc*1000*30))+
+  geom_line()+facet_wrap(~site)
+
+ggplot(ghana_summary_step_2yr,aes(x=date_zero+t-30,y=incu5_med*1000*30))+
+  geom_line(col="#FF410DFF",lwd=2)+
+  #geom_ribbon(fill="#FF410DFF",lwd=2,aes(ymin=incu5_lower*1000*30,ymax=incu5_upper*1000*30))+
+  # geom_line(data=median_inc_05,aes(y=med_inc05*1000*30),lwd=3,col="#FF410DFF")+
+  geom_vline(xintercept=date_zero+mali_times,lty=2)+
+  geom_line(aes(y=incu5_smc_med*1000*30),col="#6EE2FFFF",lwd=2)+
+  #geom_ribbon(fill="#6EE2FFFF",lwd=2,aes(ymin=incu5_smc_lower*1000*30,ymax=incu5_smc_upper*1000*30))+
+  #geom_line(data=median_inc_05,aes(y=med_inc05_smc*1000*30),lwd=3,col="#6EE2FFFF")+
+  ylab("Cases per 1000 children under 5 per month")
+
+gambia_summary_step<-gambia_sims_step%>%
+  group_by(t)%>%
+  summarise(incu5_med=quantile(inc_target,0.5),incu5_lower=quantile(inc_target,0.025),incu5_upper=quantile(inc_target,0.975),
+            incu5_smc_med=quantile(inc_target_smc,0.5),incu5_smc_lower=quantile(inc_target_smc,0.025),incu5_smc_upper=quantile(inc_target_smc,0.975))
+
+gambia_step_effiacy<-gambia_sims_step%>%filter(t>(gambia_times[1]+30)&t<(gambia_times[1]+30+365))%>%
+  group_by(draw)%>%
+  summarise(efficacy=1-sum(inc_target_smc)/sum(inc_target))
+summary(gambia_step_effiacy)
+BF_summary_step<-BF_sims_step%>%
+  group_by(t)%>%
+  summarise(incu5_med=quantile(inc_target,0.5),incu5_lower=quantile(inc_target,0.025),incu5_upper=quantile(inc_target,0.975),
+            incu5_smc_med=quantile(inc_target_smc,0.5),incu5_smc_lower=quantile(inc_target_smc,0.025),incu5_smc_upper=quantile(inc_target_smc,0.975))
+BF_step_effiacy<-BF_sims_step%>%filter(t>(BF_times[1]+30)&t<(BF_times[1]+30+365))%>%
+  group_by(draw)%>%
+  summarise(efficacy=1-sum(inc_target_smc)/sum(inc_target))
+
+BF_step_effiacy
+summary(BF_step_effiacy)
+mali_summary_step<-mali_sims_step%>%
+  group_by(t)%>%
+  summarise(incu5_med=quantile(inc_target,0.5),incu5_lower=quantile(inc_target,0.025),incu5_upper=quantile(inc_target,0.975),
+            incu5_smc_med=quantile(inc_target_smc,0.5),incu5_smc_lower=quantile(inc_target_smc,0.025),incu5_smc_upper=quantile(inc_target_smc,0.975))
+mali_step_effiacy<-mali_sims_step%>%filter(t>(mali_times[1]+30)&t<(mali_times[1]+30+365))%>%
+  group_by(draw)%>%
+  summarise(efficacy=1-sum(inc_target_smc)/sum(inc_target))
+summary(mali_step_effiacy)
+ghana_summary_step<-ghana_sims_step%>%
+  group_by(t)%>%
+  summarise(incu5_med=quantile(inc_target,0.5),incu5_lower=quantile(inc_target,0.025),incu5_upper=quantile(inc_target,0.975),
+            incu5_smc_med=quantile(inc_target_smc,0.5),incu5_smc_lower=quantile(inc_target_smc,0.025),incu5_smc_upper=quantile(inc_target_smc,0.975))
+ghana_step_effiacy<-ghana_sims_step%>%filter(t>ghana_times[1]+30)%>%
+  group_by(draw)%>%
+  summarise(efficacy=1-sum(inc_target_smc)/sum(inc_target))
+
+ggplot(mali_summary_step,aes(x=date_zero+t-30,y=incu5_med*1000*30))+
+  geom_line(col="#FF410DFF",lwd=2)+
+  #geom_ribbon(fill="#FF410DFF",lwd=2,aes(ymin=incu5_lower*1000*30,ymax=incu5_upper*1000*30))+
+  # geom_line(data=median_inc_05,aes(y=med_inc05*1000*30),lwd=3,col="#FF410DFF")+
+  geom_vline(xintercept=date_zero+mali_times,lty=2)+
+  geom_line(aes(y=incu5_smc_med*1000*30),col="#6EE2FFFF",lwd=2)+
+  #geom_ribbon(fill="#6EE2FFFF",lwd=2,aes(ymin=incu5_smc_lower*1000*30,ymax=incu5_smc_upper*1000*30))+
+  #geom_line(data=median_inc_05,aes(y=med_inc05_smc*1000*30),lwd=3,col="#6EE2FFFF")+
+  ylab("Cases per 1000 children under 5 per month")
+
+
+ggplot(BF_summary_step,aes(x=date_zero+t-30,y=incu5_med*1000*30))+
+  geom_line(col="#FF410DFF",lwd=2)+
+  #geom_ribbon(fill="#FF410DFF",lwd=2,aes(ymin=incu5_lower*1000*30,ymax=incu5_upper*1000*30))+
+  # geom_line(data=median_inc_05,aes(y=med_inc05*1000*30),lwd=3,col="#FF410DFF")+
+  geom_vline(xintercept=date_zero+BF_times,lty=2)+
+  geom_line(aes(y=incu5_smc_med*1000*30),col="#6EE2FFFF",lwd=2)+
+  #geom_ribbon(fill="#6EE2FFFF",lwd=2,aes(ymin=incu5_smc_lower*1000*30,ymax=incu5_smc_upper*1000*30))+
+  #geom_line(data=median_inc_05,aes(y=med_inc05_smc*1000*30),lwd=3,col="#6EE2FFFF")+
+  ylab("Cases per 1000 children under 5 per month")
+
+summary(gambia_step_effiacy)
+
+date_zero<-min(gambia_draws$date)-min(gambia_draws$t)
+ggplot(gambia_summary_step,aes(x=date_zero+t-30,y=incu5_med*1000*30))+
+  geom_line(col="#FF410DFF",lwd=2)+
+  # geom_line(data=median_inc_05,aes(y=med_inc05*1000*30),lwd=3,col="#FF410DFF")+
+  geom_vline(xintercept=date_zero+gambia_times,lty=2)+
+  geom_line(aes(y=incu5_smc_med*1000*30),col="#6EE2FFFF",lwd=2)+
+  #geom_line(data=median_inc_05,aes(y=med_inc05_smc*1000*30),lwd=3,col="#6EE2FFFF")+
+  ylab("Cases per 1000 children under 5 per year")
+
+ggplot(ghana_summary_step,aes(x=date_zero+t-30,y=incu5_med*1000*30))+
+  geom_line(col="#FF410DFF",lwd=2)+
+  # geom_line(data=median_inc_05,aes(y=med_inc05*1000*30),lwd=3,col="#FF410DFF")+
+  geom_vline(xintercept=date_zero+ghana_times,lty=2)+
+  geom_line(aes(y=incu5_smc_med*1000*30),col="#6EE2FFFF",lwd=2)+
+  #geom_line(data=median_inc_05,aes(y=med_inc05_smc*1000*30),lwd=3,col="#6EE2FFFF")+
+  ylab("Cases per 1000 children under 5 per year")
+
+time_vect=c(BF_summary_step$t,gambia_summary_step$t,mali_summary_step$t,ghana_summary_step$t)
+step_df_long<-data.frame(time=date_zero+time_vect-30,
+                         inc= c(BF_summary_step$incu5_med,gambia_summary_step$incu5_med,mali_summary_step$incu5_med,ghana_summary_step$incu5_med),
+                         inc_smc=c(BF_summary_step$incu5_smc_med,gambia_summary_step$incu5_smc_med,mali_summary_step$t,ghana_summary_step$incu5_smc_med),
+                         site=c(rep("Burkina Faso",length(BF_summary_step$t)),rep("Gambia",length(gambia_summary_step$t)),rep("Mali",length(mali_summary_step$t)),rep("Ghana",length(ghana_summary_step$t)))
+                         )
+ 
+
+
+step_df_long$site<-factor(step_df_long$site,levels=c("Ghana","Burkina Faso","Mali","Gambia"))
+ ggplot(step_df_long,aes(x=time,y=inc*1000*30))+
+  geom_line()+facet_wrap(~site)
+
 ### for running SMC ###
-get_smc_profile<-function(start_sim,end_sim,SMC_start,nround,gap,years){
-  single_year<-c(rep(1-weibull(1:gap),nround-1),1-weibull(1:100))
+get_smc_profile<-function(start_sim,end_sim,SMC_start,nround,gap,years, alpha , beta){
+  single_year<-c(rep(1-weibull(1:gap, alpha , beta),nround-1),1-weibull(1:100, alpha , beta))
   prop_prof<-rep(single_year,years)
   prop_times<-as.vector(sapply(seq(SMC_start,SMC_start+years*365-1,by=365),function(time){
     time:(time+length(single_year)-1)
@@ -69,7 +208,7 @@ start_smc<-592
 beta_draws
 
 date_zero<-min(BF_draws$date)-min(BF_draws$t)
-BF_sims<-get_smc_sims(1,BF_draws,BF_times[1]+30,3,30,1)
+BF_sims<-get_smc_sims(49.81896,BF_draws,BF_times[1]+30,3,30,1)
 BF_summary<-BF_sims%>%
   group_by(t)%>%
   summarise(incu5_med=quantile(inc_target,0.5),incu5_lower=quantile(inc_target,0.025),incu5_upper=quantile(inc_target,0.975),
@@ -78,17 +217,30 @@ BF_summary<-BF_sims%>%
 
 BF_plot<-ggplot(BF_summary,aes(x=date_zero+t-30,y=incu5_med*1000*30))+
   geom_line(col="#FF410DFF",lwd=2)+
- # geom_line(data=median_inc_05,aes(y=med_inc05*1000*30),lwd=3,col="#FF410DFF")+
+  #geom_ribbon(fill="#FF410DFF",lwd=2,aes(ymin=incu5_lower*1000*30,ymax=incu5_upper*1000*30))+
+  # geom_line(data=median_inc_05,aes(y=med_inc05*1000*30),lwd=3,col="#FF410DFF")+
   geom_vline(xintercept=date_zero+BF_times,lty=2)+
   geom_line(aes(y=incu5_smc_med*1000*30),col="#6EE2FFFF",lwd=2)+
+  #geom_ribbon(fill="#6EE2FFFF",lwd=2,aes(ymin=incu5_smc_lower*1000*30,ymax=incu5_smc_upper*1000*30))+
   #geom_line(data=median_inc_05,aes(y=med_inc05_smc*1000*30),lwd=3,col="#6EE2FFFF")+
-  ylab("Cases per 1000 children under 5 per year")
+  ylab("Cases per 1000 children under 5 per month")
 
-gambia_sims<-get_smc_sims(1,gambia_draws,gambia_times[1]+30,3,30,1)
+gambia_sims<-get_smc_sims(1.712536,gambia_draws,gambia_times[1]+30,3,30,1)
 gambia_summary<-gambia_sims%>%
   group_by(t)%>%
   summarise(incu5_med=quantile(inc_target,0.5),incu5_lower=quantile(inc_target,0.025),incu5_upper=quantile(inc_target,0.975),
             incu5_smc_med=quantile(inc_target_smc,0.5),incu5_smc_lower=quantile(inc_target_smc,0.025),incu5_smc_upper=quantile(inc_target_smc,0.975))
+
+gambia_effiacy<-gambia_sims%>%filter(t<min(t)+365)%>%
+  group_by(draw)%>%
+  summarise(efficacy=1-sum(inc_target_smc)/sum(inc_target))
+
+summary(gambia_effiacy$efficacy)
+sum(gambia_summary$incu5_smc_med[])/
+sum(gambia_summary$incu5_med)
+
+1-sum(mali_summary$incu5_smc_med)/
+  sum(mali_summary$incu5_med)
 
 date_zero<-min(gambia_draws$date)-min(gambia_draws$t)
 gambia_plot<-ggplot(gambia_summary,aes(x=date_zero+t-30,y=incu5_med*1000*30))+
@@ -99,7 +251,7 @@ gambia_plot<-ggplot(gambia_summary,aes(x=date_zero+t-30,y=incu5_med*1000*30))+
   #geom_line(data=median_inc_05,aes(y=med_inc05_smc*1000*30),lwd=3,col="#6EE2FFFF")+
   ylab("Cases per 1000 children under 5 per year")
 
-mali_sims<-get_smc_sims(1,mali_draws,mali_times[1]+30,3,30,1)
+mali_sims<-get_smc_sims(7.419249,mali_draws,mali_times[1]+30,3,30,1)
 mali_summary<-mali_sims%>%
   group_by(t)%>%
   summarise(incu5_med=quantile(inc_target,0.5),incu5_lower=quantile(inc_target,0.025),incu5_upper=quantile(inc_target,0.975),
@@ -114,7 +266,7 @@ mali_plot<-ggplot(mali_summary,aes(x=date_zero+t-30,y=incu5_med*1000*30))+
   #geom_line(data=median_inc_05,aes(y=med_inc05_smc*1000*30),lwd=3,col="#6EE2FFFF")+
   ylab("Cases per 1000 children under 5 per year")
 
-ghana_sims<-get_smc_sims(1,ghana_draws,ghana_times[1]+30,4,30,1)
+ghana_sims<-get_smc_sims(111.0336,ghana_draws,ghana_times[1]+30,4,30,1)
 ghana_summary<-ghana_sims%>%
   group_by(t)%>%
   summarise(incu5_med=quantile(inc_target,0.5),incu5_lower=quantile(inc_target,0.025),incu5_upper=quantile(inc_target,0.975),
@@ -132,7 +284,7 @@ ghana_plot<-ggplot(ghana_summary,aes(x=date_zero+t-30,y=incu5_med*1000*30))+
 windows(height=20,width=30)
 ggpubr::ggarrange(ghana_plot,BF_plot,mali_plot,gambia_plot,ncol=2,nrow=2,
                   labels=c("Ghana","BF","Mali","Gambia"))
-plot(gambia_draws$date,gambia_draws$X1)
+  plot(gambia_draws$date,gambia_draws$X1)
 gambia_draws$d
   gap<-30
 nrounds<-4
@@ -145,7 +297,7 @@ plot(check_SMC$SMC_vals)
 check_SMC$SMC_vals
 
 
-get_smc_sims<-function(init_EIR,beta_draws,start_smc,nrounds,gap,years){
+get_smc_sims<-function(init_EIR,beta_draws,start_smc,nrounds,gap,years, alpha = 3.4, beta = 39.34){
   prop_treated = 0.4
   init_age = c(0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 3.5, 5, 7.5, 10, 15, 20, 30, 40, 50, 60, 70, 80)
   time= 5*365
@@ -171,7 +323,7 @@ get_smc_sims<-function(init_EIR,beta_draws,start_smc,nrounds,gap,years){
   model_file_beta_smc<-"shared/MiP_odin_model_nodelay_smc.R"
   generator_beta_smc <- odin(model_file_beta_smc)
   state_use_beta_smc<-state_use_beta
-  smc_prof<-get_smc_profile(min(beta_draws$t),max(beta_draws$t),start_smc,nrounds,gap,years)
+  smc_prof<-get_smc_profile(min(beta_draws$t),max(beta_draws$t),start_smc,nrounds,gap,years, alpha , beta)
   state_use_beta_smc$SMC_times<-smc_prof$SMC_times
   state_use_beta_smc$SMC_vals<-smc_prof$SMC_vals
   state_use_beta_smc$smc_cov<-1
