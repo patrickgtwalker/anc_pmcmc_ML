@@ -1,7 +1,13 @@
 
+# generate random walk of EIR (recursive fn)
+genRandWalk <- function(x,vol,randWalk,min_EIR,max_EIR) {
+  if (x == 0)    return (randWalk)
+  else return(genRandWalk(x-1,vol,c(randWalk,max(min_EIR,min(exp(log(randWalk[length(randWalk)])+rnorm(1)*vol),max_EIR))),min_EIR,max_EIR))
+}
 
 data_gen <- function(EIR_volatility,
                      init_EIR=100,
+                     min_EIR=0.01,
                      max_EIR=1000,
                      prop_treated = 0.4,
                      init_age = c(0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 3.5, 5, 7.5, 10, 15, 20, 30, 40, 50, 60, 70, 80),
@@ -18,15 +24,10 @@ rU_preg <- 0.00906627
 het_brackets <- 5
 
 ################## generate the data ######################
-# generate random walk of EIR (recursive fn)
-genRandWalk <- function(x,vol,randWalk) {
-  if (x == 0)    return (randWalk)
-  else return(genRandWalk(x-1,vol,c(randWalk,min(exp(log(randWalk[length(randWalk)])+rnorm(1)*vol),max_EIR))))
-}
 
 
 ### just a random walk on logscale
-EIR_vals=genRandWalk(length(EIR_times)-1,EIR_volatility,init_EIR)
+EIR_vals=genRandWalk(length(EIR_times)-1,EIR_volatility,init_EIR,min_EIR,max_EIR)
 
 
 
