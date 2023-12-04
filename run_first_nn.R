@@ -71,10 +71,6 @@ sims_compendium_valid<-sims_compendium_valid%>%
 sims_compendium_test$step<-sims_compendium_test$t/30
 sims_compendium_train$step<-sims_compendium_train$t/30
 sims_compendium_valid$step<-sims_compendium_valid$t/30
-#sims_compendium_train$step_back<-(max(sims_compendium_train$t)-sims_compendium_train$t)/30+1
-#sims_compendium_test$step_back<-(max(sims_compendium_test$t)-sims_compendium_test$t)/30+1
-#sims_compendium_valid$step_back<-(max(sims_compendium_valid$t)-sims_compendium_valid$t)/30+1
-#sims_compendium_train$step_back<-(max(sims_compendium_train$t)-sims_compendium_train$t)/30+1
 
 dir.create("./sim_compendia")
 #saveRDS(sims_compendium_train,"./train_first_relu.RDS")
