@@ -72,7 +72,7 @@ sims_compendium_test$step<-sims_compendium_test$t/30
 sims_compendium_train$step<-sims_compendium_train$t/30
 sims_compendium_valid$step<-sims_compendium_valid$t/30
 
-dir.create("./sim_compendia")
+#dir.create("./sim_compendia")
 #saveRDS(sims_compendium_train,"./train_first_relu.RDS")
 #saveRDS(sims_compendium_test,"./test_first_relu.RDS")
 #saveRDS(sims_compendium_valid,"./valid_first_relu.RDS")
