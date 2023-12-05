@@ -1,6 +1,6 @@
 library(odin)
 library(ggplot2)
-library(sifter)
+#library(sifter)
 library(zoo)
 library(dplyr)
 library(torch)
@@ -81,7 +81,7 @@ dir.create("./sim_compendia")
 predict_prev_inf_lags<-generate_preds_valid_lag(model=net,fit_var="prev_true",pred_var = "log_EIR",t_var="step",middle=T,
                                                 epochs=50, sims_compendium_train=sims_compendium_train,sims_compendium_test = sims_compendium_test,sims_compendium_valid = sims_compendium_valid
 )
-dir.create("./fitted_models")
+#dir.create("./fitted_models")
 #saveRDS(predict_prev_inf_lags,"./fitted_first_relu.RDS")
 predict_prev_inf_lags$compare_plot
 
