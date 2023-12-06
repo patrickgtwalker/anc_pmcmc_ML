@@ -160,9 +160,12 @@ generate_preds_valid_lag<-function(model,fit_var,pred_var,t_var,middle=F,sims_co
     
   }
   predict_data_df$predictions=as.vector(t(as.matrix(pred)))
+  
+  ## generate the plot
   compare_plot<-ggplot(predict_data_df,aes(x=t,y=!!sym(pred_var)))+
     geom_line()+geom_line(aes(y=predictions),col="red")+
     facet_wrap(~run)+theme(strip.text.x = element_blank())
+  ## return named list 
   return(list(fit_model=fitted,
               predictions=predict_data_df,
               compare_plot=compare_plot)
