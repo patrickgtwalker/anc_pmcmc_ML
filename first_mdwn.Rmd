@@ -1,0 +1,103 @@
+---
+title: "Neural Net model example"
+
+
+---
+```{r,  echo=FALSE,  results=FALSE, warning=FALSE, message=FALSE}
+seed<-72
+n_sims<-25
+```
+# Generate simulations
+
+This will generate a set of `r n_sims` random trajectories of EIR using seed `r seed`
+
+First lets generate the random trajectories
+```{r,  echo=FALSE,  results=FALSE, warning=FALSE, message=FALSE}
+
+set.seed(seed)
+library(odin)
+library(ggplot2)
+#library(sifter)
+library(zoo)
+library(dplyr)
+library(torch)
+library(luz)
+library(tidyverse)
+
+
+##Set default theme
+theme_set(theme_minimal()+
+            theme(panel.grid.major = element_blank(),
+                  panel.grid.minor = element_blank(),
+                  strip.background = element_blank(),
+                  panel.border = element_rect(colour = "black",fill=NA)))
+
+#Required functions
+source('sim/data_gen.R')
+source('shared/run_pmcmc.R')
+source('shared/plot_particle_filter.R')
+source('shared/addCIs.R')
+source('shared/model_parameters.R')
+source('shared/equilibrium-init-create-stripped.R')
+source('shared/utils.R')
+source('ML/ML_functions.R')
+runtime<-Sys.time()
+
+volatility<-0.5
+init_EIR<-10
+duration<-20*365
+out_step<-30
+fit_var = "prev_true"
+pred_var<-"log_EIR"
+t_var<-"step"
+lag_no<-24
+sims_compendium_test<-generate_sim_compendium(n_sims,volatility,init_EIR,duration,out_step)%>%
+  mutate(log_EIR=log(EIR_true),
+         inc_true_1000=inc_true*1000,
+         prev_true_zeroed=replace(prev_true,prev_true<0,1e-12),
+         log_odds_prev=log(prev_true_zeroed/(1-prev_true_zeroed)))
+sims_compendium_test$step<-sims_compendium_test$t/30
+ ggplot(sims_compendium_test,aes(x=t,y=exp(log_EIR)))+
+    geom_line()+facet_wrap(~run)+ylab("EIR")+xlab("Time in Years")+theme(strip.text.x = element_blank())+
+   scale_y_log10(labels = scales::label_number())+
+   scale_x_continuous(breaks=seq(0,20*365,by=365*5),labels=seq(0,20,by=5))
+ runtime2<-Sys.time()
+ runsofar<-runtime2-runtime
+print(runsofar)
+```
+ <br>
+ ...and the prevalence time series these create
+ 
+
+ ```{r, echo=FALSE,  results=FALSE, warning=FALSE, message=FALSE}
+ggplot(sims_compendium_test,aes(x=t,y=prev_true))+theme(strip.text.x = element_blank())+
+    geom_line()+facet_wrap(~run)+ylab("Prevalence")+xlab("Time in Years")+
+   scale_x_continuous(breaks=seq(0,20*365,by=365*5),labels=seq(0,20,by=5))
+
+```
+<br>
+  It has taken `r as.numeric(difftime(runtime2, runtime, units = "secs"))` seconds to run the simulations  
+    
+  Now lets plug these prevalence timeseries into a neural net model trained the dynamical model and attempt to reconstruct EIR trends
+  
+```{r, echo=FALSE,  results=FALSE, warning=FALSE, message=FALSE}
+test_ds<-generate_torch_ds_lags(sim_compendium = sims_compendium_test,fit_var = fit_var,pred_var =pred_var ,t_var=t_var,lag_no=lag_no,middle=T)
+
+short_model<-luz_load("./200_model.RDS")
+runtime3<-Sys.time()
+pred<-short_model %>% predict(test_ds)
+predict_data_df<-sims_compendium_test%>%group_by(run)%>%
+  arrange(run,!!sym(t_var))%>%
+  filter(!!sym(t_var)>floor(lag_no/2),!!sym(t_var)<(max(!!sym(t_var))-floor(lag_no/2)+1))%>%
+  select(run,t,pred_var)
+predict_data_df$predictions=as.vector(t(as.matrix(pred)))
+ggplot(predict_data_df,aes(x=t,y=exp(!!sym(pred_var))))+
+  geom_line()+geom_line(aes(y=exp(predictions)),col="red")+
+  facet_wrap(~run)+ylab("EIR")+xlab("Time in Years")+theme(strip.text.x = element_blank())+
+  scale_y_log10(labels = scales::label_number())+
+   scale_x_continuous(breaks=seq(0,20*365,by=365*5),labels=seq(0,20,by=5))
+runtime4<-Sys.time()
+reconstruct_time<-runtime4-runtime3
+```
+  <br>
+  It has taken `r as.numeric(difftime(runtime4, runtime3, units = "secs"))` seconds for the Neural Net to generate the reconstructed EIR timeseries

@@ -171,3 +171,4 @@ generate_preds_valid_lag<-function(model,fit_var,pred_var,t_var,middle=F,sims_co
               compare_plot=compare_plot)
   )
 }
+
