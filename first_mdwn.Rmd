@@ -69,7 +69,7 @@ print(runsofar)
  ...and the prevalence time series these create
  
 
- ```{r, echo=FALSE,  results=FALSE, warning=FALSE, message=FALSE}
+```{r, echo=FALSE,  results=FALSE, warning=FALSE, message=FALSE}
 ggplot(sims_compendium_test,aes(x=t,y=prev_true))+theme(strip.text.x = element_blank())+
     geom_line()+facet_wrap(~run)+ylab("Prevalence")+xlab("Time in Years")+
    scale_x_continuous(breaks=seq(0,20*365,by=365*5),labels=seq(0,20,by=5))
